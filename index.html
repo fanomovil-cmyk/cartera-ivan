@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartera Iván — Dashboard Definitivo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{--bg:#0B0F1A;--s1:#111827;--s2:#1A2235;--bd:#1E2D45;--ac:#3B82F6;--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--tx:#F0F4FF;--mt:#6B7A99;--pu:#C4B5FD;--pi:#EC4899}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding:18px;font-size:13px;transition:background 0.3s}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+.hdr p{font-size:10px;color:var(--mt);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.hdr-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:var(--s2);border:1px solid var(--bd);border-radius:16px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--mt);transition:all 0.2s}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.btn.ac{color:var(--gn);border-color:var(--gn)}
+.btn.alert{color:var(--am);border-color:var(--am);animation:pulse 2s infinite}
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:18px;overflow-x:auto;gap:2px}
+.tb{padding:9px 16px;font-size:11px;font-weight:600;color:var(--mt);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all 0.2s}
+.tb:hover{color:var(--tx)}
+.tb.on{color:var(--ac);border-bottom-color:var(--ac)}
+.tp{display:none}.tp.on{display:block}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;transition:all 0.3s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--ac))}
+.kl{font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:5px}
+.kv{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+.ks{font-size:9px;color:var(--mt);margin-top:4px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:12px;transition:all 0.3s}
+.card:hover{border-color:var(--ac)}
+.ch{padding:11px 16px;border-bottom:1px solid var(--bd);background:var(--s2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.ch h3{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--mt);font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.g2{grid-template-columns:1fr}}
+.sc{overflow-x:auto;max-height:65vh;overflow-y:auto}
+.dt{width:100%;border-collapse:collapse;font-size:10px}
+.dt thead{background:var(--s2);position:sticky;top:0;z-index:1}
+.dt th{padding:6px 10px;font-size:7.5px;text-transform:uppercase;letter-spacing:0.5px;color:var(--mt);font-weight:600;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap;cursor:pointer}
+.dt th:first-child{text-align:left}
+.dt td{padding:7px 10px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}
+.dt td:first-child{text-align:left}
+.dt tr:hover td{background:var(--s2)}
+.dt tfoot td{font-weight:700;border-top:2px solid var(--ac);background:#1A2B4A;color:#93C5FD}
+.gn{color:var(--gn);font-family:'JetBrains Mono',monospace;font-weight:600}
+.rd{color:var(--rd);font-family:'JetBrains Mono',monospace;font-weight:600}
+.am{color:var(--am);font-family:'JetBrains Mono',monospace;font-weight:600}
+.bl{color:#93C5FD;font-family:'JetBrains Mono',monospace}
+.mt2{color:var(--mt);font-family:'JetBrains Mono',monospace}
+.pu{color:var(--pu);font-family:'JetBrains Mono',monospace}
+.pi{color:var(--pi);font-family:'JetBrains Mono',monospace}
+.pb{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px}
+.pb.USA{background:#1e3a5f;color:#93C5FD}
+.pb.FRA{background:#1a3320;color:#86EFAC}
+.pb.ESP{background:#4a1a1a;color:#FCA5A5}
+.pb.IRL{background:#1e3320;color:#6EE7B7}
+.pbar{background:var(--bd);border-radius:3px;height:5px;margin-top:6px;overflow:hidden}
+.pfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--ac),var(--gn));transition:width 1s}
+.cw{padding:12px 16px;height:200px}
+.pr{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;font-family:monospace}
+.pr.ap{background:#7F1D1D;color:#FCA5A5}
+.pr.a{background:#14532D;color:#86EFAC}
+.pr.am2{background:#1E3A5F;color:#93C5FD}
+.pr.b{background:#2D1B69;color:#C4B5FD}
+.pr.es{background:#422006;color:#FCD34D}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}
+.highlight{background:rgba(16,185,129,0.1)}
+.alert-box{background:rgba(239,68,68,0.1);border:1px solid var(--rd);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.alert-box .icon{font-size:16px}
+.alert-box.warn{background:rgba(245,158,11,0.1);border-color:var(--am)}
+.alert-box.info{background:rgba(59,130,246,0.1);border-color:var(--ac)}
+.alert-box.success{background:rgba(16,185,129,0.1);border-color:var(--gn)}
+.heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;padding:8px}
+.heatmap .day{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;transition:all 0.3s}
+.heatmap .day:hover{transform:scale(1.2);z-index:2}
+.sim-input{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:11px;width:100%;font-family:'JetBrains Mono',monospace}
+.sim-input:focus{outline:none;border-color:var(--ac)}
+.sim-result{background:var(--s1);border-radius:6px;padding:10px 14px;border-left:3px solid var(--gn)}
+.export-btn{background:var(--s2);border:1px solid var(--bd);border-radius:16px;padding:4px 12px;font-size:9px;color:var(--mt);cursor:pointer;transition:all 0.2s;font-family:'JetBrains Mono',monospace}
+.export-btn:hover{border-color:var(--pu);color:var(--pu)}
+.focus-mode{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;display:none;padding:40px;overflow-y:auto}
+.focus-mode.on{display:block}
+.focus-mode .close{position:fixed;top:20px;right:20px;font-size:24px;cursor:pointer;color:var(--mt)}
+.focus-mode .close:hover{color:var(--tx)}
+.notification{position:fixed;bottom:20px;right:20px;background:var(--s2);border:1px solid var(--ac);border-radius:12px;padding:14px 20px;z-index:1000;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:slideUp 0.4s ease}
+@keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
+.notification .title{font-weight:700;font-size:11px}
+.notification .desc{font-size:9px;color:var(--mt);margin-top:4px}
+.notification .close-btn{position:absolute;top:6px;right:10px;cursor:pointer;color:var(--mt);font-size:12px}
+.badge-orden{font-size:7px;padding:2px 6px;border-radius:3px;font-weight:700;font-family:monospace}
+.badge-orden.compra{background:#1a3a2a;color:#86EFAC}
+.badge-orden.venta{background:#3a1a1a;color:#FCA5A5}
+</style>
+</head>
+<body>
+
+<!-- NOTIFICACIONES -->
+<div id="notif-container"></div>
+
+<!-- FOCUS MODE -->
+<div class="focus-mode" id="focus">
+  <div class="close" onclick="document.getElementById('focus').classList.remove('on')">✕</div>
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <h1 style="font-size:32px;margin-bottom:8px">🎯 Modo Focus</h1>
+    <p style="color:var(--mt);font-size:14px;margin-bottom:30px">Solo lo que importa</p>
+    <div class="kg" id="focus-kpis" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card"><div class="ch"><h3>Objetivo 300€/mes</h3></div><div style="padding:20px"><div class="pbar"><div class="pfill" id="focus-bar" style="width:0%"></div></div><div style="font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:12px" id="focus-pct">—</div></div></div>
+      <div class="card"><div class="ch"><h3>Próxima trampa</h3></div><div style="padding:20px;font-size:14px" id="focus-trampa">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <h1>📊 Cartera Iván Andreu Castell</h1>
+    <p>El Campello · Trade Republic · <span id="rango">—</span></p>
+  </div>
+  <div class="hdr-r">
+    <div class="btn" onclick="recargar()">↻ Actualizar</div>
+    <div class="btn" id="btn-estado">Cargando precios...</div>
+    <div class="btn" onclick="document.getElementById('focus').classList.toggle('on')">🎯 Focus</div>
+    <div class="btn" onclick="exportarCSV()">📥 Exportar</div>
+    <div class="btn" onclick="toggleDark()">🌓</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tb on" onclick="sw(0)">📊 Dashboard</button>
+  <button class="tb" onclick="sw(1)">💼 Cartera</button>
+  <button class="tb" onclick="sw(2)">🎯 Trampas</button>
+  <button class="tb" onclick="sw(3)">💰 Dividendos</button>
+  <button class="tb" onclick="sw(4)">🏦 Intereses</button>
+  <button class="tb" onclick="sw(5)">📅 Evolución</button>
+  <button class="tb" onclick="sw(6)">🔮 Proyecciones</button>
+  <button class="tb" onclick="sw(7)">🧠 Análisis</button>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="tp on" id="t0">
+  <div id="alertas-container" style="margin-bottom:12px"></div>
+  <div class="kg" id="kg0"></div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="ch"><h3>🎯 Progreso hacia 300 €/mes netos</h3><span class="gn" style="font-size:11px;font-weight:700" id="obj-pct">—</span></div>
+    <div style="padding:14px 16px">
+      <div class="pbar"><div class="pfill" id="obj-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt);margin-top:4px">
+        <span>0%</span><span id="obj-milestone">—</span><span>100%</span>
+      </div>
+      <div class="g2" style="margin-top:12px;gap:8px">
+        <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Intereses/mes</div>
+          <div class="bl" style="font-size:16px;font-weight:700;margin-top:3px" id="obj-int">—</div>
+        </div>
+        <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Dividendos netos/mes</div>
+          <div class="gn" style="font-size:16px;font-weight:700;margin-top:3px" id="obj-div">—</div>
+        </div>
+        <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Total mensual</div>
+          <div class="am" style="font-size:16px;font-weight:700;margin-top:3px" id="obj-tot">—</div>
+        </div>
+        <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Faltan para 300€</div>
+          <div class="rd" style="font-size:16px;font-weight:700;margin-top:3px" id="obj-fal">—</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:9px;color:var(--mt)" id="obj-fecha-estimada"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><h3>💼 Posiciones</h3><span class="mt2" style="font-size:9px" id="n-pos">14 activos</span></div>
+      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Valor</th><th>Rent.</th><th>Div/año</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>🎯 Trampas más cercanas</h3></div>
+      <div id="dash-trampas"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📊 Heatmap de dividendos</h3></div>
+    <div class="heatmap" id="heatmap-divs"></div>
+  </div>
+</div>
+
+<!-- ═══ CARTERA ═══ -->
+<div class="tp" id="t1">
+  <div class="kg" id="kg1"></div>
+  <div class="card">
+    <div class="ch"><h3>💼 Posiciones — Datos reales TR + precios GS</h3><span class="mt2" style="font-size:9px" id="pu-estado">Cargando precios...</span></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Coste €</th><th>Valor €</th><th>G/P €</th><th>Rent.%</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="10" class="mt2">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📊 Análisis de concentración</h3></div>
+    <div id="concentracion-container" style="padding:14px 16px"></div>
+  </div>
+</div>
+
+<!-- ═══ TRAMPAS ═══ -->
+<div class="tp" id="t2">
+  <div class="kg" id="kg2"></div>
+  <div class="card">
+    <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══ DIVIDENDOS ═══ -->
+<div class="tp" id="t3">
+  <div class="kg" id="kg3"></div>
+  <div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,var(--s1),#1A2B4A);border:1px solid var(--ac)">
+    <div class="ch"><h3>📊 Resumen ejecutivo dividendos 2026</h3></div>
+    <div style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px" id="resumen-div-ejecutivo"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>💰 Detalle cobros — Fiscalidad completa</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:130px">Activo</th><th>País</th><th>Fecha</th><th>Acc.</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES 19%</th><th>Neto cobrado</th><th>Dev.Hacienda</th><th>Neto real</th></tr></thead><tbody id="tb-divs"></tbody><tfoot><tr id="tf-divs"><td colspan="11">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
+    <div class="ch"><h3>📊 Acumulado anual por activo — Devolución Hacienda</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Activo</th><th>País</th><th>Año</th><th>Pagos</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES €</th><th>Neto cobrado</th><th>Dev.Hacienda €</th><th>Neto real €</th><th>Rendimiento real</th></tr></thead><tbody id="tb-divs-res"></tbody><tfoot><tr id="tf-divs-res"><td colspan="11">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--am)">
+    <div class="ch"><h3>🏆 Ranking — Mejores activos por dividendo real</h3></div>
+    <div style="padding:14px 16px" id="ranking-dividendos"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🏛️ Acumulado por empresa — Devolución Hacienda</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Empresa</th><th>País</th><th>Ret.%</th><th>Pagos</th><th>Bruto acum.</th><th>Ret. origen</th><th>Neto TR</th><th>Ret. Hac.</th><th>Cobrado neto</th><th>A devolver</th><th>Neto real</th></tr></thead><tbody id="tb-acum"></tbody><tfoot><tr id="tf-acum"><td colspan="11">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>⏳ Próximos cobros estimados</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Empresa</th><th>País</th><th>Freq.</th><th>Acciones</th><th>Último cobro</th><th>Próx. estimado</th><th>Bruto est.</th><th>Ret.Origen</th><th>Neto TR est.</th><th>Dev.Hac.</th><th>Neto real est.</th><th>Ya cobrado 2026</th></tr></thead><tbody id="tb-pend"></tbody><tfoot><tr id="tf-pend"><td colspan="12">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="g2" style="margin-top:12px">
+    <div class="card"><div class="ch"><h3>📊 Por activo acumulado</h3></div><div class="cw"><canvas id="cd"></canvas></div></div>
+    <div class="card"><div class="ch"><h3>🏛️ Resumen fiscal año</h3></div><div id="fiscal-resumen" style="padding:14px 16px"></div></div>
+  </div>
+</div>
+
+<!-- ═══ INTERESES ═══ -->
+<div class="tp" id="t4">
+  <div class="kg" id="kg4"></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><h3>🏦 Intereses mensuales TR</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Bruto €</th><th>Ret.19% €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-int"></tbody><tfoot><tr id="tf-int"><td colspan="5">—</td></tr></tfoot></table></div></div>
+    <div class="card"><div class="ch"><h3>📈 Evolución</h3></div><div class="cw"><canvas id="ci"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ═══ EVOLUCIÓN ═══ -->
+<div class="tp" id="t5">
+  <div class="card"><div class="ch"><h3>📅 Actividad mensual</h3></div><div class="cw" style="height:240px"><canvas id="ce"></canvas></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>📋 Detalle mensual</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Compras €</th><th>Ventas €</th><th>Dividendos €</th><th>Intereses €</th><th>Flujo neto €</th></tr></thead><tbody id="tb-evol"></tbody></table></div></div>
+</div>
+
+<!-- ═══ PROYECCIONES ═══ -->
+<div class="tp" id="t6">
+  <div class="card" style="border:1px solid var(--pu)">
+    <div class="ch"><h3>🔮 Proyecciones a 12 meses</h3></div>
+    <div style="padding:14px 16px" id="proyecciones-container"></div>
+  </div>
+  <div class="g2" style="margin-top:12px">
+    <div class="card"><div class="ch"><h3>📈 Escenarios de crecimiento</h3></div><div style="padding:14px 16px" id="escenarios-container"></div></div>
+    <div class="card"><div class="ch"><h3>📊 Proyección a 5 años</h3></div><div style="padding:14px 16px" id="proyeccion5-container"></div></div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
+    <div class="ch"><h3>💡 Recomendaciones inteligentes</h3></div>
+    <div style="padding:14px 16px" id="recomendaciones-container"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🧪 Simulador de compra</h3></div>
+    <div style="padding:14px 16px">
+      <div class="g2" style="gap:8px">
+        <div><input class="sim-input" id="sim-activo" placeholder="Activo (ej. Realty Income)" style="width:100%"></div>
+        <div><input class="sim-input" id="sim-acciones" placeholder="Acciones (ej. 10)" style="width:100%"></div>
+        <div><input class="sim-input" id="sim-precio" placeholder="Precio compra (ej. 56.93)" style="width:100%"></div>
+        <div><input class="sim-input" id="sim-div" placeholder="Dividendo/acc (ej. 2.774)" style="width:100%"></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" onclick="simularCompra()" style="width:100%;padding:10px;font-size:12px">▶️ Simular compra</button></div>
+      <div id="sim-resultado" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ANÁLISIS ═══ -->
+<div class="tp" id="t7">
+  <div class="kg" id="kg7"></div>
+  <div class="card"><div class="ch"><h3>📊 Comparativa con índices</h3></div><div style="padding:14px 16px" id="comparativa-container"></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>🏷️ Eficiencia fiscal por activo</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>País</th><th>Ret.Origen</th><th>Ret.Hacienda</th><th>Eficiencia</th></tr></thead><tbody id="tb-eficiencia"></tbody></table></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>📈 Análisis de tendencia</h3></div><div style="padding:14px 16px" id="tendencia-container"></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>🚨 Alertas activas</h3></div><div style="padding:14px 16px" id="alertas-detalle"></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+</script>
+<script>
+// ── FUNCIONES BASE ──
+function round2(n) { return Math.round((+n || 0) * 100) / 100; }
+const fe = (n, d = 2) => (+n || 0).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }) +
+' €';
+const f2 = n => (+n || 0).toFixed(2);
+const f1 = n => (+n || 0).toFixed(1);
+const gc = n => n >= 0 ? 'var(--gn)' : 'var(--rd)';
+const sg = n => (n >= 0 ? '+' : '') + fe(n);
+const pb = p => '<span class="pb ' + p + '">' + p + '</span>';
+const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
+
+function sw(i) {
+    document.querySelectorAll('.tb').forEach((b, j) => b.classList.toggle('on', i === j));
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'].forEach((id, j) => document.getElementById(id).classList.toggle(
+        'on', i === j));
+}
+
+function pcsv(text) {
+    const lines = text.trim().split('\n');
+    return lines.map(l => {
+        const cols = [];
+        let current = '',
+            inQuotes = false;
+        for (let i = 0; i < l.length; i++) {
+            const ch = l[i];
+            if (ch === '"') { inQuotes = !inQuotes; } else if (ch === ',' && !inQuotes) { cols.push(current
+                    .trim());
+                current = ''; } else { current += ch; }
+        }
+        cols.push(current.trim());
+        return cols;
+    });
+}
+
+function toggleDark() {
+    const root = document.documentElement;
+    const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+    if (bg === '#0B0F1A') {
+        root.style.setProperty('--bg', '#F0F4FF');
+        root.style.setProperty('--s1', '#FFFFFF');
+        root.style.setProperty('--s2', '#F1F5F9');
+        root.style.setProperty('--bd', '#D1D9E6');
+        root.style.setProperty('--tx', '#1E293B');
+        root.style.setProperty('--mt', '#64748B');
+    } else {
+        root.style.setProperty('--bg', '#0B0F1A');
+        root.style.setProperty('--s1', '#111827');
+        root.style.setProperty('--s2', '#1A2235');
+        root.style.setProperty('--bd', '#1E2D45');
+        root.style.setProperty('--tx', '#F0F4FF');
+        root.style.setProperty('--mt', '#6B7A99');
+    }
+}
+
+function exportarCSV() {
+    const pos = D.posiciones;
+    let csv = 'Activo,País,Acciones,P.Medio,Coste,Valor,G/P,Rent%\n';
+    pos.forEach(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const val = pa ? pa * p.sh : 0;
+        const gp = pa ? val - p.ct : 0;
+        const rp = p.ct && pa ? (gp / p.ct * 100) : 0;
+        csv +=
+            `${p.n},${p.pais},${p.sh.toFixed(4)},${f2(p.pm)},${f2(p.ct)},${f2(val)},${f2(gp)},${f2(rp)}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'cartera_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.click();
+}
+
+function notificar(titulo, desc, tipo = 'info') {
+    const cont = document.getElementById('notif-container');
+    const el = document.createElement('div');
+    el.className = 'notification';
+    el.style.borderColor = tipo === 'success' ? 'var(--gn)' : tipo === 'warn' ? 'var(--am)' : 'var(--ac)';
+    el.innerHTML = `
+        <div class="close-btn" onclick="this.parentElement.remove()">✕</div>
+        <div class="title" style="color:${tipo === 'success' ? 'var(--gn)' : tipo === 'warn' ? 'var(--am)' : 'var(--ac)'}">${titulo}</div>
+        <div class="desc">${desc}</div>
+    `;
+    cont.appendChild(el);
+    setTimeout(() => { if (el.parentElement) el.remove(); }, 8000);
+}
+
+// ── DATOS ──
+const D = {"posiciones": [{"n": "Abbott Labs", "pais": "USA", "ret": 0.15, "sh": 18.5331, "pm": 81.1159, "ct": 1503.33, "nc": 9, "f": "10/04/2026"}, {"n": "AbbVie", "pais": "USA", "ret": 0.15, "sh": 4.3451, "pm": 175.7382, "ct": 763.6, "nc": 3, "f": "07/04/2026"}, {"n": "Air Liquide", "pais": "FRA", "ret": 0.128, "sh": 10.0, "pm": 178.58, "ct": 1785.8, "nc": 1, "f": "04/05/2026"}, {"n": "Becton Dickinson", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 134.6, "ct": 673.0, "nc": 1, "f": "08/07/2026"}, {"n": "BlackRock", "pais": "USA", "ret": 0.15, "sh": 3.0, "pm": 867.6, "ct": 2602.8, "nc": 3, "f": "19/05/2026"}, {"n": "Core MSCI World USD (Acc)", "pais": "IRL", "ret": 0.0, "sh": 87.5977, "pm": 12.8119, "ct": 1122.29, "nc": 26, "f": "04/08/2025"}, {"n": "Lowe's", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 183.65, "ct": 918.25, "nc": 1, "f": "13/07/2026"}, {"n": "MasterCard", "pais": "USA", "ret": 0.15, "sh": 3.0634, "pm": 434.5433, "ct": 1331.18, "nc": 10, "f": "02/02/2026"}, {"n": "Medtronic", "pais": "USA", "ret": 0.15, "sh": 7.0, "pm": 71.1429, "ct": 498.0, "nc": 1, "f": "09/07/2026"}, {"n": "Newmont", "pais": "USA", "ret": 0.15, "sh": 8.8976, "pm": 97.8196, "ct": 870.36, "nc": 19, "f": "02/03/2026"}, {"n": "Realty Income", "pais": "USA", "ret": 0.15, "sh": 24.3392, "pm": 53.8411, "ct": 1310.45, "nc": 22, "f": "02/04/2026"}, {"n": "Vici Properties", "pais": "USA", "ret": 0.15, "sh": 40.0, "pm": 23.075, "ct": 923.0, "nc": 1, "f": "08/07/2026"}, {"n": "Visa", "pais": "USA", "ret": 0.15, "sh": 2.4852, "pm": 273.7607, "ct": 680.35, "nc": 7, "f": "02/02/2026"}, {"n": "AMD", "pais": "USA", "ret": 0.0, "sh": 0.5628, "pm": 11.6382, "ct": 6.55, "nc": 4, "f": "09/12/2025"}], "dividendos": [{"f": "18/12/2025", "n": "Telefonica", "pais": "ESP", "sh": 26.1028, "bruto": 3.18, "ret_origen": 0.0, "neto_tr": 3.18, "tax_es": 0.0, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18}, {"f": "14/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "15/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "26/01/2026", "n": "Acerinox", "pais": "ESP", "sh": 13.9752, "bruto": 3.51, "ret_origen": 0.0, "neto_tr": 3.51, "tax_es": 0.0, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51}, {"f": "02/03/2026", "n": "Visa", "pais": "USA", "sh": 1.4225, "bruto": 0.94, "ret_origen": 0.14, "neto_tr": 0.8, "tax_es": 0.25, "neto_final": 0.55, "devolucion": 0.14, "neto_real": 0.69}, {"f": "26/03/2026", "n": "Newmont", "pais": "USA", "sh": 2.0, "bruto": 0.53, "ret_origen": 0.08, "neto_tr": 0.45, "tax_es": 0.14, "neto_final": 0.31, "devolucion": 0.08, "neto_real": 0.39}, {"f": "08/05/2026", "n": "MasterCard", "pais": "USA", "sh": 1.4436, "bruto": 1.26, "ret_origen": 0.19, "neto_tr": 1.07, "tax_es": 0.33, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93}, {"f": "15/05/2026", "n": "AbbVie", "pais": "USA", "sh": 4.0, "bruto": 6.96, "ret_origen": 1.04, "neto_tr": 5.91, "tax_es": 1.84, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11}, {"f": "15/05/2026", "n": "Realty Income", "pais": "USA", "sh": 6.9542, "bruto": 1.89, "ret_origen": 0.28, "neto_tr": 1.61, "tax_es": 0.5, "neto_final": 1.11, "devolucion": 0.28, "neto_real": 1.39}, {"f": "15/05/2026", "n": "Abbott Labs", "pais": "USA", "sh": 6.0, "bruto": 3.8, "ret_origen": 0.57, "neto_tr": 3.23, "tax_es": 1.0, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8}, {"f": "20/05/2026", "n": "Air Liquide", "pais": "FRA", "sh": 10.0, "bruto": 37.0, "ret_origen": 0.0, "neto_tr": 37.0, "tax_es": 10.87, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13}, {"f": "01/06/2026", "n": "Visa", "pais": "USA", "sh": 2.4852, "bruto": 1.69, "ret_origen": 0.25, "neto_tr": 1.43, "tax_es": 0.45, "neto_final": 0.98, "devolucion": 0.25, "neto_real": 1.23}, {"f": "15/06/2026", "n": "Realty Income", "pais": "USA", "sh": 17.8107, "bruto": 4.9, "ret_origen": 0.74, "neto_tr": 4.17, "tax_es": 1.3, "neto_final": 2.87, "devolucion": 0.74, "neto_real": 3.61}, {"f": "22/06/2026", "n": "Newmont", "pais": "USA", "sh": 6.3891, "bruto": 1.7, "ret_origen": 0.26, "neto_tr": 1.45, "tax_es": 0.45, "neto_final": 1.0, "devolucion": 0.26, "neto_real": 1.26}, {"f": "23/06/2026", "n": "BlackRock", "pais": "USA", "sh": 2.0, "bruto": 11.77, "ret_origen": 1.77, "neto_tr": 10.0, "tax_es": 3.12, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65}, {"f": "09/07/2026", "n": "Indra Sistemas", "pais": "ESP", "sh": 10.0403, "bruto": 2.44, "ret_origen": 0.0, "neto_tr": 2.44, "tax_es": 0.0, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44}, {"f": "15/07/2026", "n": "Realty Income", "pais": "USA", "sh": 23.9478, "bruto": 6.69, "ret_origen": 1.0, "neto_tr": 5.69, "tax_es": 1.77, "neto_final": 3.92, "devolucion": 1.0, "neto_real": 4.92}], "intereses": [{"f": "09/2025", "bruto": 2.29, "tax": 0.44, "neto": 1.85}, {"f": "10/2025", "bruto": 7.62, "tax": 1.45, "neto": 6.17}, {"f": "11/2025", "bruto": 20.63, "tax": 3.92, "neto": 16.71}, {"f": "12/2025", "bruto": 20.15, "tax": 3.83, "neto": 16.32}, {"f": "01/2026", "bruto": 29.56, "tax": 5.62, "neto": 23.94}, {"f": "02/2026", "bruto": 55.58, "tax": 10.56, "neto": 45.02}, {"f": "03/2026", "bruto": 48.5, "tax": 9.22, "neto": 39.28}, {"f": "04/2026", "bruto": 53.1, "tax": 10.09, "neto": 43.01}, {"f": "05/2026", "bruto": 49.38, "tax": 9.38, "neto": 40.0}, {"f": "06/2026", "bruto": 91.1, "tax": 17.31, "neto": 73.79}, {"f": "07/2026", "bruto": 144.89, "tax": 27.53, "neto": 117.36}], "savebacks": [{"f": "02/09/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "02/10/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "03/11/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "01/12/2025", "n": "nan", "i": 15.0}, {"f": "01/01/2026", "n": "nan", "i": 14.7}, {"f": "01/02/2026", "n": "nan", "i": 15.0}, {"f": "01/03/2026", "n": "nan", "i": 10.77}, {"f": "01/04/2026", "n": "nan", "i": 15.0}, {"f": "01/05/2026", "n": "nan", "i": 13.69}, {"f": "01/06/2026", "n": "Abbott Labs", "i": 12.51}, {"f": "01/07/2026", "n": "Newmont", "i": 13.84}], "evolucion": [{"mes": "2025-08", "compras": 583.06, "ventas": 105.39, "divs": 0.0, "int": 0.0}, {"mes": "2025-09", "compras": 939.47, "ventas": 410.68, "divs": 0.0, "int": 2.29}, {"mes": "2025-10", "compras": 1824.83, "ventas": 2207.17, "divs": 0.0, "int": 7.62}, {"mes": "2025-11", "compras": 1375.2, "ventas": 748.27, "divs": 0.0, "int": 20.63}, {"mes": "2025-12", "compras": 327.14, "ventas": 0.0, "divs": 3.18, "int": 20.15}, {"mes": "2026-01", "compras": 4351.28, "ventas": 1386.68, "divs": 8.49, "int": 29.56}, {"mes": "2026-02", "compras": 8045.25, "ventas": 8571.79, "divs": 0.0, "int": 55.58}, {"mes": "2026-03", "compras": 5324.7, "ventas": 1205.14, "divs": 1.25, "int": 48.5}, {"mes": "2026-04", "compras": 2723.2, "ventas": 4161.14, "divs": 0.0, "int": 53.1}, {"mes": "2026-05", "compras": 3941.74, "ventas": 1067.29, "divs": 48.82, "int": 49.38}, {"mes": "2026-06", "compras": 2593.63, "ventas": 7.77, "divs": 17.05, "int": 91.1}, {"mes": "2026-07", "compras": 3157.95, "ventas": 480.73, "divs": 8.13, "int": 144.89}], "resumen": {"invertido": 35187.45, "vendido": 20352.05, "divBruto": 93.24, "divNetoTR": 86.92, "divNetoFinal": 64.9, "divDevolucion": 6.32, "divNetoReal": 71.22, "intBruto": 522.8, "intNeto": 423.45, "sbTotal": 155.51, "inicio": "01/08/2025", "fin": "19/07/2026", "ntx": 924}, "resumen_divs": [{"n": "Telefonica", "año": "2025", "pagos": 1, "bruto": 3.18, "neto_tr": 3.18, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18, "pais": "ESP"}, {"n": "Repsol", "año": "2026", "pagos": 2, "bruto": 4.98, "neto_tr": 4.98, "neto_final": 4.98, "devolucion": 0.0, "neto_real": 4.98, "pais": "ESP"}, {"n": "Acerinox", "año": "2026", "pagos": 1, "bruto": 3.51, "neto_tr": 3.51, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51, "pais": "ESP"}, {"n": "Visa", "año": "2026", "pagos": 2, "bruto": 2.63, "neto_tr": 2.23, "neto_final": 1.53, "devolucion": 0.39, "neto_real": 1.92, "pais": "USA"}, {"n": "Newmont", "año": "2026", "pagos": 2, "bruto": 2.23, "neto_tr": 1.9, "neto_final": 1.31, "devolucion": 0.34, "neto_real": 1.65, "pais": "USA"}, {"n": "MasterCard", "año": "2026", "pagos": 1, "bruto": 1.26, "neto_tr": 1.07, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93, "pais": "USA"}, {"n": "AbbVie", "año": "2026", "pagos": 1, "bruto": 6.96, "neto_tr": 5.91, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11, "pais": "USA"}, {"n": "Realty Income", "año": "2026", "pagos": 3, "bruto": 13.48, "neto_tr": 11.47, "neto_final": 7.9, "devolucion": 2.02, "neto_real": 9.92, "pais": "USA"}, {"n": "Abbott Labs", "año": "2026", "pagos": 1, "bruto": 3.8, "neto_tr": 3.23, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8, "pais": "USA"}, {"n": "Air Liquide", "año": "2026", "pagos": 1, "bruto": 37.0, "neto_tr": 37.0, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13, "pais": "FRA"}, {"n": "BlackRock", "año": "2026", "pagos": 1, "bruto": 11.77, "neto_tr": 10.0, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65, "pais": "USA"}, {"n": "Indra Sistemas", "año": "2026", "pagos": 1, "bruto": 2.44, "neto_tr": 2.44, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44, "pais": "ESP"}], "pendientes": [{"n": "Air Liquide", "pais": "FRA", "freq": "Anual", "sh": 10.0, "ultimo_cobro": "20/05/2026", "prox_est": "05/2027", "bruto_est": 37.0, "ret_o_est": 0, "neto_tr_est": 37.0, "tax_es_est": 7.03, "neto_cob_est": 29.97, "dev_est": 0, "neto_real_est": 29.97, "ya_cobrado_2026": 26.13}, {"n": "BlackRock", "pais": "USA", "freq": "Trimestral", "sh": 3.0, "ultimo_cobro": "23/06/2026", "prox_est": "09/2026", "bruto_est": 17.66, "ret_o_est": 0, "neto_tr_est": 17.66, "tax_es_est": 3.35, "neto_cob_est": 14.3, "dev_est": 0, "neto_real_est": 14.3, "ya_cobrado_2026": 8.65}, {"n": "Vici Properties", "pais": "USA", "freq": "Trimestral", "sh": 40.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 15.29, "ret_o_est": 2.29, "neto_tr_est": 13.0, "tax_es_est": 2.47, "neto_cob_est": 10.53, "dev_est": 2.29, "neto_real_est": 12.82, "ya_cobrado_2026": 0}, {"n": "Abbott Labs", "pais": "USA", "freq": "Trimestral", "sh": 18.5331, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 11.74, "ret_o_est": 0, "neto_tr_est": 11.74, "tax_es_est": 2.23, "neto_cob_est": 9.51, "dev_est": 0, "neto_real_est": 9.51, "ya_cobrado_2026": 2.8}, {"n": "AbbVie", "pais": "USA", "freq": "Trimestral", "sh": 4.3451, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 7.56, "ret_o_est": 0, "neto_tr_est": 7.56, "tax_es_est": 1.44, "neto_cob_est": 6.12, "dev_est": 0, "neto_real_est": 6.12, "ya_cobrado_2026": 5.11}, {"n": "Realty Income", "pais": "USA", "freq": "Mensual", "sh": 24.3392, "ultimo_cobro": "15/07/2026", "prox_est": "08/2026", "bruto_est": 6.8, "ret_o_est": 0, "neto_tr_est": 6.8, "tax_es_est": 1.29, "neto_cob_est": 5.51, "dev_est": 0, "neto_real_est": 5.51, "ya_cobrado_2026": 9.92}, {"n": "Lowe's", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 5.14, "ret_o_est": 0.77, "neto_tr_est": 4.37, "tax_es_est": 0.83, "neto_cob_est": 3.54, "dev_est": 0.77, "neto_real_est": 4.31, "ya_cobrado_2026": 0}, {"n": "Becton Dickinson", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.51, "ret_o_est": 0.68, "neto_tr_est": 3.83, "tax_es_est": 0.73, "neto_cob_est": 3.1, "dev_est": 0.68, "neto_real_est": 3.78, "ya_cobrado_2026": 0}, {"n": "Medtronic", "pais": "USA", "freq": "Trimestral", "sh": 7.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.25, "ret_o_est": 0.64, "neto_tr_est": 3.61, "tax_es_est": 0.69, "neto_cob_est": 2.92, "dev_est": 0.64, "neto_real_est": 3.56, "ya_cobrado_2026": 0}, {"n": "MasterCard", "pais": "USA", "freq": "Trimestral", "sh": 3.0634, "ultimo_cobro": "08/05/2026", "prox_est": "08/2026", "bruto_est": 2.67, "ret_o_est": 0, "neto_tr_est": 2.67, "tax_es_est": 0.51, "neto_cob_est": 2.17, "dev_est": 0, "neto_real_est": 2.17, "ya_cobrado_2026": 0.93}, {"n": "Newmont", "pais": "USA", "freq": "Trimestral", "sh": 8.8976, "ultimo_cobro": "26/03/2026", "prox_est": "06/2026", "bruto_est": 2.36, "ret_o_est": 0, "neto_tr_est": 2.36, "tax_es_est": 0.45, "neto_cob_est": 1.91, "dev_est": 0, "neto_real_est": 1.91, "ya_cobrado_2026": 1.65}, {"n": "Visa", "pais": "USA", "freq": "Trimestral", "sh": 2.4852, "ultimo_cobro": "02/03/2026", "prox_est": "05/2026", "bruto_est": 1.64, "ret_o_est": 0, "neto_tr_est": 1.64, "tax_es_est": 0.31, "neto_cob_est": 1.33, "dev_est": 0, "neto_real_est": 1.33, "ya_cobrado_2026": 1.92}]};
+
+// ── URLs ACTUALIZADAS CON TUS ENLACES ──
+const CSV_TR =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUxZxenezJ_jOMWUmNHLCHrj255bqKS0q0faU05Qt4XumRnwDQz0qkeztnNUkq31op355o5ep5YcGa/pub?gid=109452904&single=true&output=csv';
+const CSV_C =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUxZxenezJ_jOMWUmNHLCHrj255bqKS0q0faU05Qt4XumRnwDQz0qkeztnNUkq31op355o5ep5YcGa/pub?gid=1652305451&single=true&output=csv';
+const CSV_T =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUxZxenezJ_jOMWUmNHLCHrj255bqKS0q0faU05Qt4XumRnwDQz0qkeztnNUkq31op355o5ep5YcGa/pub?gid=1446675192&single=true&output=csv';
+const API_GS = 'https://script.google.com/macros/s/AKfycbzZIpT9-8Clu7unO-Y9kwa7IwwCT-_xa8Q3la78AtymUSfdo1wjP4nw1LDjIrbvuekR8A/exec';
+
+// ── MAPEO ──
+const MAP = {
+    'Abbott Labs': 'Abbott Laboratories',
+    'AbbVie': 'AbbVie Inc',
+    'Air Liquide': 'Air Liquide SA',
+    'AMD': 'AMD',
+    'Becton Dickinson': 'Becton Dickinson',
+    'BlackRock': 'BlackRock Inc',
+    'Core MSCI World USD (Acc)': 'Core MSCI World USD (Acc)',
+    "Lowe's": "Lowe's Companies",
+    'MasterCard': 'MasterCard Inc',
+    'Medtronic': 'Medtronic PLC',
+    'Newmont': 'Newmont Corp',
+    'Realty Income': 'Realty Income Corp',
+    'Vici Properties': 'VICI Properties',
+    'Visa': 'Visa Inc'
+};
+
+let PA = {},
+    TRAMPAS_GS = [];
+
+// ── RECARGAR VIA APPS SCRIPT ──
+async function recargar() {
+    const btn = document.getElementById('btn-estado');
+    if (btn) { btn.textContent = 'Actualizando...'; btn.classList.remove('ac'); }
+    try {
+        const res = await fetch(API_GS + '?nocache=' + Date.now());
+        const data = await res.json();
+        if (!data.ok) throw new Error('Respuesta inválida');
+
+        // Precios cartera — MAP inverso (GS nombre → TR nombre)
+        if (data.posiciones) {
+            const RMAP = {};
+            for (const [k, v] of Object.entries(MAP)) RMAP[v] = k;
+            data.posiciones.forEach(p => {
+                if (p.pActual > 0) {
+                    // Por nombre GS directo
+                    PA[p.nombre] = p.pActual;
+                    // Por nombre TR via MAP inverso
+                    const trNombre = RMAP[p.nombre];
+                    if (trNombre) PA[trNombre] = p.pActual;
+                }
+            });
+        }
+
+        // Trampas — convertir objetos API al formato array que usa el código
+        // Formato esperado: [nombre, calidad, prioridad, trampa, pActual, distancia, acciones, capital, divAcc, yield, pago]
+        if (data.trampas && data.trampas.length) {
+            TRAMPAS_GS = data.trampas.map(t => [
+                t.nombre,        // r[0]
+                t.calidad,       // r[1]
+                t.prioridad,     // r[2]
+                t.trampa,                              // r[3]
+                t.pActual,                             // r[4]
+                t.distancia * 100,                     // r[5] — convertir a % (API da -0.018, código espera -1.8)
+                t.acciones,      // r[6]
+                t.capital,       // r[7]
+                t.divAcc,        // r[8]
+                (t.yield * 100).toFixed(2) + '%',  // r[9] — convertir a % legible
+                t.pago           // r[10]
+            ]);
+        }
+
+        renderDashboard();
+        renderCartera();
+        renderTrampas();
+
+        const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+        if (btn) { btn.textContent = '✓ ' + hora; btn.classList.add('ac'); }
+        const pu = document.getElementById('pu-estado');
+        if (pu) pu.textContent = 'Precios GS: ' + hora;
+
+    } catch(e) {
+        console.warn('API:', e.message);
+        if (btn) { btn.textContent = '⚡ Datos locales'; btn.style.color = 'var(--am)'; }
+    }
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+    const r = D.resumen;
+    const intMes = r.intNeto / 11;
+    const divMes = r.divNetoReal / 12;
+    const totMes = intMes + divMes + 150;
+    const pct = Math.min(100, totMes / 300 * 100);
+
+    const pos = D.posiciones;
+    const totCost = pos.reduce((s, p) => s + p.ct, 0);
+    let totV = 0,
+        totGP = 0;
+    pos.forEach(p => { const pa = PA[MAP[p.n] || p.n] || 0; if (pa > 0) { totV += pa * p.sh;
+            totGP += pa * p.sh - p.ct; } });
+
+    document.getElementById('kg0').innerHTML = [
+        { l: 'Capital invertido', v: fe(r.invertido - r.vendido), s: 'Coste real TR', c: '#93C5FD' },
+        { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? sg(totGP) : 'Cargando', c: '#86EFAC' },
+        { l: 'Dividendos cobrados', v: fe(r.divNetoReal), s: D.dividendos.length + ' pagos · neto real', c: '#10B981' },
+        { l: 'Intereses TR netos', v: fe(r.intNeto), s: '11 meses · ' + fe(r.intNeto / 11) + '/mes', c: '#F59E0B' },
+        { l: 'Saveback recibido', v: fe(r.sbTotal), s: '1% compras elegibles', c: '#C4B5FD' },
+        { l: 'A devolver Hacienda', v: fe(r.divDevolucion), s: 'Doble imposición', c: '#86EFAC' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + ';font-size:' + (k.v.length > 10 ? '14px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
+            '</div></div>').join('');
+
+    document.getElementById('obj-pct').textContent = pct.toFixed(1) + '%';
+    document.getElementById('obj-bar').style.width = pct + '%';
+    document.getElementById('obj-int').textContent = fe(intMes + 150);
+    document.getElementById('obj-div').textContent = fe(divMes);
+    document.getElementById('obj-tot').textContent = fe(totMes);
+    document.getElementById('obj-fal').textContent = fe(Math.max(0, 300 - totMes));
+
+    let milestone = 'Aún lejos';
+    if (pct >= 100) milestone = '🎉 ¡OBJETIVO ALCANZADO!';
+    else if (pct >= 75) milestone = '🔥 Muy cerca, ¡sigue así!';
+    else if (pct >= 50) milestone = '💪 Mitad del camino';
+    else if (pct >= 25) milestone = '🚀 Buen comienzo';
+    document.getElementById('obj-milestone').textContent = milestone;
+
+    const divs2026 = D.dividendos.filter(d => d.f.includes('2026'));
+    const netoMensual = divs2026.reduce((s, d) => s + d.neto_real, 0) / Math.max(1, divs2026.length);
+    const faltan = 300 - totMes;
+    const mesesNecesarios = faltan > 0 && netoMensual > 0 ? Math.ceil(faltan / (netoMensual * 1.03)) : 0;
+    const fechaEst = new Date();
+    fechaEst.setMonth(fechaEst.getMonth() + mesesNecesarios);
+    document.getElementById('obj-fecha-estimada').textContent = mesesNecesarios > 0 ?
+        '📅 Estimas alcanzar el objetivo en ' + mesesNecesarios + ' meses (' + fechaEst.toLocaleDateString('es-ES') +
+        ')' :
+        '✅ ¡Ya has alcanzado el objetivo!';
+
+    document.getElementById('focus-kpis').innerHTML = [
+        { l: 'Valor cartera', v: totV ? fe(totV) : '—', c: '#86EFAC' },
+        { l: 'Rentabilidad', v: totGP ? (totGP / (totCost || 1) * 100).toFixed(1) + '%' : '—', c: '#10B981' },
+        { l: 'Ingresos pasivos/mes', v: fe(totMes), c: '#F59E0B' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + '">' + k.v + '</div></div>').join('');
+    document.getElementById('focus-bar').style.width = pct + '%';
+    document.getElementById('focus-pct').textContent = pct.toFixed(1) + '%';
+    document.getElementById('focus-trampa').textContent = TRAMPAS_GS.length > 0 ?
+        TRAMPAS_GS.sort((a, b) => Math.abs(cn(a[5])) - Math.abs(cn(b[5])))[0][0] + ' a ' + Math.abs(cn(TRAMPAS_GS.sort((
+            a, b) => Math.abs(cn(a[5])) - Math.abs(cn(b[5])))[0][5])).toFixed(1) + '%' :
+        'No hay trampas activas';
+
+    const tbody = document.getElementById('tb-dash-pos');
+    if (tbody) tbody.innerHTML = pos.map(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const val = pa ? pa * p.sh : 0;
+        const rp = pa && p.ct ? ((pa * p.sh - p.ct) / p.ct * 100) : 0;
+        const da = D.dividendos.filter(d => d.n === p.n).reduce((s, d) => s + d.neto_real, 0);
+        const ip = rp >= 0;
+        return '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
+            '<td class="mt2">' + (val ? fe(val, 0) : '—') + '</td>' +
+            '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700;font-size:10px">' + (rp ? (ip ? '+' :
+                '') + f1(rp) + '%' : '—') + '</td>' +
+            '<td class="gn" style="font-size:10px">' + (da ? fe(da) : '—') + '</td></tr>';
+    }).join('');
+
+    const tlist = document.getElementById('dash-trampas');
+    if (tlist && TRAMPAS_GS.length) {
+        const sorted = [...TRAMPAS_GS]
+            .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]) }))
+            .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d)).slice(0, 12);
+        tlist.innerHTML = sorted.map(t => {
+            const d = Math.abs(t.d) < 1 ? t.d * 100 : t.d;
+            const ad = Math.abs(d);
+            const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
+            const cls = ad <= 5 ? 'c' : ad <= 10 ? 'm' : 'f';
+            const pc = t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
+            return '<div style="padding:8px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">' +
+                '<span class="pr ' + pc + '">' + t.p + '</span>' +
+                '<div style="font-size:11px;font-weight:600;flex:1;min-width:120px">' + t.n + '</div>' +
+                '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
+                cls + '" style="width:' + pct2 + '%"></div></div>' +
+                '<div style="font-size:10px;font-weight:700;min-width:44px;text-align:right;' + ('color:' + (cls ===
+                    'c' ? 'var(--gn)' : cls === 'm' ? 'var(--am)' : 'var(--rd)')) + '">' + (d ? d.toFixed(1) +
+                    '%' : '—') + '</div>' +
+                '</div>';
+        }).join('');
+    } else if (tlist) {
+        tlist.innerHTML =
+            '<div style="padding:20px;text-align:center;color:var(--mt);font-size:11px">Actualizando trampas desde GS...</div>';
+    }
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const heatmap = document.getElementById('heatmap-divs');
+    const divs2026f = D.dividendos.filter(d => d.f.includes('2026'));
+    if (heatmap) {
+        heatmap.innerHTML = meses.map((m, idx) => {
+            const mesNum = String(idx + 1).padStart(2, '0');
+            const cobros = divs2026f.filter(d => d.f.split('/')[1] === mesNum);
+            const total = cobros.reduce((s, d) => s + d.neto_real, 0);
+            const color = total > 10 ? 'var(--gn)' : total > 2 ? 'var(--am)' : total > 0 ? 'var(--ac)' :
+                'var(--bd)';
+            const bright = total > 10 ? '1' : total > 2 ? '0.7' : total > 0 ? '0.4' : '0.2';
+            return '<div class="day" style="background:' + color + ';opacity:' + bright +
+                ';cursor:pointer" title="' + m + ': ' + (total > 0 ? fe(total) : 'Sin cobros') + '">' +
+                m.slice(0, 1) + '</div>';
+        }).join('');
+    }
+
+    const alertas = [];
+    TRAMPAS_GS.forEach(r => {
+        const d = Math.abs(cn(r[5]));
+        if (d > 0 && d < 3) alertas.push({ tipo: 'warn', icon: '⚠️', msg: r[0] + ' está a solo ' + d
+                .toFixed(1) + '% de su trampa' });
+    });
+    const totalCost2 = pos.reduce((s, p) => s + p.ct, 0);
+    pos.forEach(p => {
+        const peso = (p.ct / totalCost2 * 100);
+        if (peso > 25) alertas.push({ tipo: 'info', icon: '📊', msg: p.n + ' supone el ' + peso.toFixed(
+                1) + '% de la cartera (más del 25%)' });
+    });
+    if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
+            '% de tu objetivo de 300€/mes' });
+    if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
+
+    const alertContainer = document.getElementById('alertas-container');
+    if (alertContainer) {
+        alertContainer.innerHTML = alertas.map(a =>
+            '<div class="alert-box ' + (a.tipo === 'warn' ? 'warn' : a.tipo === 'success' ? 'success' : 'info') +
+            '"><span class="icon">' + a.icon + '</span><span>' + a.msg + '</span></div>'
+        ).join('');
+    }
+}
+
+// ── CARTERA ──
+function renderCartera() {
+    const pos = D.posiciones;
+    const totCost = pos.reduce((s, p) => s + p.ct, 0);
+    let totV = 0,
+        totGP = 0;
+
+    document.getElementById('kg1').innerHTML = [
+        { l: 'Posiciones', v: pos.length, s: 'Cartera forever', c: '#93C5FD' },
+        { l: 'Coste total', v: fe(totCost), s: 'Datos reales TR', c: '#3B82F6' },
+        { l: 'Total compras', v: pos.reduce((s, p) => s + p.nc, 0), s: 'Operaciones', c: '#F59E0B' },
+        { l: 'Primera inversión', v: pos.map(p => p.f).sort()[0], s: 'Inicio TR', c: '#6B7A99' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + ';font-size:' + (String(k.v).length > 8 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
+            '</div></div>').join('');
+
+    document.getElementById('tb-cartera').innerHTML = pos.map((p, i) => {
+        const gs = MAP[p.n] || p.n;
+        const pa = PA[gs] || 0;
+        const val = pa ? pa * p.sh : 0;
+        const gp = pa ? val - p.ct : 0;
+        const rp = p.ct && pa ? (gp / p.ct * 100) : 0;
+        const pe = totCost ? p.ct / totCost * 100 : 0;
+        totV += val;
+        totGP += gp;
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        return '<tr style="' + bg + '">' +
+            '<td><div style="font-weight:600;font-size:11px">' + p.n + '</div><div style="font-size:8px;color:var(--mt)">' +
+            p.nc + 'x · desde ' + p.f + '</div></td>' +
+            '<td>' + pb(p.pais) + '</td>' +
+            '<td class="mt2">' + (p.sh % 1 ? p.sh.toFixed(4) : p.sh) + '</td>' +
+            '<td class="bl">' + f2(p.pm) + ' €</td>' +
+            '<td style="font-weight:600;color:#F0F4FF;font-family:monospace">' + (pa ? f2(pa) + ' €' :
+                '<span style="color:#374151">—</span>') + '</td>' +
+            '<td class="bl">' + Math.round(p.ct) + ' €</td>' +
+            '<td style="color:#93C5FD;font-family:monospace;font-weight:700">' + (val ? Math.round(val) + ' €' :
+                '—') + '</td>' +
+            '<td style="color:' + gc(gp) + ';font-family:monospace;font-weight:700">' + (gp ? sg(gp) : '—') +
+            '</td>' +
+            '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700">' + (rp ? (rp >= 0 ? '+' :
+                '') + f1(rp) + '%' : '—') + '</td>' +
+            '<td class="mt2">' + f1(pe) + '%</td>' +
+            '</tr>';
+    }).join('');
+
+    const rTot = totCost && totV ? (totGP / totCost * 100) : 0;
+    document.getElementById('tf-cartera').innerHTML = '<td>TOTAL</td><td></td><td></td><td></td><td></td>' +
+        '<td class="bl">' + Math.round(totCost) + ' €</td>' +
+        '<td style="color:#93C5FD;font-family:monospace;font-weight:700">' + (totV ? Math.round(totV) + ' €' :
+        '—') + '</td>' +
+        '<td style="color:' + gc(totGP) + ';font-family:monospace;font-weight:700">' + (totV ? sg(totGP) : '—') +
+        '</td>' +
+        '<td style="color:' + gc(rTot) + ';font-family:monospace;font-weight:700">' + (totV ? (rTot >= 0 ? '+' :
+            '') + f1(rTot) + '%' : '—') + '</td>' +
+        '<td></td>';
+
+    const conc = document.getElementById('concentracion-container');
+    if (conc) {
+        const sorted = pos.map(p => ({ n: p.n, peso: p.ct / totCost * 100 })).sort((a, b) => b.peso - a.peso);
+        conc.innerHTML = sorted.map((p, i) => {
+            const bar = Math.min(100, p.peso);
+            const color = p.peso > 25 ? 'var(--rd)' : p.peso > 15 ? 'var(--am)' : 'var(--gn)';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid var(--bd)">' +
+                '<div style="font-size:10px;min-width:120px;font-weight:600">' + (i + 1) + '. ' + p.n +
+                '</div>' +
+                '<div style="flex:1;background:var(--bd);border-radius:3px;height:4px;overflow:hidden">' +
+                '<div style="width:' + bar + '%;height:100%;background:' + color +
+                ';border-radius:3px"></div>' +
+                '</div>' +
+                '<div style="font-size:9px;font-family:monospace;color:' + color + ';font-weight:700;min-width:40px">' +
+                p.peso.toFixed(1) + '%</div>' +
+                '</div>';
+        }).join('');
+    }
+}
+
+// ── TRAMPAS ──
+function renderTrampas() {
+    if (!TRAMPAS_GS.length) return;
+    document.getElementById('n-trampas').textContent = TRAMPAS_GS.length + ' órdenes';
+
+    const cerca = TRAMPAS_GS.filter(r => { const d = Math.abs(cn(r[5])); return d <= 5 && d > 0; }).length;
+    const medio = TRAMPAS_GS.filter(r => { const d = Math.abs(cn(r[5])); return d > 5 && d <= 10; }).length;
+    const lejos = TRAMPAS_GS.filter(r => Math.abs(cn(r[5])) > 10).length;
+    const capTotal = TRAMPAS_GS.reduce((s, r) => s + cn(r[7]), 0);
+
+    document.getElementById('kg2').innerHTML = [
+        { l: '🟢 Dist. 0-5% (muy cerca)', v: cerca + ' órdenes', s: 'Pueden ejecutar pronto', c: '#10B981' },
+        { l: '🟡 Dist. 5-10% (medio)', v: medio + ' órdenes', s: 'Zona de vigilancia', c: '#F59E0B' },
+        { l: '🔴 Dist. >10% (lejos)', v: lejos + ' órdenes', s: 'Paciencia', c: '#EF4444' },
+        { l: 'Capital en espera', v: fe(capTotal, 0), s: 'Total comprometido en trampas', c: '#93C5FD' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+
+    document.getElementById('tb-trampas').innerHTML = TRAMPAS_GS.map((r, i) => {
+        const esE = (r[1] || '').toUpperCase().includes('ESPEC');
+        const prio = r[2] || 'B';
+        const pc = prio === 'A+' ? 'ap' : prio === 'A' ? 'a' : prio === 'A-' ? 'am2' : esE ? 'es' : 'b';
+        const tr1 = cn(r[3]),
+            pa = cn(r[4]),
+            d1 = cn(r[5]),
+            a1 = cn(r[6]),
+            cap1 = cn(r[7]);
+        const divAcc = cn(r[8]),
+            yld = r[9] || '—',
+            pago = r[10] || '—';
+        const ad = Math.abs(Math.abs(d1) < 1 ? d1 * 100 : d1);
+        const dcls = ad <= 5 ? 'dc' : ad <= 10 ? 'dm' : 'df';
+        const cal = esE ?
+            '<span style="color:var(--am);font-size:8px;font-weight:700">ESPECULATIVA</span>' :
+            '<span style="color:var(--mt);font-size:8px">' + r[1] + '</span>';
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const dv = Math.abs(d1) < 1 ? d1 * 100 : d1;
+        return '<tr style="' + bg + (esE ? ';background:rgba(251,191,36,0.04)' : '') + '"><td><div style="font-weight:600;font-size:11px">' +
+            r[0] + '</div><div style="font-size:8px;color:var(--mt)">' + pago + '</div></td>' +
+            '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
+            '<td class="rd">' + (tr1 ? f2(tr1) + ' €' : '—') + '</td>' +
+            '<td style="font-family:monospace;color:#F0F4FF">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
+            '<td class="' + dcls + '">' + (d1 ? dv.toFixed(1) + '%' : '—') + '</td>' +
+            '<td class="mt2">' + (a1 || '—') + '</td>' +
+            '<td class="bl">' + (cap1 ? Math.round(cap1) + ' €' : '—') + '</td>' +
+            '<td class="gn">' + (divAcc > 0 ? f2(divAcc) + ' €' : '—') + '</td>' +
+            '<td class="gn">' + yld + '</td>' +
+            '<td class="mt2" style="font-size:8px">' + pago + '</td>' +
+            '</tr>';
+    }).join('');
+}
+
+// ── DIVIDENDOS (COMPLETO PERO RESUMIDO PARA AHORRAR ESPACIO) ──
+function renderDividendos() {
+    const divs = D.dividendos;
+    const r = D.resumen;
+
+    const divs2026 = divs.filter(d => d.f.includes('2026'));
+    const total2026 = divs2026.reduce((s, d) => s + d.neto_real, 0);
+    const dev2026 = divs2026.reduce((s, d) => s + d.devolucion, 0);
+    const bruto2026 = divs2026.reduce((s, d) => s + d.bruto, 0);
+    const retOrigen2026 = divs2026.reduce((s, d) => s + d.ret_origen, 0);
+    const taxEs2026 = divs2026.reduce((s, d) => s + d.tax_es, 0);
+    const pagos2026 = divs2026.length;
+
+    const topActivo = {};
+    divs2026.forEach(d => { if (!topActivo[d.n]) topActivo[d.n] = 0;
+        topActivo[d.n] += d.neto_real; });
+    let topNombre = '—',
+        topValor = 0;
+    Object.entries(topActivo).forEach(([n, v]) => { if (v > topValor) { topValor = v;
+            topNombre = n; } });
+
+    document.getElementById('resumen-div-ejecutivo').innerHTML = [
+        { l: 'Total neto real 2026', v: fe(total2026), s: pagos2026 + ' pagos', c: '#10B981' },
+        { l: 'A devolver Hacienda', v: fe(dev2026), s: 'Doble imposición', c: '#86EFAC' },
+        { l: 'Bruto 2026', v: fe(bruto2026), s: 'Antes de retenciones', c: '#93C5FD' },
+        { l: 'Retención origen', v: '-' + fe(retOrigen2026), s: 'USA 15% / FR 12,8%', c: '#F59E0B' },
+        { l: 'Retención Hacienda', v: '-' + fe(taxEs2026), s: '19% sobre neto TR', c: '#EF4444' },
+        { l: '🏆 Top activo', v: topNombre, s: fe(topValor) + ' neto real', c: '#C4B5FD' },
+    ].map(k => '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)"><div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">' +
+            k.l + '</div><div style="font-size:14px;font-weight:700;color:' + k.c + ';margin-top:3px">' + k.v +
+            '</div><div style="font-size:8px;color:var(--mt)">' + k.s + '</div></div>').join('');
+
+    const acumMap = {};
+    divs.forEach(d => {
+        if (!acumMap[d.n]) acumMap[d.n] = { n: d.n, pais: d.pais, ret: d.ret || 0, pagos: 0, bruto: 0,
+            ret_o: 0, neto_tr: 0, tax_es: 0, neto_f: 0, dev: 0, real: 0 };
+        const a = acumMap[d.n];
+        a.pagos++;
+        a.bruto = round2(a.bruto + d.bruto);
+        a.ret_o = round2(a.ret_o + d.ret_origen);
+        a.neto_tr = round2(a.neto_tr + d.neto_tr);
+        a.tax_es = round2(a.tax_es + d.tax_es);
+        a.neto_f = round2(a.neto_f + d.neto_final);
+        a.dev = round2(a.dev + d.devolucion);
+        a.real = round2(a.real + d.neto_real);
+    });
+
+    const acumList = Object.values(acumMap).sort((a, b) => b.real - a.real);
+    const totA = acumList.reduce((s, a) => ({
+        pagos: s.pagos + a.pagos,
+        bruto: round2(s.bruto + a.bruto),
+        ret_o: round2(s.ret_o + a.ret_o),
+        neto_tr: round2(s.neto_tr + a.neto_tr),
+        tax_es: round2(s.tax_es + a.tax_es),
+        neto_f: round2(s.neto_f + a.neto_f),
+        dev: round2(s.dev + a.dev),
+        real: round2(s.real + a.real)
+    }), { pagos: 0, bruto: 0, ret_o: 0, neto_tr: 0, tax_es: 0, neto_f: 0, dev: 0, real: 0 });
+
+    const tbA = document.getElementById('tb-acum');
+    if (tbA) tbA.innerHTML = acumList.map((a, i) => {
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const retPct = a.pais === 'USA' ? '15%' : a.pais === 'FRA' ? '12,8%' : '0%';
+        return '<tr style="' + bg + '">' +
+            '<td><div style="font-weight:700;font-size:12px">' + a.n + '</div></td>' +
+            '<td>' + pb(a.pais) + '</td>' +
+            '<td class="mt2" style="font-size:9px;font-weight:600">' + retPct + '</td>' +
+            '<td class="mt2" style="text-align:center">' + a.pagos + 'x</td>' +
+            '<td class="bl" style="font-weight:700">' + fe(a.bruto) + '</td>' +
+            '<td class="rd">' + (a.ret_o > 0 ? '-' + fe(a.ret_o) : '—') + '</td>' +
+            '<td class="am">' + fe(a.neto_tr) + '</td>' +
+            '<td class="rd">' + (a.tax_es > 0 ? '-' + fe(a.tax_es) : '—') + '</td>' +
+            '<td class="am" style="font-weight:600">' + fe(a.neto_f) + '</td>' +
+            '<td style="color:#86EFAC;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
+            (a.dev > 0 ? '+' + fe(a.dev) : '—') + '</td>' +
+            '<td style="color:#10B981;font-family:monospace;font-weight:700;font-size:12px">' + fe(a.real) +
+            '</td>' +
+            '</tr>';
+    }).join('');
+
+    const tfA = document.getElementById('tf-acum');
+    if (tfA) tfA.innerHTML = '<td style="font-size:12px">TOTAL</td><td></td><td></td>' +
+        '<td class="bl" style="text-align:center">' + totA.pagos + 'x</td>' +
+        '<td class="bl" style="font-weight:700">' + fe(totA.bruto) + '</td>' +
+        '<td class="rd">-' + fe(totA.ret_o) + '</td>' +
+        '<td class="am">' + fe(totA.neto_tr) + '</td>' +
+        '<td class="rd">-' + fe(totA.tax_es) + '</td>' +
+        '<td class="am" style="font-weight:700">' + fe(totA.neto_f) + '</td>' +
+        '<td style="color:#86EFAC;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">+' +
+        fe(totA.dev) + '</td>' +
+        '<td style="color:#10B981;font-family:monospace;font-weight:700;font-size:12px">' + fe(totA.real) +
+        '</td>';
+
+    document.getElementById('kg3').innerHTML = [
+        { l: 'Bruto total cobrado', v: fe(r.divBruto), s: 'Antes de retenciones', c: '#93C5FD' },
+        { l: 'Neto cobrado en TR', v: fe(r.divNetoTR), s: 'Tras retención origen', c: '#F59E0B' },
+        { l: 'Neto tras Hacienda', v: fe(r.divNetoFinal), s: 'Lo que ves en TR', c: '#EF4444' },
+        { l: 'A devolver Hacienda', v: fe(r.divDevolucion), s: 'Doble imposición', c: '#10B981' },
+        { l: 'Neto real final', v: fe(r.divNetoReal), s: 'Tras devolución', c: '#10B981' },
+        { l: 'Pagos recibidos', v: divs.length, s: D.dividendos.filter(d => d.pais === 'USA').length +
+                ' USA · ' + D.dividendos.filter(d => d.pais === 'FRA').length + ' FR · ' + D.dividendos.filter(
+                    d => d.pais === 'ESP').length + ' ESP', c: '#6B7A99' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + ';font-size:' + (k.v.length > 10 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
+            '</div></div>').join('');
+
+    document.getElementById('tb-divs').innerHTML = divs.map((d, i) => {
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const retPct = d.pais === 'USA' ? '15%' : d.pais === 'FRA' ? '12,8%' : '0%';
+        return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + d.n +
+            '</div></td>' +
+            '<td>' + pb(d.pais) + '<span style="font-size:7px;color:var(--mt)">' + retPct + '</span></td>' +
+            '<td class="mt2" style="font-size:9px">' + d.f + '</td>' +
+            '<td class="mt2">' + d.sh.toFixed(4) + '</td>' +
+            '<td class="bl">' + (d.bruto ? fe(d.bruto) : '—') + '</td>' +
+            '<td class="rd">' + (d.ret_origen ? '-' + fe(d.ret_origen) : '—') + '</td>' +
+            '<td class="am">' + fe(d.neto_tr) + '</td>' +
+            '<td class="rd">' + (d.tax_es ? '-' + fe(d.tax_es) : '—') + '</td>' +
+            '<td class="am">' + fe(d.neto_final) + '</td>' +
+            '<td class="gn">' + (d.devolucion ? '+' + fe(d.devolucion) : '—') + '</td>' +
+            '<td class="gn" style="font-weight:700">' + fe(d.neto_real) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    const tot = { bruto: divs.reduce((s, d) => s + d.bruto, 0), ret_o: divs.reduce((s, d) => s + d.ret_origen, 0),
+        neto_tr: r.divNetoTR, tax_es: divs.reduce((s, d) => s + d.tax_es, 0),
+        neto_f: r.divNetoFinal, dev: r.divDevolucion, real: r.divNetoReal };
+    document.getElementById('tf-divs').innerHTML = '<td>TOTAL</td><td></td><td></td><td></td>' +
+        '<td class="bl">' + fe(tot.bruto) + '</td>' +
+        '<td class="rd">-' + fe(tot.ret_o) + '</td>' +
+        '<td class="am">' + fe(tot.neto_tr) + '</td>' +
+        '<td class="rd">-' + fe(tot.tax_es) + '</td>' +
+        '<td class="am">' + fe(tot.neto_f) + '</td>' +
+        '<td class="gn">+' + fe(tot.dev) + '</td>' +
+        '<td class="gn" style="font-weight:700">' + fe(tot.real) + '</td>';
+
+    const res2 = D.resumen_divs || [];
+    const tbRes = document.getElementById('tb-divs-res');
+    if (tbRes) {
+        tbRes.innerHTML = res2.sort((a, b) => b.año - a.año || b.neto_real - a.neto_real)
+            .map((r, i) => {
+                const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+                const retPct = r.pais === 'USA' ? '15%' : r.pais === 'FRA' ? '12,8%' : '0%';
+                const ret_o = round2(r.bruto - r.neto_tr);
+                const tax_es = round2(r.neto_tr - r.neto_final);
+                const rendimientoReal = r.bruto > 0 ? (r.neto_real / r.bruto * 100) : 0;
+                return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + r.n +
+                    '</div></td>' +
+                    '<td>' + pb(r.pais) + '<span style="font-size:7px;color:var(--mt)">' + retPct +
+                    '</span></td>' +
+                    '<td class="mt2" style="font-weight:600">' + r.año + '</td>' +
+                    '<td class="mt2">' + r.pagos + 'x</td>' +
+                    '<td class="bl">' + fe(r.bruto) + '</td>' +
+                    '<td class="rd">' + (ret_o > 0 ? '-' + fe(ret_o) : '—') + '</td>' +
+                    '<td class="am">' + fe(r.neto_tr) + '</td>' +
+                    '<td class="rd">' + (tax_es > 0 ? '-' + fe(tax_es) : '—') + '</td>' +
+                    '<td class="am">' + fe(r.neto_final) + '</td>' +
+                    '<td style="color:#86EFAC;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
+                    (r.devolucion > 0 ? '+' + fe(r.devolucion) : '—') + '</td>' +
+                    '<td class="gn" style="font-weight:700">' + fe(r.neto_real) + '</td>' +
+                    '<td style="color:' + (rendimientoReal > 80 ? 'var(--gn)' : 'var(--am)') +
+                    ';font-family:monospace;font-weight:700">' + rendimientoReal.toFixed(1) + '%</td>' +
+                    '</tr>';
+            }).join('');
+
+        const totR = { bruto: res2.reduce((s, r) => s + r.bruto, 0), neto_tr: res2.reduce((s, r) => s + r.neto_tr,
+                0),
+            neto_f: res2.reduce((s, r) => s + r.neto_final, 0), dev: res2.reduce((s, r) => s + r.devolucion,
+                0),
+            real: res2.reduce((s, r) => s + r.neto_real, 0) };
+        const rendTotal = totR.bruto > 0 ? (totR.real / totR.bruto * 100) : 0;
+        document.getElementById('tf-divs-res').innerHTML = '<td>TOTAL</td><td></td><td></td><td>' + res2.reduce((
+            s, r) => s + r.pagos, 0) + 'x</td>' +
+            '<td class="bl">' + fe(totR.bruto) + '</td>' +
+            '<td class="rd">-' + fe(round2(totR.bruto - totR.neto_tr)) + '</td>' +
+            '<td class="am">' + fe(totR.neto_tr) + '</td>' +
+            '<td class="rd">-' + fe(round2(totR.neto_tr - totR.neto_f)) + '</td>' +
+            '<td class="am">' + fe(totR.neto_f) + '</td>' +
+            '<td class="gn">+' + fe(totR.dev) + '</td>' +
+            '<td class="gn" style="font-weight:700">' + fe(totR.real) + '</td>' +
+            '<td style="color:' + (rendTotal > 80 ? 'var(--gn)' : 'var(--am)') +
+            ';font-family:monospace;font-weight:700">' + rendTotal.toFixed(1) + '%</td>';
+    }
+
+    const rankingContainer = document.getElementById('ranking-dividendos');
+    if (rankingContainer) {
+        const ranking = Object.entries(topActivo)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+        rankingContainer.innerHTML = ranking.map(([n, v], i) => {
+            const medalla = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            const barWidth = Math.min(100, (v / ranking[0][1]) * 100);
+            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd)">' +
+                '<div style="font-size:14px;min-width:30px">' + medalla + '</div>' +
+                '<div style="font-weight:600;font-size:11px;flex:1;min-width:100px">' + n + '</div>' +
+                '<div style="flex:1;background:var(--bd);border-radius:3px;height:6px;overflow:hidden">' +
+                '<div style="height:100%;width:' + barWidth + '%;background:linear-gradient(90deg,var(--ac),var(--gn));border-radius:3px"></div>' +
+                '</div>' +
+                '<div style="font-family:monospace;font-weight:700;font-size:11px;color:#10B981;min-width:50px;text-align:right">' +
+                fe(v) + '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    const pend = D.pendientes || [];
+    const tbP = document.getElementById('tb-pend');
+    if (tbP) tbP.innerHTML = pend.map((p, i) => {
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const proxColor = p.prox_est.includes('2026') ?
+            'color:#10B981;font-weight:700' :
+            'color:var(--mt)';
+        return '<tr style="' + bg + '">' +
+            '<td><div style="font-weight:700;font-size:12px">' + p.n + '</div></td>' +
+            '<td>' + pb(p.pais) + '</td>' +
+            '<td class="mt2" style="font-size:9px">' + p.freq + '</td>' +
+            '<td class="mt2">' + p.sh + '</td>' +
+            '<td class="mt2" style="font-size:9px">' + p.ultimo_cobro + '</td>' +
+            '<td style="font-family:monospace;font-size:10px;font-weight:600;' + proxColor + '">' + p
+            .prox_est + '</td>' +
+            '<td class="bl">' + (p.bruto_est ? fe(p.bruto_est) : '—') + '</td>' +
+            '<td class="rd">' + (p.ret_o_est > 0 ? '-' + fe(p.ret_o_est) : '—') + '</td>' +
+            '<td class="am">' + fe(p.neto_tr_est) + '</td>' +
+            '<td style="color:#86EFAC;font-family:monospace;font-weight:700">' + (p.dev_est > 0 ? '+' +
+                fe(p.dev_est) : '—') + '</td>' +
+            '<td style="color:#10B981;font-family:monospace;font-weight:700;font-size:12px">' + fe(p
+                .neto_real_est) + '</td>' +
+            '<td style="color:#F59E0B;font-family:monospace;font-weight:600">' + (p.ya_cobrado_2026 ? fe(p
+                .ya_cobrado_2026) : '—') + '</td>' +
+            '</tr>';
+    }).join('');
+
+    const tfP = document.getElementById('tf-pend');
+    const totP = pend.reduce((s, p) => ({
+        bruto: round2(s.bruto + p.bruto_est),
+        ret_o: round2(s.ret_o + p.ret_o_est),
+        neto_tr: round2(s.neto_tr + p.neto_tr_est),
+        dev: round2(s.dev + p.dev_est),
+        real: round2(s.real + p.neto_real_est),
+        ya: round2(s.ya + p.ya_cobrado_2026)
+    }), { bruto: 0, ret_o: 0, neto_tr: 0, dev: 0, real: 0, ya: 0 });
+    if (tfP) tfP.innerHTML = '<td style="font-size:12px">TOTAL</td><td></td><td></td><td></td><td></td><td></td>' +
+        '<td class="bl">' + fe(totP.bruto) + '</td>' +
+        '<td class="rd">-' + fe(totP.ret_o) + '</td>' +
+        '<td class="am">' + fe(totP.neto_tr) + '</td>' +
+        '<td style="color:#86EFAC;font-family:monospace;font-weight:700">+' + fe(totP.dev) + '</td>' +
+        '<td style="color:#10B981;font-family:monospace;font-weight:700;font-size:12px">' + fe(totP.real) +
+        '</td>' +
+        '<td style="color:#F59E0B;font-family:monospace;font-weight:700">' + fe(totP.ya) + '</td>';
+
+    const pa = {};
+    divs.forEach(d => { if (!pa[d.n]) pa[d.n] = 0;
+        pa[d.n] += d.neto_real; });
+    const sr = Object.entries(pa).sort((a, b) => b[1] - a[1]);
+
+    const canvasDiv = document.getElementById('cd');
+    if (canvasDiv) {
+        if (window._chartDiv) { window._chartDiv.destroy(); }
+        window._chartDiv = new Chart(canvasDiv.getContext('2d'), {
+            type: 'bar',
+            data: { labels: sr.map(([n]) => n.split(' ')[0]), datasets: [{ label: 'Neto real €',
+                    data: sr.map(([, v]) => v), backgroundColor: 'rgba(16,185,129,0.7)',
+                    borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { x: { ticks: { color: '#6B7A99', font: { size: 8 } }, grid: { display: false } },
+                    y: { ticks: { color: '#6B7A99', font: { size: 8 }, callback: v => v +
+                                '€' }, grid: { color: '#1E2D45' } } } }
+        });
+    }
+
+    document.getElementById('fiscal-resumen').innerHTML = [
+        ['Bruto cobrado (antes retenciones)', 'bl', fe(tot.bruto)],
+        ['Retención origen (USA 15% / FR 12,8%)', 'rd', '-' + fe(tot.ret_o)],
+        ['Neto llegado a TR', 'am', fe(tot.neto_tr)],
+        ['Retención Hacienda 19%', 'rd', '-' + fe(tot.tax_es)],
+        ['Neto cobrado en cuenta', 'am', fe(tot.neto_f)],
+        ['─────────────────', 'mt2', ''],
+        ['A recuperar en declaración (doble imposición)', 'gn', '+' + fe(tot.dev)],
+        ['NETO REAL FINAL', 'gn', fe(tot.real)],
+    ].map(([l, c, v]) => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)">' +
+        '<span style="font-size:10px;color:var(--mt)">' + l + '</span>' +
+        (v ? '<span class="' + c + '" style="font-size:11px">' + v + '</span>' : '') +
+        '</div>').join('');
+}
+
+// ── INTERESES ──
+function renderIntereses() {
+    const ints = D.intereses;
+    const tot = ints.reduce((s, i) => s + i.bruto, 0);
+    const totn = ints.reduce((s, i) => s + i.neto, 0);
+    const ult = ints[ints.length - 1]?.bruto || 0;
+
+    document.getElementById('kg4').innerHTML = [
+        { l: 'Total bruto', v: fe(tot), s: fe(totn) + ' neto', c: '#F59E0B' },
+        { l: 'Último mes bruto', v: fe(ult), s: fe(ult * (1 - 0.19)) + ' neto', c: '#10B981' },
+        { l: 'Media mensual neta', v: fe(totn / ints.length), s: ints.length + ' meses', c: '#93C5FD' },
+        { l: 'Retención total 19%', v: fe(tot - totn), s: 'Hacienda ya retenido', c: '#6B7A99' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + '">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+
+    let ac = 0;
+    document.getElementById('tb-int').innerHTML = ints.map((i, j) => {
+        ac += i.neto;
+        const bg = j % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        return '<tr style="' + bg + '"><td style="font-weight:600">' + i.f + '</td>' +
+            '<td class="am">' + fe(i.bruto) + '</td>' +
+            '<td class="rd">-' + fe(i.tax) + '</td>' +
+            '<td class="gn">' + fe(i.neto) + '</td>' +
+            '<td class="mt2">' + fe(ac) + '</td></tr>';
+    }).join('');
+    document.getElementById('tf-int').innerHTML = '<td>TOTAL</td><td class="am">' + fe(tot) + '</td><td class="rd">-' +
+        fe(tot - totn) + '</td><td class="gn">' + fe(totn) + '</td><td></td>';
+
+    const canvasInt = document.getElementById('ci');
+    if (canvasInt) {
+        if (window._chartInt) { window._chartInt.destroy(); }
+        window._chartInt = new Chart(canvasInt.getContext('2d'), {
+            type: 'line',
+            data: { labels: ints.map(i => i.f), datasets: [
+                { label: 'Bruto', data: ints.map(i => i.bruto), borderColor: '#F59E0B',
+                    backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.4,
+                borderWidth: 2 },
+                { label: 'Neto', data: ints.map(i => i.neto), borderColor: '#10B981',
+                    backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4,
+                borderWidth: 2 }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6B7A99',
+                            font: { size: 8 }, boxWidth: 8 } } },
+                scales: { x: { ticks: { color: '#6B7A99', font: { size: 8 } }, grid: { display: false } },
+                    y: { ticks: { color: '#6B7A99', font: { size: 8 }, callback: v => v +
+                                '€' }, grid: { color: '#1E2D45' } } } }
+        });
+    }
+}
+
+// ── EVOLUCIÓN ──
+function renderEvolucion() {
+    const ev = D.evolucion;
+    const canvasEvo = document.getElementById('ce');
+    if (canvasEvo) {
+        if (window._chartEvo) { window._chartEvo.destroy(); }
+        window._chartEvo = new Chart(canvasEvo.getContext('2d'), {
+            type: 'bar',
+            data: { labels: ev.map(e => e.mes.slice(0, 7)), datasets: [
+                { label: 'Compras', data: ev.map(e => e.compras), backgroundColor: 'rgba(59,130,246,0.65)',
+                    borderRadius: 3, stack: 'a' },
+                { label: 'Dividendos', data: ev.map(e => e.divs), backgroundColor: 'rgba(16,185,129,0.65)',
+                    borderRadius: 3, stack: 'b' },
+                { label: 'Intereses', data: ev.map(e => e.int), backgroundColor: 'rgba(245,158,11,0.65)',
+                    borderRadius: 3, stack: 'b' },
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6B7A99',
+                            font: { size: 8 }, boxWidth: 8 } } },
+                scales: { x: { ticks: { color: '#6B7A99', font: { size: 7 } }, grid: { display: false } },
+                    y: { ticks: { color: '#6B7A99', font: { size: 8 }, callback: v => v +
+                                '€' }, grid: { color: '#1E2D45' } } } }
+        });
+    }
+
+    document.getElementById('tb-evol').innerHTML = ev.map((e, i) => {
+        const n = e.ventas + e.divs + e.int - e.compras;
+        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        return '<tr style="' + bg + '"><td style="font-weight:600">' + e.mes + '</td>' +
+            '<td class="rd">' + (e.compras ? '-' + fe(e.compras) : '—') + '</td>' +
+            '<td class="gn">' + (e.ventas ? '+' + fe(e.ventas) : '—') + '</td>' +
+            '<td class="gn">' + (e.divs ? '+' + fe(e.divs) : '—') + '</td>' +
+            '<td class="am">' + (e.int ? '+' + fe(e.int) : '—') + '</td>' +
+            '<td style="color:' + gc(n) + ';font-family:monospace;font-weight:700">' + (n >= 0 ? '+' : '') +
+            fe(n) + '</td></tr>';
+    }).join('');
+}
+
+// ── PROYECCIONES ──
+function renderProyecciones() {
+    const divs2026 = D.dividendos.filter(d => d.f.includes('2026'));
+    const netoRealMensual = divs2026.reduce((s, d) => s + d.neto_real, 0) / Math.max(1, divs2026.length);
+
+    const proyMeses = 12;
+    const crecimientoEstimado = 0.025;
+    let proyTotal = 0;
+    let proyMensual = netoRealMensual;
+    const proyData = [];
+    for (let i = 0; i < proyMeses; i++) {
+        proyMensual = proyMensual * (1 + crecimientoEstimado);
+        proyTotal += proyMensual;
+        proyData.push({ mes: i + 1, valor: proyMensual, acumulado: proyTotal });
+    }
+
+    document.getElementById('proyecciones-container').innerHTML = `
+        <div class="g2" style="gap:12px">
+            <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Dividendo mensual actual</div>
+                <div style="font-size:18px;font-weight:700;color:#10B981">${fe(netoRealMensual)}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Proyección a 12 meses</div>
+                <div style="font-size:18px;font-weight:700;color:#C4B5FD">${fe(proyTotal)}</div>
+                <div style="font-size:8px;color:var(--mt)">+${((proyTotal / (netoRealMensual * 12) - 1) * 100).toFixed(1)}% sobre flat</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Último mes proyectado</div>
+                <div style="font-size:18px;font-weight:700;color:#F59E0B">${fe(proyData[proyData.length-1].valor)}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Aportación necesaria para 300€/mes</div>
+                <div style="font-size:18px;font-weight:700;color:#EF4444">${fe(Math.max(0, 300 - netoRealMensual - 150 - (D.resumen.intNeto/11)))}</div>
+            </div>
+        </div>
+        <div style="margin-top:12px;background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+            <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">📈 Evolución proyectada (con reinvestimiento del ${(crecimientoEstimado*100).toFixed(1)}% mensual)</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:4px">
+                ${proyData.map((p, i) => `
+                    <div style="text-align:center;padding:4px;background:${i === proyData.length-1 ? 'var(--s1)' : 'transparent'};border-radius:4px;border:${i === proyData.length-1 ? '1px solid var(--ac)' : 'none'}">
+                        <div style="font-size:7px;color:var(--mt)">Mes ${p.mes}</div>
+                        <div style="font-size:9px;font-family:monospace;font-weight:600;color:#10B981">${fe(p.valor, 0)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    const escenarios = [
+        { nombre: 'Optimista', crecimiento: 0.05, desc: 'Reinversión agresiva + mercado alcista' },
+        { nombre: 'Moderado', crecimiento: 0.025, desc: 'Reinversión conservadora' },
+        { nombre: 'Pesimista', crecimiento: 0.01, desc: 'Sin reinvestimiento, solo crecimiento orgánico' },
+    ];
+
+    document.getElementById('escenarios-container').innerHTML = escenarios.map(esc => {
+        let total = 0;
+        let mensual = netoRealMensual;
+        for (let i = 0; i < 12; i++) { mensual = mensual * (1 + esc.crecimiento);
+            total += mensual; }
+        const color = esc.crecimiento >= 0.04 ? 'var(--gn)' : esc.crecimiento >= 0.02 ? 'var(--am)' :
+            'var(--rd)';
+        return `<div style="background:var(--s2);border-radius:8px;padding:10px 14px;border:1px solid var(--bd)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-weight:600;font-size:11px">${esc.nombre}</span>
+                <span style="font-family:monospace;font-size:11px;color:${color};font-weight:700">${fe(total)}</span>
+            </div>
+            <div style="font-size:8px;color:var(--mt)">${esc.desc}</div>
+            <div style="margin-top:4px;font-size:8px;color:var(--mt)">Crecimiento mensual: ${(esc.crecimiento*100).toFixed(1)}%</div>
+        </div>`;
+    }).join('');
+
+    const años = 5;
+    const proy5 = [];
+    let m5 = netoRealMensual;
+    for (let i = 0; i < años * 12; i++) {
+        m5 = m5 * (1 + crecimientoEstimado);
+        if (i % 12 === 11) proy5.push({ año: i / 12 + 1, valor: m5 });
+    }
+    document.getElementById('proyeccion5-container').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px">
+            ${proy5.map(p => `
+                <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                    <div style="font-size:8px;color:var(--mt)">Año ${p.año}</div>
+                    <div style="font-size:12px;font-family:monospace;font-weight:700;color:#C4B5FD">${fe(p.valor, 0)}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div style="margin-top:8px;font-size:8px;color:var(--mt)">Crecimiento anual estimado: ${((Math.pow(proy5[proy5.length-1].valor / netoRealMensual, 1/años) - 1) * 100).toFixed(1)}%</div>
+    `;
+
+    const recoms = [];
+    const pos = D.posiciones;
+    const totalCost = pos.reduce((s, p) => s + p.ct, 0);
+    pos.forEach(p => {
+        const peso = (p.ct / totalCost * 100);
+        if (peso > 20) recoms.push('⚠️ ' + p.n + ' supone el ' + peso.toFixed(1) +
+            '% de tu cartera. Considera diversificar para reducir riesgo.');
+    });
+
+    const topYield = D.pendientes.filter(p => p.neto_real_est > 0)
+        .sort((a, b) => (b.neto_real_est / b.sh) - (a.neto_real_est / a.sh))
+        .slice(0, 3);
+    recoms.push('📈 Para aumentar dividendos, refuerza posiciones con mejor ratio: ' + topYield.map(p => p.n +
+        ' (' + fe(p.neto_real_est / p.sh) + '/acc)').join('; '));
+
+    const divs2026total = divs2026.reduce((s, d) => s + d.neto_real, 0);
+    if (divs2026total > 50) {
+        recoms.push('💰 Has cobrado ' + fe(divs2026total) +
+            ' en 2026. Reinvertir estos dividendos podría acelerar tu objetivo un 15-20%.');
+    } else {
+        recoms.push('📊 Tus dividendos aún son modestos. Considera aumentar posiciones en REITs como Realty Income o VICI Properties para generar más flujo mensual.');
+    }
+
+    const metaFalta = 300 - (D.resumen.intNeto / 11) - (divs2026total / Math.max(1, divs2026.length)) - 150;
+    if (metaFalta > 0) {
+        recoms.push('🎯 Para alcanzar los 300€/mes necesitas generar ' + fe(metaFalta) +
+            ' adicionales al mes. Refuerza posiciones con yield >5% o aumenta aportaciones mensuales en ' +
+            fe(metaFalta * 12 / 0.05, 0) + ' en activos de dividendo.');
+    }
+
+    document.getElementById('recomendaciones-container').innerHTML = recoms.map(r =>
+        '<div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:10px;color:#F0F4FF;background:var(--s2);border-radius:6px;margin-bottom:4px">' +
+        r + '</div>'
+    ).join('');
+}
+
+// ── SIMULADOR ──
+function simularCompra() {
+    const activo = document.getElementById('sim-activo').value.trim();
+    const acciones = parseFloat(document.getElementById('sim-acciones').value);
+    const precio = parseFloat(document.getElementById('sim-precio').value);
+    const div = parseFloat(document.getElementById('sim-div').value);
+
+    if (!activo || isNaN(acciones) || isNaN(precio) || isNaN(div)) {
+        document.getElementById('sim-resultado').innerHTML =
+            '<div class="sim-result" style="border-left-color:var(--rd)">❌ Completa todos los campos correctamente.</div>';
+        return;
+    }
+
+    const coste = acciones * precio;
+    const divAnual = acciones * div;
+    const divMensual = divAnual / 12;
+
+    const existente = D.posiciones.find(p => p.n.toLowerCase() === activo.toLowerCase());
+    if (existente) {
+        const nuevasAcc = existente.sh + acciones;
+        const nuevoCoste = existente.ct + coste;
+        const nuevoPm = nuevoCoste / nuevasAcc;
+        const nuevoTotal = nuevasAcc * (PA[MAP[existente.n] || existente.n] || precio);
+        const nuevoDiv = nuevasAcc * div;
+        document.getElementById('sim-resultado').innerHTML =
+            `<div class="sim-result" style="border-left-color:var(--ac)">
+                <div style="font-weight:700;margin-bottom:4px">📊 Simulación: ${activo}</div>
+                <div style="font-size:11px;color:var(--mt)">Añadiendo ${acciones} acciones a precio ${fe(precio)}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Nuevas acciones totales</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace">${nuevasAcc.toFixed(4)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Nuevo PM</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace">${fe(nuevoPm)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Nuevo valor estimado</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--gn)">${fe(nuevoTotal)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Nuevo dividendo anual</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--am)">${fe(divAnual)}</div>
+                    </div>
+                </div>
+                <div style="margin-top:6px;font-size:9px;color:var(--mt)">💡 Sumarás ${fe(divMensual)} al mes a tus ingresos pasivos.</div>
+            </div>`;
+    } else {
+        document.getElementById('sim-resultado').innerHTML =
+            `<div class="sim-result" style="border-left-color:var(--gn)">
+                <div style="font-weight:700;margin-bottom:4px">📊 Simulación: ${activo} (nuevo)</div>
+                <div style="font-size:11px;color:var(--mt)">${acciones} acciones a ${fe(precio)}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Coste total</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace">${fe(coste)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Dividendo anual</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--am)">${fe(divAnual)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Dividendo mensual</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--am)">${fe(divMensual)}</div>
+                    </div>
+                    <div style="background:var(--s1);padding:6px 10px;border-radius:4px">
+                        <div style="font-size:7px;color:var(--mt)">Yield estimado</div>
+                        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--gn)">${(div / precio * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+                <div style="margin-top:6px;font-size:9px;color:var(--mt)">💡 Sumarás ${fe(divMensual)} al mes a tus ingresos pasivos.</div>
+            </div>`;
+    }
+}
+
+// ── ANÁLISIS ──
+function renderAnalisis() {
+    const pos = D.posiciones;
+    const divs = D.dividendos;
+
+    const totalCost = pos.reduce((s, p) => s + p.ct, 0);
+    let totV = 0,
+        totGP = 0;
+    pos.forEach(p => { const pa = PA[MAP[p.n] || p.n] || 0; if (pa > 0) { totV += pa * p.sh;
+            totGP += pa * p.sh - p.ct; } });
+    const rentTotal = totalCost > 0 ? (totGP / totalCost * 100) : 0;
+
+    document.getElementById('kg7').innerHTML = [
+        { l: 'Rentabilidad total', v: (rentTotal > 0 ? '+' : '') + rentTotal.toFixed(1) + '%', s: 'vs objetivo 10% anual',
+            c: rentTotal > 10 ? '#10B981' : rentTotal > 5 ? '#F59E0B' : '#EF4444' },
+        { l: 'Ratio Sharpe estimado', v: (rentTotal / 12).toFixed(2), s: 'Rentabilidad/riesgo', c: '#93C5FD' },
+        { l: 'Diversificación', v: pos.length + ' activos · ' + [...new Set(pos.map(p => p.pais))].length +
+                ' países', s: 'Recomendado 15-25 activos', c: '#C4B5FD' },
+        { l: 'Yield cartera', v: (divs.reduce((s, d) => s + d.bruto, 0) / totalCost * 100).toFixed(2) + '%',
+            s: 'Dividendo bruto / coste', c: '#F59E0B' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+            k.c + '">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+
+    const sp500 = 15.2,
+        msci = 12.8,
+        nasdaq = 22.4;
+    document.getElementById('comparativa-container').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">Tu rentabilidad</div>
+                <div style="font-size:20px;font-weight:700;color:${rentTotal > 0 ? 'var(--gn)' : 'var(--rd)'}">${(rentTotal > 0 ? '+' : '') + rentTotal.toFixed(1)}%</div>
+                <div style="font-size:7px;color:var(--mt)">YTD ${new Date().getFullYear()}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">S&P 500</div>
+                <div style="font-size:20px;font-weight:700;color:var(--gn)">+${sp500}%</div>
+                <div style="font-size:7px;color:var(--mt)">${rentTotal > sp500 ? '✅ Te supera en ' + (rentTotal - sp500).toFixed(1) + '%' : '⚠️ Te queda ' + (sp500 - rentTotal).toFixed(1) + '% para igualarlo'}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">MSCI World</div>
+                <div style="font-size:20px;font-weight:700;color:var(--gn)">+${msci}%</div>
+                <div style="font-size:7px;color:var(--mt)">${rentTotal > msci ? '✅ Te supera en ' + (rentTotal - msci).toFixed(1) + '%' : '⚠️ Te queda ' + (msci - rentTotal).toFixed(1) + '% para igualarlo'}</div>
+            </div>
+        </div>
+    `;
+
+    const eficiencia = {};
+    divs.forEach(d => {
+        if (!eficiencia[d.n]) eficiencia[d.n] = { n: d.n, pais: d.pais, retO: 0, retES: 0, bruto: 0, real: 0 };
+        const e = eficiencia[d.n];
+        e.bruto += d.bruto;
+        e.retO += d.ret_origen;
+        e.retES += d.tax_es;
+        e.real += d.neto_real;
+    });
+    const tbEf = document.getElementById('tb-eficiencia');
+    if (tbEf) tbEf.innerHTML = Object.values(eficiencia).sort((a, b) => (b.real / b.bruto) - (a.real / a.bruto))
+        .map((e, i) => {
+            const eff = e.bruto > 0 ? (e.real / e.bruto * 100) : 0;
+            const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+            return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + e.n +
+                '</div></td>' +
+                '<td>' + pb(e.pais) + '</td>' +
+                '<td class="rd">' + fe(e.retO) + '</td>' +
+                '<td class="rd">' + fe(e.retES) + '</td>' +
+                '<td style="color:' + (eff > 80 ? 'var(--gn)' : 'var(--am)') +
+                ';font-family:monospace;font-weight:700">' + eff.toFixed(1) + '%</td></tr>';
+        }).join('');
+
+    const ev = D.evolucion;
+    const flujos = ev.map(e => e.ventas + e.divs + e.int - e.compras);
+    const media = flujos.reduce((s, v) => s + v, 0) / flujos.length;
+    const ultimos3 = flujos.slice(-3);
+    const tendencia = ultimos3.every(v => v > 0) ? '📈 Alcista' :
+        ultimos3.every(v => v < 0) ? '📉 Bajista' : '➡️ Lateral';
+
+    document.getElementById('tendencia-container').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">Tendencia actual</div>
+                <div style="font-size:18px;font-weight:700;color:${tendencia.includes('Alcista') ? 'var(--gn)' : tendencia.includes('Bajista') ? 'var(--rd)' : 'var(--am)'}">${tendencia}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">Flujo neto medio</div>
+                <div style="font-size:18px;font-weight:700;color:${media > 0 ? 'var(--gn)' : 'var(--rd)'}">${media > 0 ? '+' : ''}${fe(media, 0)}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt)">Últimos 3 meses</div>
+                <div style="font-size:14px;font-weight:700;font-family:monospace;color:${ultimos3.every(v => v > 0) ? 'var(--gn)' : 'var(--am)'}">${ultimos3.map(v => (v > 0 ? '+' : '') + fe(v, 0)).join(' · ')}</div>
+            </div>
+        </div>
+    `;
+
+    const alerts = [];
+    if (pos.length < 15) alerts.push('📊 Tu cartera tiene ' + pos.length +
+        ' activos. Diversificar a 15-25 activos reduce el riesgo.');
+    if (rentTotal < 5) alerts.push('⚠️ Tu rentabilidad es baja (' + rentTotal.toFixed(1) +
+        '%). Considera revisar tu estrategia de selección.');
+    if (TRAMPAS_GS.length === 0) alerts.push('🎯 No tienes trampas activas. Establecer órdenes de compra puede ayudarte a comprar en caídas.');
+
+    document.getElementById('alertas-detalle').innerHTML = alerts.length > 0 ?
+        alerts.map(a => '<div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:10px;background:var(--s2);border-radius:6px;margin-bottom:4px">' +
+            a + '</div>').join('') :
+        '<div style="color:var(--gn);font-size:11px">✅ Todo en orden. Sigue así.</div>';
+}
+
+// ── INIT ──
+document.getElementById('rango').textContent = D.resumen.inicio + ' → ' + D.resumen.fin;
+renderDividendos();
+renderIntereses();
+renderEvolucion();
+renderDashboard();
+renderCartera();
+renderProyecciones();
+renderAnalisis();
+recargar();
+setInterval(recargar, 5 * 60 * 1000);
+
+setTimeout(() => {
+    notificar('🚀 Dashboard listo', 'Tus inversiones al alcance de un vistazo', 'success');
+}, 500);
+</script>
+</body>
+</html>
