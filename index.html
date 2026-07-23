@@ -124,13 +124,14 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding
   <div style="max-width:800px;margin:0 auto;text-align:center">
     <h1 style="font-size:32px;margin-bottom:8px">🎯 Modo Focus</h1>
     <p style="color:var(--mt);font-size:14px;margin-bottom:30px">Solo lo que importa</p>
-    <div class="kg" id="focus-kpis" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="kg" id="focus-kpis" style="grid-template-columns:repeat(2,1fr)"></div>
     <div class="card" style="margin-top:24px;text-align:left">
+      <div class="ch"><h3>📊 Rentabilidad total</h3></div>
+      <div id="focus-rent-total" style="padding:24px">—</div>
+    </div>
+    <div class="card" style="margin-top:20px;text-align:left">
       <div class="ch"><h3>🎯 Trampas más cercanas</h3></div>
       <div id="focus-trampa">—</div>
-    </div>
-    <div style="margin-top:20px">
-      <div class="card"><div class="ch"><h3>Objetivo 300€/mes</h3></div><div style="padding:20px"><div class="pbar"><div class="pfill" id="focus-bar" style="width:0%"></div></div><div style="font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:12px" id="focus-pct">—</div></div></div>
     </div>
   </div>
 </div>
@@ -618,20 +619,50 @@ function renderDashboard() {
         '✅ ¡Ya has alcanzado el objetivo!';
 
     const gpRealizado = OPERACIONES_CERRADAS.reduce((s, o) => s + o.gp, 0);
-    const gpCombinado = totGP + gpRealizado;
-    const baseCombinada = totCost + COSTE_VENDIDO_TOTAL;
-    document.getElementById('focus-kpis').innerHTML = [
-        { l: 'Valor cartera', v: totV ? fe(totV) : '—', sub: totCost ? 'Invertido: ' + fe(totCost) : '', c: '#86EFAC' },
-        { l: 'Rentabilidad total', v: gpCombinado ? (gpCombinado / (baseCombinada || 1) * 100).toFixed(1) + '%' :
-                '—', sub: gpCombinado ? (gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) + (gpRealizado ?
-                    ' (incl. ' + (gpRealizado >= 0 ? '+' : '') + fe(gpRealizado) + ' vendido)' : '') : '', c: '#10B981' },
-        { l: 'Ingresos pasivos/mes', v: fe(totMes), sub: '', c: '#F59E0B' },
-    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
-            k.c + '">' + k.v + '</div>' + (k.sub ?
-                '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + k.c + '">' + k.sub +
-                '</div>' : '') + '</div>').join('');
-    document.getElementById('focus-bar').style.width = pct + '%';
-    document.getElementById('focus-pct').textContent = pct.toFixed(1) + '%';
+    const divTotalReal = (D.resumen && D.resumen.divNetoReal) || 0;
+    const gpCombinado = totGP + gpRealizado + divTotalReal;
+    // Base = solo el capital que tienes invertido AHORA (no el histórico ya vendido,
+    // que diluía el % de forma engañosa)
+    const pctAcciones = totCost ? (totGP / totCost * 100) : 0;
+    const pctTotal = totCost ? (gpCombinado / totCost * 100) : 0;
+
+    document.getElementById('focus-kpis').innerHTML =
+        '<div class="kpi" style="--kc:#86EFAC">' +
+        '<div class="kl" style="font-size:11px">Valor cartera</div>' +
+        '<div class="kv" style="color:#86EFAC;font-size:30px">' + (totV ? fe(totV) : '—') + '</div>' +
+        (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:#86EFAC">Invertido: ' + fe(
+            totCost) + '</div>' : '') +
+        '</div>' +
+        '<div class="kpi" style="--kc:#10B981">' +
+        '<div class="kl" style="font-size:11px">Rentabilidad acciones</div>' +
+        '<div class="kv" style="color:#10B981;font-size:30px">' + (totCost ? pctAcciones.toFixed(1) + '%' :
+            '—') + '</div>' +
+        (totGP ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:#10B981">Total: ' + (totGP >=
+            0 ? '+' : '') + fe(totGP) + '</div>' : '') +
+        '</div>';
+
+    const rentTotalEl = document.getElementById('focus-rent-total');
+    if (rentTotalEl) {
+        rentTotalEl.innerHTML =
+            '<div style="text-align:center">' +
+            '<div style="font-size:44px;font-weight:700;color:#3B82F6;font-family:\'JetBrains Mono\',monospace">' +
+            (totCost ? pctTotal.toFixed(1) + '%' : '—') + '</div>' +
+            '<div style="font-size:20px;font-weight:700;margin-top:4px;color:' + (gpCombinado >= 0 ? 'var(--gn)' :
+                'var(--rd)') + '">' + (gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) + '</div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-top:18px">' +
+            '<div style="text-align:center"><div style="font-size:11px;color:var(--mt)">Acciones</div><div style="font-size:18px;font-weight:700;color:' +
+            (totGP >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (totGP >= 0 ? '+' : '') + fe(totGP) + '</div></div>' +
+            '<div style="text-align:center"><div style="font-size:11px;color:var(--mt)">Ventas</div><div style="font-size:18px;font-weight:700;color:' +
+            (gpRealizado >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (gpRealizado >= 0 ? '+' : '') + fe(
+                gpRealizado) + '</div></div>' +
+            '<div style="text-align:center"><div style="font-size:11px;color:var(--mt)">Dividendos</div><div style="font-size:18px;font-weight:700;color:var(--gn)">+' +
+            fe(divTotalReal) + '</div></div>' +
+            '</div>';
+    }
+
+
+
 
     // ── Trampas ordenadas por cercanía (compartido entre Dashboard y Modo Focus) ──
     const trampasOrdenadas = [...TRAMPAS_GS]
