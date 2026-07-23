@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -640,7 +641,7 @@ function renderDashboard() {
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
     trampasOrdenadas.forEach(t => {
-        const dPct = Math.abs(t.d) < 1 ? t.d * 100 : t.d;
+        const dPct = t.d;
         if (Math.abs(dPct) <= 1 && !trampasAvisadas.has(t.n)) {
             trampasAvisadas.add(t.n);
             notificar('🎯 ¡' + t.n + ' está a tiro!', 'Solo a ' + Math.abs(dPct).toFixed(2) +
@@ -649,34 +650,34 @@ function renderDashboard() {
     });
 
     const filaTrampa = (t, destacada, grande) => {
-        const d = Math.abs(t.d) < 1 ? t.d * 100 : t.d;
+        const d = t.d;
         const ad = Math.abs(d);
         const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
         const cls = ad <= 5 ? 'c' : ad <= 10 ? 'm' : 'f';
         const pc = t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
         const colorPct = destacada ? 'var(--gn)' : cls === 'c' ? 'var(--gn)' : cls === 'm' ? 'var(--am)' :
             'var(--rd)';
-        const fName = grande ? (destacada ? '18px' : '15px') : (destacada ? '13px' : '11px');
-        const fSub = grande ? '12px' : '9px';
-        const fPct = grande ? (destacada ? '20px' : '17px') : (destacada ? '14px' : '10px');
-        const pad = grande ? '16px 18px' : '10px 16px';
+        const fName = grande ? (destacada ? '24px' : '20px') : (destacada ? '13px' : '11px');
+        const fSub = grande ? '16px' : '9px';
+        const fPct = grande ? (destacada ? '28px' : '24px') : (destacada ? '14px' : '10px');
+        const pad = grande ? '22px 22px' : '10px 16px';
         return '<div style="padding:' + pad +
             ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
             (destacada ? ';background:rgba(16,185,129,0.10);border-left:3px solid var(--gn)' : '') + '">' +
-            '<span class="pr ' + pc + '"' + (grande ? ' style="font-size:13px;padding:4px 8px"' : '') + '>' + t.p +
+            '<span class="pr ' + pc + '"' + (grande ? ' style="font-size:16px;padding:6px 11px"' : '') + '>' + t.p +
             '</span>' +
             '<div style="flex:1;min-width:120px">' +
             '<div style="font-size:' + fName + ';font-weight:700">' + t.n + '</div>' +
-            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">' + (t.acc ? f2(t.acc) + ' acc.' :
+            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:4px">' + (t.acc ? f2(t.acc) + ' acc.' :
                 '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
-            '<div style="font-size:' + fSub + ';color:var(--mt)">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
+            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
             ' · <span style="color:' + (t.pa - t.t <= 0 ? 'var(--gn)' : 'var(--am)') + '">Dif ' + (t.pa - t.t >=
                 0 ? '+' : '') + fe(t.pa - t.t) + '</span></div>' +
             '</div>' +
             (grande ? '' :
                 '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
                 cls + '" style="width:' + pct2 + '%"></div></div>') +
-            '<div style="font-size:' + fPct + ';font-weight:700;min-width:' + (grande ? '64px' : '44px') +
+            '<div style="font-size:' + fPct + ';font-weight:700;min-width:' + (grande ? '90px' : '44px') +
             ';text-align:right;color:' + colorPct + '">' + (d ? d.toFixed(1) + '%' : '—') + '</div>' +
             '</div>';
     };
@@ -972,13 +973,13 @@ function renderTrampas() {
         const divAcc = cn(r[8]),
             yld = r[9] || '—',
             pago = r[10] || '—';
-        const ad = Math.abs(Math.abs(d1) < 1 ? d1 * 100 : d1);
+        const ad = Math.abs(d1);
         const dcls = ad <= 5 ? 'dc' : ad <= 10 ? 'dm' : 'df';
         const cal = esE ?
             '<span style="color:var(--am);font-size:8px;font-weight:700">ESPECULATIVA</span>' :
             '<span style="color:var(--mt);font-size:8px">' + r[1] + '</span>';
         const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
-        const dv = Math.abs(d1) < 1 ? d1 * 100 : d1;
+        const dv = d1;
         return '<tr style="' + bg + (esE ? ';background:rgba(251,191,36,0.04)' : '') + '"><td><div style="font-weight:600;font-size:11px">' +
             r[0] + '</div><div style="font-size:8px;color:var(--mt)">' + pago + '</div></td>' +
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
