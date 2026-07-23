@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cartera Iván — Dashboard Definitivo</title>
+<title>Cartera — Dashboard</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 :root{--bg:#0B0F1A;--s1:#111827;--s2:#1A2235;--bd:#1E2D45;--ac:#3B82F6;--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--tx:#F0F4FF;--mt:#6B7A99;--pu:#C4B5FD;--pi:#EC4899}
@@ -124,9 +124,12 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding
     <h1 style="font-size:32px;margin-bottom:8px">🎯 Modo Focus</h1>
     <p style="color:var(--mt);font-size:14px;margin-bottom:30px">Solo lo que importa</p>
     <div class="kg" id="focus-kpis" style="grid-template-columns:repeat(3,1fr)"></div>
-    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card" style="margin-top:24px;text-align:left">
+      <div class="ch"><h3>🎯 Trampas más cercanas</h3></div>
+      <div id="focus-trampa">—</div>
+    </div>
+    <div style="margin-top:20px">
       <div class="card"><div class="ch"><h3>Objetivo 300€/mes</h3></div><div style="padding:20px"><div class="pbar"><div class="pfill" id="focus-bar" style="width:0%"></div></div><div style="font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:12px" id="focus-pct">—</div></div></div>
-      <div class="card"><div class="ch"><h3>🎯 Próximas 3 trampas</h3></div><div id="focus-trampa">—</div></div>
     </div>
   </div>
 </div>
@@ -134,8 +137,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding
 <!-- HEADER -->
 <div class="hdr">
   <div>
-    <h1>📊 Cartera Iván Andreu Castell</h1>
-    <p>El Campello · Trade Republic · <span id="rango">—</span></p>
+    <h1>📊 Mi Cartera</h1>
+    <p>Inversión a largo plazo · <span id="rango">—</span></p>
   </div>
   <div class="hdr-r">
     <div class="btn" onclick="recargar()">↻ Actualizar</div>
@@ -156,6 +159,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding
   <button class="tb" onclick="sw(5)">📅 Evolución</button>
   <button class="tb" onclick="sw(6)">🔮 Proyecciones</button>
   <button class="tb" onclick="sw(7)">🧠 Análisis</button>
+  <button class="tb" onclick="sw(8)">📈 Operaciones</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -324,6 +328,15 @@ body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;padding
   <div class="card" style="margin-top:12px"><div class="ch"><h3>🚨 Alertas activas</h3></div><div style="padding:14px 16px" id="alertas-detalle"></div></div>
 </div>
 
+<!-- ═══ OPERACIONES CERRADAS ═══ -->
+<div class="tp" id="t8">
+  <div class="kg" id="kg8"></div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📈 Historial de compras y ventas cerradas</h3><span class="mt2" style="font-size:9px">Ganancia/pérdida real por operación (FIFO)</span></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha venta</th><th>Acciones</th><th>P.Compra</th><th>P.Venta</th><th>Coste</th><th>Ingreso</th><th>G/P €</th><th>G/P %</th></tr></thead><tbody id="tb-operaciones"></tbody></table></div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
 </script>
 <script>
@@ -340,8 +353,8 @@ const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
 
 function sw(i) {
     document.querySelectorAll('.tb').forEach((b, j) => b.classList.toggle('on', i === j));
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'].forEach((id, j) => document.getElementById(id).classList.toggle(
-        'on', i === j));
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'].forEach((id, j) => document.getElementById(id)
+        .classList.toggle('on', i === j));
 }
 
 function pcsv(text) {
@@ -414,7 +427,7 @@ function notificar(titulo, desc, tipo = 'info') {
 }
 
 // ── DATOS ──
-const D = {"posiciones": [{"n": "Abbott Labs", "pais": "USA", "ret": 0.15, "sh": 18.5331, "pm": 81.1159, "ct": 1503.33, "nc": 9, "f": "10/04/2026"}, {"n": "AbbVie", "pais": "USA", "ret": 0.15, "sh": 4.3451, "pm": 175.7382, "ct": 763.6, "nc": 3, "f": "07/04/2026"}, {"n": "Air Liquide", "pais": "FRA", "ret": 0.128, "sh": 11.0, "pm": 162.99, "ct": 1792.89, "nc": 1, "f": "04/05/2026"}, {"n": "Becton Dickinson", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 134.6, "ct": 673.0, "nc": 1, "f": "08/07/2026"}, {"n": "BlackRock", "pais": "USA", "ret": 0.15, "sh": 3.0, "pm": 867.6, "ct": 2602.8, "nc": 3, "f": "19/05/2026"}, {"n": "Core MSCI World USD (Acc)", "pais": "IRL", "ret": 0.0, "sh": 10.584, "pm": 110.24, "ct": 1166.78, "nc": 26, "f": "04/08/2025"}, {"n": "Lowe's", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 183.65, "ct": 918.25, "nc": 1, "f": "13/07/2026"}, {"n": "MasterCard", "pais": "USA", "ret": 0.15, "sh": 3.0634, "pm": 434.5433, "ct": 1331.18, "nc": 10, "f": "02/02/2026"}, {"n": "Medtronic", "pais": "USA", "ret": 0.15, "sh": 7.0, "pm": 71.1429, "ct": 498.0, "nc": 1, "f": "09/07/2026"}, {"n": "Newmont", "pais": "USA", "ret": 0.15, "sh": 8.546, "pm": 98.33, "ct": 840.33, "nc": 19, "f": "02/03/2026"}, {"n": "Realty Income", "pais": "USA", "ret": 0.15, "sh": 24.09, "pm": 53.81, "ct": 1296.28, "nc": 22, "f": "02/04/2026"}, {"n": "Vici Properties", "pais": "USA", "ret": 0.15, "sh": 40.0, "pm": 23.075, "ct": 923.0, "nc": 1, "f": "08/07/2026"}, {"n": "Visa", "pais": "USA", "ret": 0.15, "sh": 2.4852, "pm": 273.7607, "ct": 680.35, "nc": 7, "f": "02/02/2026"}, {"n": "AMD", "pais": "USA", "ret": 0.0, "sh": 0.104, "pm": 181.5, "ct": 18.88, "nc": 4, "f": "09/12/2025"}], "dividendos": [{"f": "18/12/2025", "n": "Telefonica", "pais": "ESP", "sh": 26.1028, "bruto": 3.18, "ret_origen": 0.0, "neto_tr": 3.18, "tax_es": 0.0, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18}, {"f": "14/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "15/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "26/01/2026", "n": "Acerinox", "pais": "ESP", "sh": 13.9752, "bruto": 3.51, "ret_origen": 0.0, "neto_tr": 3.51, "tax_es": 0.0, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51}, {"f": "02/03/2026", "n": "Visa", "pais": "USA", "sh": 1.4225, "bruto": 0.94, "ret_origen": 0.14, "neto_tr": 0.8, "tax_es": 0.25, "neto_final": 0.55, "devolucion": 0.14, "neto_real": 0.69}, {"f": "26/03/2026", "n": "Newmont", "pais": "USA", "sh": 2.0, "bruto": 0.53, "ret_origen": 0.08, "neto_tr": 0.45, "tax_es": 0.14, "neto_final": 0.31, "devolucion": 0.08, "neto_real": 0.39}, {"f": "08/05/2026", "n": "MasterCard", "pais": "USA", "sh": 1.4436, "bruto": 1.26, "ret_origen": 0.19, "neto_tr": 1.07, "tax_es": 0.33, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93}, {"f": "15/05/2026", "n": "AbbVie", "pais": "USA", "sh": 4.0, "bruto": 6.96, "ret_origen": 1.04, "neto_tr": 5.91, "tax_es": 1.84, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11}, {"f": "15/05/2026", "n": "Realty Income", "pais": "USA", "sh": 6.9542, "bruto": 1.89, "ret_origen": 0.28, "neto_tr": 1.61, "tax_es": 0.5, "neto_final": 1.11, "devolucion": 0.28, "neto_real": 1.39}, {"f": "15/05/2026", "n": "Abbott Labs", "pais": "USA", "sh": 6.0, "bruto": 3.8, "ret_origen": 0.57, "neto_tr": 3.23, "tax_es": 1.0, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8}, {"f": "20/05/2026", "n": "Air Liquide", "pais": "FRA", "sh": 10.0, "bruto": 37.0, "ret_origen": 0.0, "neto_tr": 37.0, "tax_es": 10.87, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13}, {"f": "01/06/2026", "n": "Visa", "pais": "USA", "sh": 2.4852, "bruto": 1.69, "ret_origen": 0.25, "neto_tr": 1.43, "tax_es": 0.45, "neto_final": 0.98, "devolucion": 0.25, "neto_real": 1.23}, {"f": "15/06/2026", "n": "Realty Income", "pais": "USA", "sh": 17.8107, "bruto": 4.9, "ret_origen": 0.74, "neto_tr": 4.17, "tax_es": 1.3, "neto_final": 2.87, "devolucion": 0.74, "neto_real": 3.61}, {"f": "22/06/2026", "n": "Newmont", "pais": "USA", "sh": 6.3891, "bruto": 1.7, "ret_origen": 0.26, "neto_tr": 1.45, "tax_es": 0.45, "neto_final": 1.0, "devolucion": 0.26, "neto_real": 1.26}, {"f": "23/06/2026", "n": "BlackRock", "pais": "USA", "sh": 2.0, "bruto": 11.77, "ret_origen": 1.77, "neto_tr": 10.0, "tax_es": 3.12, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65}, {"f": "09/07/2026", "n": "Indra Sistemas", "pais": "ESP", "sh": 10.0403, "bruto": 2.44, "ret_origen": 0.0, "neto_tr": 2.44, "tax_es": 0.0, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44}, {"f": "15/07/2026", "n": "Realty Income", "pais": "USA", "sh": 23.9478, "bruto": 6.69, "ret_origen": 1.0, "neto_tr": 5.69, "tax_es": 1.77, "neto_final": 3.92, "devolucion": 1.0, "neto_real": 4.92}], "intereses": [{"f": "09/2025", "bruto": 2.29, "tax": 0.44, "neto": 1.85}, {"f": "10/2025", "bruto": 7.62, "tax": 1.45, "neto": 6.17}, {"f": "11/2025", "bruto": 20.63, "tax": 3.92, "neto": 16.71}, {"f": "12/2025", "bruto": 20.15, "tax": 3.83, "neto": 16.32}, {"f": "01/2026", "bruto": 29.56, "tax": 5.62, "neto": 23.94}, {"f": "02/2026", "bruto": 55.58, "tax": 10.56, "neto": 45.02}, {"f": "03/2026", "bruto": 48.5, "tax": 9.22, "neto": 39.28}, {"f": "04/2026", "bruto": 53.1, "tax": 10.09, "neto": 43.01}, {"f": "05/2026", "bruto": 49.38, "tax": 9.38, "neto": 40.0}, {"f": "06/2026", "bruto": 91.1, "tax": 17.31, "neto": 73.79}, {"f": "07/2026", "bruto": 144.89, "tax": 27.53, "neto": 117.36}], "savebacks": [{"f": "02/09/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "02/10/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "03/11/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "01/12/2025", "n": "nan", "i": 15.0}, {"f": "01/01/2026", "n": "nan", "i": 14.7}, {"f": "01/02/2026", "n": "nan", "i": 15.0}, {"f": "01/03/2026", "n": "nan", "i": 10.77}, {"f": "01/04/2026", "n": "nan", "i": 15.0}, {"f": "01/05/2026", "n": "nan", "i": 13.69}, {"f": "01/06/2026", "n": "Abbott Labs", "i": 12.51}, {"f": "01/07/2026", "n": "Newmont", "i": 13.84}], "evolucion": [{"mes": "2025-08", "compras": 583.06, "ventas": 105.39, "divs": 0.0, "int": 0.0}, {"mes": "2025-09", "compras": 939.47, "ventas": 410.68, "divs": 0.0, "int": 2.29}, {"mes": "2025-10", "compras": 1824.83, "ventas": 2207.17, "divs": 0.0, "int": 7.62}, {"mes": "2025-11", "compras": 1375.2, "ventas": 748.27, "divs": 0.0, "int": 20.63}, {"mes": "2025-12", "compras": 327.14, "ventas": 0.0, "divs": 3.18, "int": 20.15}, {"mes": "2026-01", "compras": 4351.28, "ventas": 1386.68, "divs": 8.49, "int": 29.56}, {"mes": "2026-02", "compras": 8045.25, "ventas": 8571.79, "divs": 0.0, "int": 55.58}, {"mes": "2026-03", "compras": 5324.7, "ventas": 1205.14, "divs": 1.25, "int": 48.5}, {"mes": "2026-04", "compras": 2723.2, "ventas": 4161.14, "divs": 0.0, "int": 53.1}, {"mes": "2026-05", "compras": 3941.74, "ventas": 1067.29, "divs": 48.82, "int": 49.38}, {"mes": "2026-06", "compras": 2593.63, "ventas": 7.77, "divs": 17.05, "int": 91.1}, {"mes": "2026-07", "compras": 3157.95, "ventas": 480.73, "divs": 8.13, "int": 144.89}], "resumen": {"invertido": 35187.45, "vendido": 20352.05, "divBruto": 93.24, "divNetoTR": 86.92, "divNetoFinal": 64.9, "divDevolucion": 6.32, "divNetoReal": 71.22, "intBruto": 522.8, "intNeto": 423.45, "sbTotal": 155.51, "inicio": "01/08/2025", "fin": "19/07/2026", "ntx": 924}, "resumen_divs": [{"n": "Telefonica", "año": "2025", "pagos": 1, "bruto": 3.18, "neto_tr": 3.18, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18, "pais": "ESP"}, {"n": "Repsol", "año": "2026", "pagos": 2, "bruto": 4.98, "neto_tr": 4.98, "neto_final": 4.98, "devolucion": 0.0, "neto_real": 4.98, "pais": "ESP"}, {"n": "Acerinox", "año": "2026", "pagos": 1, "bruto": 3.51, "neto_tr": 3.51, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51, "pais": "ESP"}, {"n": "Visa", "año": "2026", "pagos": 2, "bruto": 2.63, "neto_tr": 2.23, "neto_final": 1.53, "devolucion": 0.39, "neto_real": 1.92, "pais": "USA"}, {"n": "Newmont", "año": "2026", "pagos": 2, "bruto": 2.23, "neto_tr": 1.9, "neto_final": 1.31, "devolucion": 0.34, "neto_real": 1.65, "pais": "USA"}, {"n": "MasterCard", "año": "2026", "pagos": 1, "bruto": 1.26, "neto_tr": 1.07, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93, "pais": "USA"}, {"n": "AbbVie", "año": "2026", "pagos": 1, "bruto": 6.96, "neto_tr": 5.91, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11, "pais": "USA"}, {"n": "Realty Income", "año": "2026", "pagos": 3, "bruto": 13.48, "neto_tr": 11.47, "neto_final": 7.9, "devolucion": 2.02, "neto_real": 9.92, "pais": "USA"}, {"n": "Abbott Labs", "año": "2026", "pagos": 1, "bruto": 3.8, "neto_tr": 3.23, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8, "pais": "USA"}, {"n": "Air Liquide", "año": "2026", "pagos": 1, "bruto": 37.0, "neto_tr": 37.0, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13, "pais": "FRA"}, {"n": "BlackRock", "año": "2026", "pagos": 1, "bruto": 11.77, "neto_tr": 10.0, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65, "pais": "USA"}, {"n": "Indra Sistemas", "año": "2026", "pagos": 1, "bruto": 2.44, "neto_tr": 2.44, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44, "pais": "ESP"}], "pendientes": [{"n": "Air Liquide", "pais": "FRA", "freq": "Anual", "sh": 10.0, "ultimo_cobro": "20/05/2026", "prox_est": "05/2027", "bruto_est": 37.0, "ret_o_est": 0, "neto_tr_est": 37.0, "tax_es_est": 7.03, "neto_cob_est": 29.97, "dev_est": 0, "neto_real_est": 29.97, "ya_cobrado_2026": 26.13}, {"n": "BlackRock", "pais": "USA", "freq": "Trimestral", "sh": 3.0, "ultimo_cobro": "23/06/2026", "prox_est": "09/2026", "bruto_est": 17.66, "ret_o_est": 0, "neto_tr_est": 17.66, "tax_es_est": 3.35, "neto_cob_est": 14.3, "dev_est": 0, "neto_real_est": 14.3, "ya_cobrado_2026": 8.65}, {"n": "Vici Properties", "pais": "USA", "freq": "Trimestral", "sh": 40.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 15.29, "ret_o_est": 2.29, "neto_tr_est": 13.0, "tax_es_est": 2.47, "neto_cob_est": 10.53, "dev_est": 2.29, "neto_real_est": 12.82, "ya_cobrado_2026": 0}, {"n": "Abbott Labs", "pais": "USA", "freq": "Trimestral", "sh": 18.5331, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 11.74, "ret_o_est": 0, "neto_tr_est": 11.74, "tax_es_est": 2.23, "neto_cob_est": 9.51, "dev_est": 0, "neto_real_est": 9.51, "ya_cobrado_2026": 2.8}, {"n": "AbbVie", "pais": "USA", "freq": "Trimestral", "sh": 4.3451, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 7.56, "ret_o_est": 0, "neto_tr_est": 7.56, "tax_es_est": 1.44, "neto_cob_est": 6.12, "dev_est": 0, "neto_real_est": 6.12, "ya_cobrado_2026": 5.11}, {"n": "Realty Income", "pais": "USA", "freq": "Mensual", "sh": 24.3392, "ultimo_cobro": "15/07/2026", "prox_est": "08/2026", "bruto_est": 6.8, "ret_o_est": 0, "neto_tr_est": 6.8, "tax_es_est": 1.29, "neto_cob_est": 5.51, "dev_est": 0, "neto_real_est": 5.51, "ya_cobrado_2026": 9.92}, {"n": "Lowe's", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 5.14, "ret_o_est": 0.77, "neto_tr_est": 4.37, "tax_es_est": 0.83, "neto_cob_est": 3.54, "dev_est": 0.77, "neto_real_est": 4.31, "ya_cobrado_2026": 0}, {"n": "Becton Dickinson", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.51, "ret_o_est": 0.68, "neto_tr_est": 3.83, "tax_es_est": 0.73, "neto_cob_est": 3.1, "dev_est": 0.68, "neto_real_est": 3.78, "ya_cobrado_2026": 0}, {"n": "Medtronic", "pais": "USA", "freq": "Trimestral", "sh": 7.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.25, "ret_o_est": 0.64, "neto_tr_est": 3.61, "tax_es_est": 0.69, "neto_cob_est": 2.92, "dev_est": 0.64, "neto_real_est": 3.56, "ya_cobrado_2026": 0}, {"n": "MasterCard", "pais": "USA", "freq": "Trimestral", "sh": 3.0634, "ultimo_cobro": "08/05/2026", "prox_est": "08/2026", "bruto_est": 2.67, "ret_o_est": 0, "neto_tr_est": 2.67, "tax_es_est": 0.51, "neto_cob_est": 2.17, "dev_est": 0, "neto_real_est": 2.17, "ya_cobrado_2026": 0.93}, {"n": "Newmont", "pais": "USA", "freq": "Trimestral", "sh": 8.8976, "ultimo_cobro": "26/03/2026", "prox_est": "06/2026", "bruto_est": 2.36, "ret_o_est": 0, "neto_tr_est": 2.36, "tax_es_est": 0.45, "neto_cob_est": 1.91, "dev_est": 0, "neto_real_est": 1.91, "ya_cobrado_2026": 1.65}, {"n": "Visa", "pais": "USA", "freq": "Trimestral", "sh": 2.4852, "ultimo_cobro": "02/03/2026", "prox_est": "05/2026", "bruto_est": 1.64, "ret_o_est": 0, "neto_tr_est": 1.64, "tax_es_est": 0.31, "neto_cob_est": 1.33, "dev_est": 0, "neto_real_est": 1.33, "ya_cobrado_2026": 1.92}]};
+const D = {"posiciones": [{"n": "Abbott Labs", "pais": "USA", "ret": 0.15, "sh": 18.5331, "pm": 81.1159, "ct": 1503.33, "nc": 9, "f": "10/04/2026"}, {"n": "AbbVie", "pais": "USA", "ret": 0.15, "sh": 4.3451, "pm": 175.7382, "ct": 763.6, "nc": 3, "f": "07/04/2026"}, {"n": "Air Liquide", "pais": "FRA", "ret": 0.128, "sh": 11.0, "pm": 162.99, "ct": 1792.89, "nc": 1, "f": "04/05/2026"}, {"n": "Becton Dickinson", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 134.6, "ct": 673.0, "nc": 1, "f": "08/07/2026"}, {"n": "BlackRock", "pais": "USA", "ret": 0.15, "sh": 3.0, "pm": 867.6, "ct": 2602.8, "nc": 3, "f": "19/05/2026"}, {"n": "Core MSCI World USD (Acc)", "pais": "IRL", "ret": 0.0, "sh": 10.584, "pm": 110.24, "ct": 1166.78, "nc": 26, "f": "04/08/2025"}, {"n": "Lowe's", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 183.65, "ct": 918.25, "nc": 1, "f": "13/07/2026"}, {"n": "MasterCard", "pais": "USA", "ret": 0.15, "sh": 3.0634, "pm": 434.5433, "ct": 1331.18, "nc": 10, "f": "02/02/2026"}, {"n": "Medtronic", "pais": "USA", "ret": 0.15, "sh": 7.0, "pm": 71.1429, "ct": 498.0, "nc": 1, "f": "09/07/2026"}, {"n": "Newmont", "pais": "USA", "ret": 0.15, "sh": 8.546, "pm": 98.33, "ct": 840.33, "nc": 19, "f": "02/03/2026"}, {"n": "Realty Income", "pais": "USA", "ret": 0.15, "sh": 24.09, "pm": 53.81, "ct": 1296.28, "nc": 22, "f": "02/04/2026"}, {"n": "Vici Properties", "pais": "USA", "ret": 0.15, "sh": 40.0, "pm": 23.075, "ct": 923.0, "nc": 1, "f": "08/07/2026"}, {"n": "Visa", "pais": "USA", "ret": 0.15, "sh": 2.4852, "pm": 273.7607, "ct": 680.35, "nc": 7, "f": "02/02/2026"}, {"n": "AMD", "pais": "USA", "ret": 0.0, "sh": 0.104, "pm": 181.5, "ct": 18.88, "nc": 4, "f": "09/12/2025"}, {"n": "Alphabet GOOGL", "pais": "USA", "ret": 0.0, "sh": 4.0, "pm": 285.25, "ct": 1141.0, "nc": 1, "f": "23/07/2026"}], "dividendos": [{"f": "18/12/2025", "n": "Telefonica", "pais": "ESP", "sh": 26.1028, "bruto": 3.18, "ret_origen": 0.0, "neto_tr": 3.18, "tax_es": 0.0, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18}, {"f": "14/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "15/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 2.49, "ret_origen": 0.0, "neto_tr": 2.49, "tax_es": 0.0, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "26/01/2026", "n": "Acerinox", "pais": "ESP", "sh": 13.9752, "bruto": 3.51, "ret_origen": 0.0, "neto_tr": 3.51, "tax_es": 0.0, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51}, {"f": "02/03/2026", "n": "Visa", "pais": "USA", "sh": 1.4225, "bruto": 0.94, "ret_origen": 0.14, "neto_tr": 0.8, "tax_es": 0.25, "neto_final": 0.55, "devolucion": 0.14, "neto_real": 0.69}, {"f": "26/03/2026", "n": "Newmont", "pais": "USA", "sh": 2.0, "bruto": 0.53, "ret_origen": 0.08, "neto_tr": 0.45, "tax_es": 0.14, "neto_final": 0.31, "devolucion": 0.08, "neto_real": 0.39}, {"f": "08/05/2026", "n": "MasterCard", "pais": "USA", "sh": 1.4436, "bruto": 1.26, "ret_origen": 0.19, "neto_tr": 1.07, "tax_es": 0.33, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93}, {"f": "15/05/2026", "n": "AbbVie", "pais": "USA", "sh": 4.0, "bruto": 6.96, "ret_origen": 1.04, "neto_tr": 5.91, "tax_es": 1.84, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11}, {"f": "15/05/2026", "n": "Realty Income", "pais": "USA", "sh": 6.9542, "bruto": 1.89, "ret_origen": 0.28, "neto_tr": 1.61, "tax_es": 0.5, "neto_final": 1.11, "devolucion": 0.28, "neto_real": 1.39}, {"f": "15/05/2026", "n": "Abbott Labs", "pais": "USA", "sh": 6.0, "bruto": 3.8, "ret_origen": 0.57, "neto_tr": 3.23, "tax_es": 1.0, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8}, {"f": "20/05/2026", "n": "Air Liquide", "pais": "FRA", "sh": 10.0, "bruto": 37.0, "ret_origen": 0.0, "neto_tr": 37.0, "tax_es": 10.87, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13}, {"f": "01/06/2026", "n": "Visa", "pais": "USA", "sh": 2.4852, "bruto": 1.69, "ret_origen": 0.25, "neto_tr": 1.43, "tax_es": 0.45, "neto_final": 0.98, "devolucion": 0.25, "neto_real": 1.23}, {"f": "15/06/2026", "n": "Realty Income", "pais": "USA", "sh": 17.8107, "bruto": 4.9, "ret_origen": 0.74, "neto_tr": 4.17, "tax_es": 1.3, "neto_final": 2.87, "devolucion": 0.74, "neto_real": 3.61}, {"f": "22/06/2026", "n": "Newmont", "pais": "USA", "sh": 6.3891, "bruto": 1.7, "ret_origen": 0.26, "neto_tr": 1.45, "tax_es": 0.45, "neto_final": 1.0, "devolucion": 0.26, "neto_real": 1.26}, {"f": "23/06/2026", "n": "BlackRock", "pais": "USA", "sh": 2.0, "bruto": 11.77, "ret_origen": 1.77, "neto_tr": 10.0, "tax_es": 3.12, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65}, {"f": "09/07/2026", "n": "Indra Sistemas", "pais": "ESP", "sh": 10.0403, "bruto": 2.44, "ret_origen": 0.0, "neto_tr": 2.44, "tax_es": 0.0, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44}, {"f": "15/07/2026", "n": "Realty Income", "pais": "USA", "sh": 23.9478, "bruto": 6.69, "ret_origen": 1.0, "neto_tr": 5.69, "tax_es": 1.77, "neto_final": 3.92, "devolucion": 1.0, "neto_real": 4.92}], "intereses": [{"f": "09/2025", "bruto": 2.29, "tax": 0.44, "neto": 1.85}, {"f": "10/2025", "bruto": 7.62, "tax": 1.45, "neto": 6.17}, {"f": "11/2025", "bruto": 20.63, "tax": 3.92, "neto": 16.71}, {"f": "12/2025", "bruto": 20.15, "tax": 3.83, "neto": 16.32}, {"f": "01/2026", "bruto": 29.56, "tax": 5.62, "neto": 23.94}, {"f": "02/2026", "bruto": 55.58, "tax": 10.56, "neto": 45.02}, {"f": "03/2026", "bruto": 48.5, "tax": 9.22, "neto": 39.28}, {"f": "04/2026", "bruto": 53.1, "tax": 10.09, "neto": 43.01}, {"f": "05/2026", "bruto": 49.38, "tax": 9.38, "neto": 40.0}, {"f": "06/2026", "bruto": 91.1, "tax": 17.31, "neto": 73.79}, {"f": "07/2026", "bruto": 144.89, "tax": 27.53, "neto": 117.36}], "savebacks": [{"f": "02/09/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "02/10/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "03/11/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "01/12/2025", "n": "nan", "i": 15.0}, {"f": "01/01/2026", "n": "nan", "i": 14.7}, {"f": "01/02/2026", "n": "nan", "i": 15.0}, {"f": "01/03/2026", "n": "nan", "i": 10.77}, {"f": "01/04/2026", "n": "nan", "i": 15.0}, {"f": "01/05/2026", "n": "nan", "i": 13.69}, {"f": "01/06/2026", "n": "Abbott Labs", "i": 12.51}, {"f": "01/07/2026", "n": "Newmont", "i": 13.84}], "evolucion": [{"mes": "2025-08", "compras": 583.06, "ventas": 105.39, "divs": 0.0, "int": 0.0}, {"mes": "2025-09", "compras": 939.47, "ventas": 410.68, "divs": 0.0, "int": 2.29}, {"mes": "2025-10", "compras": 1824.83, "ventas": 2207.17, "divs": 0.0, "int": 7.62}, {"mes": "2025-11", "compras": 1375.2, "ventas": 748.27, "divs": 0.0, "int": 20.63}, {"mes": "2025-12", "compras": 327.14, "ventas": 0.0, "divs": 3.18, "int": 20.15}, {"mes": "2026-01", "compras": 4351.28, "ventas": 1386.68, "divs": 8.49, "int": 29.56}, {"mes": "2026-02", "compras": 8045.25, "ventas": 8571.79, "divs": 0.0, "int": 55.58}, {"mes": "2026-03", "compras": 5324.7, "ventas": 1205.14, "divs": 1.25, "int": 48.5}, {"mes": "2026-04", "compras": 2723.2, "ventas": 4161.14, "divs": 0.0, "int": 53.1}, {"mes": "2026-05", "compras": 3941.74, "ventas": 1067.29, "divs": 48.82, "int": 49.38}, {"mes": "2026-06", "compras": 2593.63, "ventas": 7.77, "divs": 17.05, "int": 91.1}, {"mes": "2026-07", "compras": 3157.95, "ventas": 480.73, "divs": 8.13, "int": 144.89}], "resumen": {"invertido": 35187.45, "vendido": 20352.05, "divBruto": 93.24, "divNetoTR": 86.92, "divNetoFinal": 64.9, "divDevolucion": 6.32, "divNetoReal": 71.22, "intBruto": 522.8, "intNeto": 423.45, "sbTotal": 155.51, "inicio": "01/08/2025", "fin": "19/07/2026", "ntx": 924}, "resumen_divs": [{"n": "Telefonica", "año": "2025", "pagos": 1, "bruto": 3.18, "neto_tr": 3.18, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18, "pais": "ESP"}, {"n": "Repsol", "año": "2026", "pagos": 2, "bruto": 4.98, "neto_tr": 4.98, "neto_final": 4.98, "devolucion": 0.0, "neto_real": 4.98, "pais": "ESP"}, {"n": "Acerinox", "año": "2026", "pagos": 1, "bruto": 3.51, "neto_tr": 3.51, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51, "pais": "ESP"}, {"n": "Visa", "año": "2026", "pagos": 2, "bruto": 2.63, "neto_tr": 2.23, "neto_final": 1.53, "devolucion": 0.39, "neto_real": 1.92, "pais": "USA"}, {"n": "Newmont", "año": "2026", "pagos": 2, "bruto": 2.23, "neto_tr": 1.9, "neto_final": 1.31, "devolucion": 0.34, "neto_real": 1.65, "pais": "USA"}, {"n": "MasterCard", "año": "2026", "pagos": 1, "bruto": 1.26, "neto_tr": 1.07, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93, "pais": "USA"}, {"n": "AbbVie", "año": "2026", "pagos": 1, "bruto": 6.96, "neto_tr": 5.91, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11, "pais": "USA"}, {"n": "Realty Income", "año": "2026", "pagos": 3, "bruto": 13.48, "neto_tr": 11.47, "neto_final": 7.9, "devolucion": 2.02, "neto_real": 9.92, "pais": "USA"}, {"n": "Abbott Labs", "año": "2026", "pagos": 1, "bruto": 3.8, "neto_tr": 3.23, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8, "pais": "USA"}, {"n": "Air Liquide", "año": "2026", "pagos": 1, "bruto": 37.0, "neto_tr": 37.0, "neto_final": 26.13, "devolucion": 0.0, "neto_real": 26.13, "pais": "FRA"}, {"n": "BlackRock", "año": "2026", "pagos": 1, "bruto": 11.77, "neto_tr": 10.0, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65, "pais": "USA"}, {"n": "Indra Sistemas", "año": "2026", "pagos": 1, "bruto": 2.44, "neto_tr": 2.44, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44, "pais": "ESP"}], "pendientes": [{"n": "Air Liquide", "pais": "FRA", "freq": "Anual", "sh": 10.0, "ultimo_cobro": "20/05/2026", "prox_est": "05/2027", "bruto_est": 37.0, "ret_o_est": 0, "neto_tr_est": 37.0, "tax_es_est": 7.03, "neto_cob_est": 29.97, "dev_est": 0, "neto_real_est": 29.97, "ya_cobrado_2026": 26.13}, {"n": "BlackRock", "pais": "USA", "freq": "Trimestral", "sh": 3.0, "ultimo_cobro": "23/06/2026", "prox_est": "09/2026", "bruto_est": 17.66, "ret_o_est": 0, "neto_tr_est": 17.66, "tax_es_est": 3.35, "neto_cob_est": 14.3, "dev_est": 0, "neto_real_est": 14.3, "ya_cobrado_2026": 8.65}, {"n": "Vici Properties", "pais": "USA", "freq": "Trimestral", "sh": 40.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 15.29, "ret_o_est": 2.29, "neto_tr_est": 13.0, "tax_es_est": 2.47, "neto_cob_est": 10.53, "dev_est": 2.29, "neto_real_est": 12.82, "ya_cobrado_2026": 0}, {"n": "Abbott Labs", "pais": "USA", "freq": "Trimestral", "sh": 18.5331, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 11.74, "ret_o_est": 0, "neto_tr_est": 11.74, "tax_es_est": 2.23, "neto_cob_est": 9.51, "dev_est": 0, "neto_real_est": 9.51, "ya_cobrado_2026": 2.8}, {"n": "AbbVie", "pais": "USA", "freq": "Trimestral", "sh": 4.3451, "ultimo_cobro": "15/05/2026", "prox_est": "08/2026", "bruto_est": 7.56, "ret_o_est": 0, "neto_tr_est": 7.56, "tax_es_est": 1.44, "neto_cob_est": 6.12, "dev_est": 0, "neto_real_est": 6.12, "ya_cobrado_2026": 5.11}, {"n": "Realty Income", "pais": "USA", "freq": "Mensual", "sh": 24.3392, "ultimo_cobro": "15/07/2026", "prox_est": "08/2026", "bruto_est": 6.8, "ret_o_est": 0, "neto_tr_est": 6.8, "tax_es_est": 1.29, "neto_cob_est": 5.51, "dev_est": 0, "neto_real_est": 5.51, "ya_cobrado_2026": 9.92}, {"n": "Lowe's", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 5.14, "ret_o_est": 0.77, "neto_tr_est": 4.37, "tax_es_est": 0.83, "neto_cob_est": 3.54, "dev_est": 0.77, "neto_real_est": 4.31, "ya_cobrado_2026": 0}, {"n": "Becton Dickinson", "pais": "USA", "freq": "Trimestral", "sh": 5.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.51, "ret_o_est": 0.68, "neto_tr_est": 3.83, "tax_es_est": 0.73, "neto_cob_est": 3.1, "dev_est": 0.68, "neto_real_est": 3.78, "ya_cobrado_2026": 0}, {"n": "Medtronic", "pais": "USA", "freq": "Trimestral", "sh": 7.0, "ultimo_cobro": "Sin cobro aún", "prox_est": "Próximos meses", "bruto_est": 4.25, "ret_o_est": 0.64, "neto_tr_est": 3.61, "tax_es_est": 0.69, "neto_cob_est": 2.92, "dev_est": 0.64, "neto_real_est": 3.56, "ya_cobrado_2026": 0}, {"n": "MasterCard", "pais": "USA", "freq": "Trimestral", "sh": 3.0634, "ultimo_cobro": "08/05/2026", "prox_est": "08/2026", "bruto_est": 2.67, "ret_o_est": 0, "neto_tr_est": 2.67, "tax_es_est": 0.51, "neto_cob_est": 2.17, "dev_est": 0, "neto_real_est": 2.17, "ya_cobrado_2026": 0.93}, {"n": "Newmont", "pais": "USA", "freq": "Trimestral", "sh": 8.8976, "ultimo_cobro": "26/03/2026", "prox_est": "06/2026", "bruto_est": 2.36, "ret_o_est": 0, "neto_tr_est": 2.36, "tax_es_est": 0.45, "neto_cob_est": 1.91, "dev_est": 0, "neto_real_est": 1.91, "ya_cobrado_2026": 1.65}, {"n": "Visa", "pais": "USA", "freq": "Trimestral", "sh": 2.4852, "ultimo_cobro": "02/03/2026", "prox_est": "05/2026", "bruto_est": 1.64, "ret_o_est": 0, "neto_tr_est": 1.64, "tax_es_est": 0.31, "neto_cob_est": 1.33, "dev_est": 0, "neto_real_est": 1.33, "ya_cobrado_2026": 1.92}]};
 
 // ── URLs ACTUALIZADAS CON TUS ENLACES ──
 const CSV_TR =
@@ -445,8 +458,50 @@ const MAP = {
 
 let PA = {},
     TRAMPAS_GS = [];
+let OPERACIONES_CERRADAS = [],
+    COSTE_VENDIDO_TOTAL = 0;
+const trampasAvisadas = new Set();
 
 // ── RECARGAR VIA APPS SCRIPT ──
+// (El cálculo FIFO de operaciones cerradas ahora se hace en Apps Script, ver recargar())
+
+// cargarOperaciones() eliminada: ahora la API_GS calcula y devuelve las operaciones
+// directamente (ver el bloque "Operaciones cerradas" dentro de recargar()).
+
+function renderOperaciones() {
+    const tb = document.getElementById('tb-operaciones');
+    const kg = document.getElementById('kg8');
+    if (!tb) return;
+    const ops = OPERACIONES_CERRADAS;
+    const totalGP = ops.reduce((s, o) => s + o.gp, 0);
+    const ganadoras = ops.filter(o => o.gp > 0).length;
+    const winRate = ops.length ? (ganadoras / ops.length * 100) : 0;
+    if (kg) {
+        kg.innerHTML = [
+            { l: 'Ganancia/pérdida realizada', v: (totalGP >= 0 ? '+' : '') + fe(totalGP), c: totalGP >= 0 ?
+                '#10B981' : '#EF4444' },
+            { l: 'Operaciones cerradas', v: ops.length, c: '#3B82F6' },
+            { l: '% Operaciones ganadoras', v: winRate.toFixed(0) + '%', c: '#F59E0B' },
+        ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+                k.c + '">' + k.v + '</div></div>').join('');
+    }
+    tb.innerHTML = ops.length ? ops.map(o => {
+        return '<tr>' +
+            '<td style="text-align:left">' + o.n + '</td>' +
+            '<td>' + o.fecha + '</td>' +
+            '<td>' + f2(o.acciones) + '</td>' +
+            '<td>' + fe(o.pCompraMedio) + '</td>' +
+            '<td>' + fe(o.pVenta) + '</td>' +
+            '<td>' + fe(o.coste) + '</td>' +
+            '<td>' + fe(o.ingreso) + '</td>' +
+            '<td style="color:' + (o.gp >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-weight:700">' + (o.gp >= 0 ?
+                '+' : '') + fe(o.gp) + '</td>' +
+            '<td style="color:' + (o.gp >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-weight:700">' + (o.gpPct >=
+                0 ? '+' : '') + o.gpPct.toFixed(1) + '%</td>' +
+            '</tr>';
+    }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--mt);padding:20px">Cargando operaciones desde tu hoja TR_DATOS...</td></tr>';
+}
+
 async function recargar() {
     const btn = document.getElementById('btn-estado');
     if (btn) { btn.textContent = 'Actualizando...'; btn.classList.remove('ac'); }
@@ -488,9 +543,16 @@ async function recargar() {
             ]);
         }
 
+        // Operaciones cerradas (ya calculadas por Apps Script vía FIFO)
+        if (data.operaciones) {
+            OPERACIONES_CERRADAS = data.operaciones;
+            COSTE_VENDIDO_TOTAL = data.costeVendidoTotal || 0;
+        }
+
         renderDashboard();
         renderCartera();
         renderTrampas();
+        renderOperaciones();
 
         const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         if (btn) { btn.textContent = '✓ ' + hora; btn.classList.add('ac'); }
@@ -554,12 +616,19 @@ function renderDashboard() {
         ')' :
         '✅ ¡Ya has alcanzado el objetivo!';
 
+    const gpRealizado = OPERACIONES_CERRADAS.reduce((s, o) => s + o.gp, 0);
+    const gpCombinado = totGP + gpRealizado;
+    const baseCombinada = totCost + COSTE_VENDIDO_TOTAL;
     document.getElementById('focus-kpis').innerHTML = [
-        { l: 'Valor cartera', v: totV ? fe(totV) : '—', c: '#86EFAC' },
-        { l: 'Rentabilidad', v: totGP ? (totGP / (totCost || 1) * 100).toFixed(1) + '%' : '—', c: '#10B981' },
-        { l: 'Ingresos pasivos/mes', v: fe(totMes), c: '#F59E0B' },
+        { l: 'Valor cartera', v: totV ? fe(totV) : '—', sub: totCost ? 'Invertido: ' + fe(totCost) : '', c: '#86EFAC' },
+        { l: 'Rentabilidad total', v: gpCombinado ? (gpCombinado / (baseCombinada || 1) * 100).toFixed(1) + '%' :
+                '—', sub: gpCombinado ? (gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) + (gpRealizado ?
+                    ' (incl. ' + (gpRealizado >= 0 ? '+' : '') + fe(gpRealizado) + ' vendido)' : '') : '', c: '#10B981' },
+        { l: 'Ingresos pasivos/mes', v: fe(totMes), sub: '', c: '#F59E0B' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
-            k.c + '">' + k.v + '</div></div>').join('');
+            k.c + '">' + k.v + '</div>' + (k.sub ?
+                '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + k.c + '">' + k.sub +
+                '</div>' : '') + '</div>').join('');
     document.getElementById('focus-bar').style.width = pct + '%';
     document.getElementById('focus-pct').textContent = pct.toFixed(1) + '%';
 
@@ -569,7 +638,17 @@ function renderDashboard() {
             r[7]) }))
         .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
-    const filaTrampa = (t, destacada) => {
+    // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
+    trampasOrdenadas.forEach(t => {
+        const dPct = Math.abs(t.d) < 1 ? t.d * 100 : t.d;
+        if (Math.abs(dPct) <= 1 && !trampasAvisadas.has(t.n)) {
+            trampasAvisadas.add(t.n);
+            notificar('🎯 ¡' + t.n + ' está a tiro!', 'Solo a ' + Math.abs(dPct).toFixed(2) +
+                '% de tu precio trampa (' + fe(t.t) + ')', 'warn');
+        }
+    });
+
+    const filaTrampa = (t, destacada, grande) => {
         const d = Math.abs(t.d) < 1 ? t.d * 100 : t.d;
         const ad = Math.abs(d);
         const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
@@ -577,27 +656,33 @@ function renderDashboard() {
         const pc = t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
         const colorPct = destacada ? 'var(--gn)' : cls === 'c' ? 'var(--gn)' : cls === 'm' ? 'var(--am)' :
             'var(--rd)';
-        return '<div style="padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px' +
+        const fName = grande ? (destacada ? '18px' : '15px') : (destacada ? '13px' : '11px');
+        const fSub = grande ? '12px' : '9px';
+        const fPct = grande ? (destacada ? '20px' : '17px') : (destacada ? '14px' : '10px');
+        const pad = grande ? '16px 18px' : '10px 16px';
+        return '<div style="padding:' + pad +
+            ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
             (destacada ? ';background:rgba(16,185,129,0.10);border-left:3px solid var(--gn)' : '') + '">' +
-            '<span class="pr ' + pc + '">' + t.p + '</span>' +
+            '<span class="pr ' + pc + '"' + (grande ? ' style="font-size:13px;padding:4px 8px"' : '') + '>' + t.p +
+            '</span>' +
             '<div style="flex:1;min-width:120px">' +
-            '<div style="font-size:' + (destacada ? '13px' : '11px') + ';font-weight:700">' + t.n + '</div>' +
-            '<div style="font-size:9px;color:var(--mt)">' + (t.acc ? f2(t.acc) + ' acc.' : '—') + (t.cap ?
-                ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
-            '<div style="font-size:9px;color:var(--mt)">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
+            '<div style="font-size:' + fName + ';font-weight:700">' + t.n + '</div>' +
+            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">' + (t.acc ? f2(t.acc) + ' acc.' :
+                '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
+            '<div style="font-size:' + fSub + ';color:var(--mt)">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
             ' · <span style="color:' + (t.pa - t.t <= 0 ? 'var(--gn)' : 'var(--am)') + '">Dif ' + (t.pa - t.t >=
                 0 ? '+' : '') + fe(t.pa - t.t) + '</span></div>' +
             '</div>' +
-            '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
-            cls + '" style="width:' + pct2 + '%"></div></div>' +
-            '<div style="font-size:' + (destacada ? '14px' : '10px') +
-            ';font-weight:700;min-width:44px;text-align:right;color:' + colorPct + '">' + (d ? d.toFixed(1) +
-                '%' : '—') + '</div>' +
+            (grande ? '' :
+                '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
+                cls + '" style="width:' + pct2 + '%"></div></div>') +
+            '<div style="font-size:' + fPct + ';font-weight:700;min-width:' + (grande ? '64px' : '44px') +
+            ';text-align:right;color:' + colorPct + '">' + (d ? d.toFixed(1) + '%' : '—') + '</div>' +
             '</div>';
     };
 
     document.getElementById('focus-trampa').innerHTML = trampasOrdenadas.length ?
-        trampasOrdenadas.slice(0, 3).map((t, i) => filaTrampa(t, i === 0)).join('') :
+        trampasOrdenadas.slice(0, 4).map((t, i) => filaTrampa(t, i === 0, true)).join('') :
         '<div style="padding:20px;text-align:center;color:var(--mt);font-size:12px">No hay trampas activas</div>';
 
     const tbody = document.getElementById('tb-dash-pos');
