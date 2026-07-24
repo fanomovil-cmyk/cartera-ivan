@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -43,6 +44,7 @@ body{
   font-size:13px;
   line-height:1.4;
   -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
 }
 
 /* ── Encabezado ── */
@@ -57,10 +59,11 @@ body{
 .btn.alert{color:var(--am);border-color:var(--am);animation:pulse 2s infinite}
 
 /* ── Pestañas ── */
-.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:20px;overflow-x:auto;gap:2px}
-.tb{padding:10px 16px;font-size:11px;font-weight:600;color:var(--mt);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:all 0.18s ease;letter-spacing:0.1px}
-.tb:hover{color:var(--tx)}
-.tb.on{color:var(--ac2);border-bottom-color:var(--ac)}
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:20px;overflow-x:auto;gap:4px;padding-bottom:2px}
+.tb{padding:9px 15px;font-size:11px;font-weight:600;color:var(--mt);background:none;border:none;border-radius:20px;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:all 0.18s ease;letter-spacing:0.1px;-webkit-tap-highlight-color:transparent}
+.tb:hover{color:var(--tx);background:var(--s2)}
+.tb.on{color:#1A1206;background:linear-gradient(135deg,var(--ac2),var(--ac));font-weight:700;box-shadow:0 4px 14px -4px rgba(201,162,75,0.5)}
+.tb.on:hover{color:#1A1206;background:linear-gradient(135deg,var(--ac2),var(--ac))}
 .tp{display:none}.tp.on{display:block;animation:fadeIn 0.35s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
@@ -288,6 +291,10 @@ body{
       <div class="ch"><h3>🎯 Radar de trampas</h3></div>
       <div id="dash-trampas"></div>
     </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📅 Calendario de resultados</h3><span class="mt2" style="font-size:8px">próximos 120 días</span></div>
+    <div id="calendario-resultados">—</div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Termografía de cobros</h3><span class="mt2" style="font-size:8px">🟢 cobrado · ▨ previsto</span></div>
@@ -529,6 +536,115 @@ const CSV_T =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUxZxenezJ_jOMWUmNHLCHrj255bqKS0q0faU05Qt4XumRnwDQz0qkeztnNUkq31op355o5ep5YcGa/pub?gid=1446675192&single=true&output=csv';
 const API_GS = 'https://script.google.com/macros/s/AKfycbzZIpT9-8Clu7unO-Y9kwa7IwwCT-_xa8Q3la78AtymUSfdo1wjP4nw1LDjIrbvuekR8A/exec';
 
+// ── Calendario de resultados (Finnhub, plan gratuito) ──
+// Pega aquí tu clave gratuita de finnhub.io antes de subir el archivo.
+const FINNHUB_KEY = 'd9hkei9r01qn4gacvui0d9hkei9r01qn4gacvuig';
+
+// Nombre (como aparece en Cartera/Trampas) → ticker de Finnhub.
+// Los que llevan sufijo de bolsa europea (.PA, .MC, .L) probablemente no traigan
+// datos en el plan gratuito de Finnhub — esos seguimos comprobándolos a mano.
+const TICKERS_RESULTADOS = {
+    'Abbott Laboratories': 'ABT',
+    'AbbVie Inc': 'ABBV',
+    'Air Liquide SA': 'AI.PA',
+    'Alphabet GOOGL': 'GOOGL',
+    'AMD': 'AMD',
+    'Becton Dickinson': 'BDX',
+    'BlackRock Inc': 'BLK',
+    "Lowe's Companies": 'LOW',
+    'MasterCard Inc': 'MA',
+    'Medtronic PLC': 'MDT',
+    'Newmont Corp': 'NEM',
+    'Realty Income Corp': 'O',
+    'Realty Income': 'O',
+    'VICI Properties': 'VICI',
+    'Visa Inc': 'V',
+    'LVMH': 'MC.PA',
+    'Dover Corporation': 'DOV',
+    'Microsoft Corp': 'MSFT',
+    'Sanofi SA': 'SAN.PA',
+    'Hermes International': 'RMS.PA',
+    'Procter & Gamble': 'PG',
+    'Viscofan SA': 'VIS.MC',
+    'S&P Global': 'SPGI',
+    'Miquel y Costas': 'MCM.MC',
+    "Moody's Corporation": 'MCO',
+    'Agree Realty': 'ADC',
+    'Cincinnati Financial': 'CINF',
+    'Johnson & Johnson': 'JNJ',
+    'Coca-Cola': 'KO',
+    'TotalEnergies': 'TTE.PA',
+    "McDonald's": 'MCD',
+    "L'Oreal": 'OR.PA',
+    'Iberdrola': 'IBE.MC',
+    'Inditex': 'ITX.MC',
+    'Bunzl PLC': 'BNZL.L',
+    'Bankinter': 'BKT.MC',
+    'Amazon.com': 'AMZN'
+};
+
+let RESULTADOS_PROXIMOS = [];
+
+async function cargarCalendarioResultados() {
+    if (!FINNHUB_KEY || FINNHUB_KEY === 'TU_CLAVE_AQUI') {
+        const cont = document.getElementById('calendario-resultados');
+        if (cont) cont.innerHTML =
+            '<div style="padding:16px;text-align:center;color:var(--mt);font-size:11px">Falta configurar la clave de Finnhub en el archivo</div>';
+        return;
+    }
+    const hoy = new Date();
+    const hasta = new Date();
+    hasta.setDate(hoy.getDate() + 120);
+    const fFrom = hoy.toISOString().slice(0, 10);
+    const fTo = hasta.toISOString().slice(0, 10);
+
+    const entradas = Object.entries(TICKERS_RESULTADOS);
+    const resultados = [];
+
+    await Promise.all(entradas.map(async ([nombre, ticker]) => {
+        try {
+            const res = await fetch('https://finnhub.io/api/v1/calendar/earnings?from=' + fFrom + '&to=' + fTo +
+                '&symbol=' + ticker + '&token=' + FINNHUB_KEY);
+            const data = await res.json();
+            if (data.earningsCalendar && data.earningsCalendar.length) {
+                const proximo = data.earningsCalendar
+                    .filter(e => e.date >= fFrom)
+                    .sort((a, b) => a.date.localeCompare(b.date))[0];
+                if (proximo) resultados.push({ nombre, ticker, fecha: proximo.date, hora: proximo.hour });
+            }
+        } catch (e) { /* si un ticker falla, seguimos con el resto */ }
+    }));
+
+    resultados.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    RESULTADOS_PROXIMOS = resultados;
+    renderCalendarioResultados();
+}
+
+function renderCalendarioResultados() {
+    const cont = document.getElementById('calendario-resultados');
+    if (!cont) return;
+    if (!RESULTADOS_PROXIMOS.length) {
+        cont.innerHTML =
+            '<div style="padding:16px;text-align:center;color:var(--mt);font-size:11px">Sin resultados próximos detectados en los tickers con cobertura gratuita</div>';
+        return;
+    }
+    const hoy = new Date();
+    cont.innerHTML = RESULTADOS_PROXIMOS.slice(0, 10).map(r => {
+        const fecha = new Date(r.fecha + 'T00:00:00');
+        const dias = Math.round((fecha - hoy) / 86400000);
+        const urgente = dias <= 7;
+        const horaTxt = r.hora === 'bmo' ? 'antes de apertura' : r.hora === 'amc' ? 'tras el cierre' : '';
+        return '<div style="padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+            '<div><div style="font-size:11px;font-weight:600">' + r.nombre +
+            '</div><div style="font-size:8px;color:var(--mt)">' + r.ticker + (horaTxt ? ' · ' + horaTxt : '') +
+            '</div></div>' +
+            '<div style="text-align:right"><div style="font-size:11px;font-weight:700;color:' + (urgente ?
+                'var(--rd)' : 'var(--tx)') + '">' + fecha.toLocaleDateString('es-ES') +
+            '</div><div style="font-size:8px;color:var(--mt)">en ' + dias + ' días</div></div>' +
+            '</div>';
+    }).join('');
+}
+
 // ── MAPEO ──
 const MAP = {
     'Abbott Labs': 'Abbott Laboratories',
@@ -560,25 +676,16 @@ const trampasAvisadas = new Set();
 // Combina los datos EN VIVO de tu hoja (acciones, precio de compra) con los metadatos
 // guardados (país, nº de compras, fecha) que la hoja no trae. Si aparece una posición
 // nueva en la hoja que aún no está en el archivo, se muestra igualmente (sin metadatos).
-// Variación del día — compara el valor actual con el "cierre" guardado en el navegador.
-// Cuando cambia el día, el último valor visto pasa a ser la referencia del nuevo día.
+// Variación del día — compara el valor actual con el cierre del día anterior,
+// que ahora guarda tu propio Apps Script (fiable en todos los dispositivos, no en el navegador).
+let CIERRE_ANTERIOR = null;
+
 function calcularVariacionDia(valorActual) {
-    if (!valorActual) return null;
-    const hoy = new Date().toISOString().slice(0, 10);
-    let guardado = null;
-    try { guardado = JSON.parse(localStorage.getItem('cartera_ref_diario') || 'null'); } catch (e) {}
-    let cierreAnterior;
-    if (!guardado || guardado.fecha !== hoy) {
-        cierreAnterior = guardado ? guardado.valorActual : valorActual;
-        guardado = { fecha: hoy, cierreAnterior, valorActual };
-    } else {
-        cierreAnterior = guardado.cierreAnterior;
-        guardado.valorActual = valorActual;
-    }
-    try { localStorage.setItem('cartera_ref_diario', JSON.stringify(guardado)); } catch (e) {}
+    if (!valorActual || !CIERRE_ANTERIOR || !CIERRE_ANTERIOR.valor) return null;
+    const cierreAnterior = CIERRE_ANTERIOR.valor;
     const variacion = valorActual - cierreAnterior;
     const variacionPct = cierreAnterior ? (variacion / cierreAnterior * 100) : 0;
-    return { cierreAnterior, variacion, variacionPct };
+    return { cierreAnterior, variacion, variacionPct, fecha: CIERRE_ANTERIOR.fecha };
 }
 
 function posicionesVivas() {
@@ -699,6 +806,9 @@ async function recargar() {
         }
         COMISIONES_TOTAL = data.comisionesTotal || 0;
         NUM_OPERACIONES_TOTAL = data.numOperacionesTotal || 0;
+        if (data.cierreAnterior) {
+            CIERRE_ANTERIOR = data.cierreAnterior;
+        }
 
         renderDashboard();
         renderCartera();
@@ -1905,6 +2015,7 @@ renderProyecciones();
 renderAnalisis();
 recargar();
 setInterval(recargar, 5 * 60 * 1000);
+cargarCalendarioResultados();
 
 // En móvil, Modo Focus es la pantalla principal
 if (window.matchMedia('(max-width:760px)').matches) {
