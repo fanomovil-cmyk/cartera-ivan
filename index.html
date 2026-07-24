@@ -5,6 +5,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cartera — Dashboard</title>
+
+<!-- Instalable como app en el móvil -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0C12">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Cartera">
+<meta name="mobile-web-app-capable" content="yes">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
@@ -293,10 +304,6 @@ body{
     </div>
   </div>
   <div class="card" style="margin-top:12px">
-    <div class="ch"><h3>📅 Calendario de resultados</h3><span class="mt2" style="font-size:8px">próximos 120 días</span></div>
-    <div id="calendario-resultados">—</div>
-  </div>
-  <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Termografía de cobros</h3><span class="mt2" style="font-size:8px">🟢 cobrado · ▨ previsto</span></div>
     <div class="heatmap" id="heatmap-divs"></div>
   </div>
@@ -322,6 +329,17 @@ body{
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Análisis de concentración</h3></div>
     <div id="concentracion-container" style="padding:14px 16px"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🌍 Reparto por país</h3></div>
+    <div style="display:flex;align-items:center;gap:20px;padding:14px 16px;flex-wrap:wrap">
+      <div style="width:180px;height:180px;flex-shrink:0"><canvas id="cPais"></canvas></div>
+      <div id="pais-leyenda" style="flex:1;min-width:180px">—</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📅 Calendario de resultados</h3><span class="mt2" style="font-size:8px">próximos 120 días</span></div>
+    <div id="calendario-resultados">—</div>
   </div>
 </div>
 
@@ -617,6 +635,7 @@ async function cargarCalendarioResultados() {
 
     resultados.sort((a, b) => a.fecha.localeCompare(b.fecha));
     RESULTADOS_PROXIMOS = resultados;
+    renderCartera();
     renderCalendarioResultados();
 }
 
@@ -1194,6 +1213,16 @@ function renderDashboard() {
 }
 
 // ── CARTERA ──
+// ¿Esta empresa presenta resultados dentro del mes en curso?
+function tieneResultadosEsteMes(nombre) {
+    const hoy = new Date();
+    return RESULTADOS_PROXIMOS.some(r => {
+        if (r.nombre !== nombre) return false;
+        const f = new Date(r.fecha + 'T00:00:00');
+        return f.getFullYear() === hoy.getFullYear() && f.getMonth() === hoy.getMonth();
+    });
+}
+
 function renderCartera() {
     const pos = posicionesVivas();
     const totCost = pos.reduce((s, p) => s + p.ct, 0);
@@ -1222,7 +1251,9 @@ function renderCartera() {
         totGP += gp;
         const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
         return '<tr style="' + bg + '">' +
-            '<td><div style="font-weight:600;font-size:11px">' + p.n + '</div><div style="font-size:8px;color:var(--mt)">' +
+            '<td><div style="font-weight:600;font-size:11px">' + p.n + (tieneResultadosEsteMes(p.n) ?
+                ' <span style="font-size:8px;font-weight:800;color:var(--gn);background:rgba(52,199,123,0.15);border:1px solid rgba(52,199,123,0.4);border-radius:4px;padding:1px 5px;margin-left:4px">RESULTADOS</span>' :
+                '') + '</div><div style="font-size:8px;color:var(--mt)">' +
             p.nc + 'x · desde ' + p.f + (p.comisiones ? ' · <span style="color:var(--rd)">' + f2(p.comisiones) +
                 '€ comisión</span>' : '') + '</div></td>' +
             '<td>' + pb(p.pais) + '</td>' +
@@ -1267,6 +1298,58 @@ function renderCartera() {
                 '</div>' +
                 '<div style="font-size:9px;font-family:monospace;color:' + color + ';font-weight:700;min-width:40px">' +
                 p.peso.toFixed(1) + '%</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    // ── Reparto por país ──
+    const porPais = {};
+    pos.forEach(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const val = pa ? pa * p.sh : p.ct;
+        porPais[p.pais] = (porPais[p.pais] || 0) + val;
+    });
+    const paisEntradas = Object.entries(porPais).sort((a, b) => b[1] - a[1]);
+    const totalPais = paisEntradas.reduce((s, [, v]) => s + v, 0);
+    const coloresPais = { USA: '#C9A24B', FRA: '#34C77B', ESP: '#E85A5A', IRL: '#B7A6E8' };
+    const colorPaisDefault = '#707B93';
+
+    const canvasPais = document.getElementById('cPais');
+    if (canvasPais) {
+        if (window._chartPais) window._chartPais.destroy();
+        window._chartPais = new Chart(canvasPais.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: paisEntradas.map(([p]) => p),
+                datasets: [{
+                    data: paisEntradas.map(([, v]) => v),
+                    backgroundColor: paisEntradas.map(([p]) => coloresPais[p] || colorPaisDefault),
+                    borderColor: '#12151F',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fe(ctx.parsed) } }
+                }
+            }
+        });
+    }
+
+    const leyendaPais = document.getElementById('pais-leyenda');
+    if (leyendaPais) {
+        leyendaPais.innerHTML = paisEntradas.map(([p, v]) => {
+            const pct = totalPais ? (v / totalPais * 100) : 0;
+            const color = coloresPais[p] || colorPaisDefault;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">' +
+                '<span style="width:10px;height:10px;border-radius:3px;background:' + color +
+                ';flex-shrink:0"></span>' +
+                '<span style="font-size:11px;font-weight:600;flex:1">' + pb(p) + '</span>' +
+                '<span style="font-size:11px;font-weight:700;font-family:monospace;color:' + color + '">' + pct
+                .toFixed(1) + '%</span>' +
                 '</div>';
         }).join('');
     }
