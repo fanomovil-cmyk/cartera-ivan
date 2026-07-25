@@ -93,7 +93,7 @@ body{
 .ch h3{font-family:'Space Grotesk',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mt);font-weight:600}
 
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-@media(max-width:760px){.g2{grid-template-columns:1fr}}
+@media(max-width:760px){.g2{grid-template-columns:1fr}.close-radar-txt{display:none}}
 @media(max-width:480px){
   body{padding:13px}
   [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
@@ -216,7 +216,7 @@ body{
 
 <!-- FOCUS MODE -->
 <div class="focus-mode" id="focus">
-  <div class="close" onclick="document.getElementById('focus').classList.remove('on')">✕ Cerrar radar</div>
+  <div class="close" onclick="document.getElementById('focus').classList.remove('on')">✕ Cerrar</div>
   <div style="max-width:800px;margin:0 auto;text-align:center">
     <h1 style="font-size:32px;margin-bottom:8px">📡 Radar Táctico</h1>
     <p style="color:var(--mt);font-size:14px;margin-bottom:30px;font-family:'JetBrains Mono',monospace;letter-spacing:1px">SOLO LO QUE IMPORTA</p>
@@ -258,6 +258,7 @@ body{
   <button class="tb" onclick="sw(6)">🔮 Simulaciones</button>
   <button class="tb" onclick="sw(7)">🧠 Analíticas</button>
   <button class="tb" onclick="sw(8)">📈 Operaciones Cerradas</button>
+  <button class="tb" onclick="sw(9)">🗓️ Histórico Anual</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -329,11 +330,20 @@ body{
     <div class="ch"><h3>📊 Análisis de concentración</h3></div>
     <div id="concentracion-container" style="padding:14px 16px"></div>
   </div>
-  <div class="card" style="margin-top:12px">
-    <div class="ch"><h3>🌍 Reparto por país</h3></div>
-    <div style="display:flex;align-items:center;gap:20px;padding:14px 16px;flex-wrap:wrap">
-      <div style="width:180px;height:180px;flex-shrink:0"><canvas id="cPais"></canvas></div>
-      <div id="pais-leyenda" style="flex:1;min-width:180px">—</div>
+  <div class="g2" style="margin-top:12px">
+    <div class="card">
+      <div class="ch"><h3>🌍 Reparto por país</h3></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:14px 16px;flex-wrap:wrap">
+        <div style="width:150px;height:150px;flex-shrink:0"><canvas id="cPais"></canvas></div>
+        <div id="pais-leyenda" style="flex:1;min-width:140px">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>🏭 Reparto por sector</h3></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:14px 16px;flex-wrap:wrap">
+        <div style="width:150px;height:150px;flex-shrink:0"><canvas id="cSector"></canvas></div>
+        <div id="sector-leyenda" style="flex:1;min-width:140px">—</div>
+      </div>
     </div>
   </div>
   <div class="card" style="margin-top:12px">
@@ -347,7 +357,7 @@ body{
   <div class="kg" id="kg2"></div>
   <div class="card">
     <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
   </div>
 </div>
 
@@ -426,6 +436,19 @@ body{
       <div id="sim-resultado" style="margin-top:12px"></div>
     </div>
   </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>💸 Simulador de venta — impacto fiscal</h3><span class="mt2" style="font-size:8px">tramos IRPF ahorro 2026</span></div>
+    <div style="padding:14px 16px">
+      <div class="g2" style="gap:8px">
+        <div><select class="sim-input" id="simv-activo" style="width:100%"><option value="">Elige una posición...</option></select></div>
+        <div><input class="sim-input" id="simv-acciones" placeholder="Acciones a vender" style="width:100%"></div>
+        <div><input class="sim-input" id="simv-precio" placeholder="Precio de venta (ej. 57.20)" style="width:100%"></div>
+        <div><input class="sim-input" id="simv-comision" placeholder="Comisión € (por defecto 1)" style="width:100%"></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" onclick="simularVenta()" style="width:100%;padding:10px;font-size:12px">▶️ Simular venta</button></div>
+      <div id="simv-resultado" style="margin-top:12px"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ ANÁLISIS ═══ -->
@@ -446,6 +469,29 @@ body{
   </div>
 </div>
 
+<!-- ═══ HISTÓRICO ANUAL ═══ -->
+<div class="tp" id="t9">
+  <div class="card">
+    <div class="ch"><h3>🗓️ Filtrar por año</h3></div>
+    <div id="anio-filtros" style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">—</div>
+  </div>
+  <div class="kg" id="kg9" style="margin-top:12px"></div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📊 Dividendos por año</h3><span class="mt2" style="font-size:8px">histórico completo</span></div>
+    <div class="cw"><canvas id="cAnioDiv"></canvas></div>
+  </div>
+  <div class="g2" style="margin-top:12px">
+    <div class="card">
+      <div class="ch"><h3>💰 Dividendos del año seleccionado</h3></div>
+      <div class="sc" style="max-height:340px"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha</th><th>Neto real</th></tr></thead><tbody id="tb-anio-divs"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>📈 Ventas cerradas del año seleccionado</h3></div>
+      <div class="sc" style="max-height:340px"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha</th><th>G/P €</th></tr></thead><tbody id="tb-anio-ops"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
 </script>
 <script>
@@ -462,7 +508,7 @@ const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
 
 function sw(i) {
     document.querySelectorAll('.tb').forEach((b, j) => b.classList.toggle('on', i === j));
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'].forEach((id, j) => document.getElementById(id)
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9'].forEach((id, j) => document.getElementById(id)
         .classList.toggle('on', i === j));
 }
 
@@ -721,6 +767,7 @@ function posicionesVivas() {
         return {
             n: live.nombre,
             pais: estatico.pais || '—',
+            sector: live.sector || 'Sin clasificar',
             ret: estatico.ret || 0,
             sh: live.acciones,
             pm: live.pCompra,
@@ -772,6 +819,114 @@ function renderOperaciones() {
     }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--mt);padding:20px">Cargando operaciones desde tu hoja TR_DATOS...</td></tr>';
 }
 
+// ── HISTÓRICO ANUAL ──
+let ANIO_SELECCIONADO = 'todos';
+
+function seleccionarAnio(anio) {
+    ANIO_SELECCIONADO = anio;
+    renderHistoricoAnual();
+}
+
+function renderHistoricoAnual() {
+    const cont = document.getElementById('anio-filtros');
+    if (!cont) return;
+
+    // Años presentes en los datos (dividendos, intereses y operaciones cerradas)
+    const anios = new Set();
+    (D.dividendos || []).forEach(d => anios.add(d.f.split('/')[2]));
+    (D.intereses || []).forEach(i => anios.add(i.f.split('/')[1]));
+    OPERACIONES_CERRADAS.forEach(o => anios.add(o.fecha.slice(0, 4)));
+    const listaAnios = [...anios].sort();
+
+    cont.innerHTML = '<button class="btn' + (ANIO_SELECCIONADO === 'todos' ? ' ac' : '') +
+        '" onclick="seleccionarAnio(\'todos\')">Todos</button>' +
+        listaAnios.map(a => '<button class="btn' + (ANIO_SELECCIONADO === a ? ' ac' : '') + '" onclick="seleccionarAnio(\'' +
+            a + '\')">' + a + '</button>').join('');
+
+    const perteneceAnio = fecha => ANIO_SELECCIONADO === 'todos' || fecha.includes(ANIO_SELECCIONADO);
+
+    // Dividendos del año seleccionado (formato fecha D.dividendos: DD/MM/YYYY)
+    const divsAnio = (D.dividendos || []).filter(d => perteneceAnio(d.f));
+    const divsTotal = divsAnio.reduce((s, d) => s + d.neto_real, 0);
+
+    // Intereses del año seleccionado (formato fecha D.intereses: MM/YYYY)
+    const intAnio = (D.intereses || []).filter(i => perteneceAnio(i.f));
+    const intTotal = intAnio.reduce((s, i) => s + i.neto, 0);
+
+    // Ventas cerradas del año seleccionado (formato fecha: YYYY-MM-DD)
+    const opsAnio = OPERACIONES_CERRADAS.filter(o => ANIO_SELECCIONADO === 'todos' || o.fecha.startsWith(
+        ANIO_SELECCIONADO));
+    const opsTotal = opsAnio.reduce((s, o) => s + o.gp, 0);
+
+    const totalGenerado = divsTotal + intTotal + opsTotal;
+
+    const kg9 = document.getElementById('kg9');
+    if (kg9) {
+        kg9.innerHTML = [
+            { l: '💰 Dividendos', v: fe(divsTotal), s: divsAnio.length + ' pagos', c: '#34C77B' },
+            { l: '🏦 Intereses netos', v: fe(intTotal), s: intAnio.length + ' meses', c: '#E29A3E' },
+            { l: '📈 Ganancia realizada (ventas)', v: (opsTotal >= 0 ? '+' : '') + fe(opsTotal), s: opsAnio.length +
+                    ' operaciones', c: opsTotal >= 0 ? '#34C77B' : '#E85A5A' },
+            { l: '🎯 Total generado', v: (totalGenerado >= 0 ? '+' : '') + fe(totalGenerado), s: ANIO_SELECCIONADO ===
+                    'todos' ? 'Histórico completo' : 'Año ' + ANIO_SELECCIONADO, c: '#C9A24B' },
+        ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+                k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+    }
+
+    // Gráfico de dividendos por año (siempre el histórico completo, para dar contexto)
+    const porAnioDiv = {};
+    (D.dividendos || []).forEach(d => {
+        const a = d.f.split('/')[2];
+        porAnioDiv[a] = (porAnioDiv[a] || 0) + d.neto_real;
+    });
+    const anioLabels = Object.keys(porAnioDiv).sort();
+    const canvasAnio = document.getElementById('cAnioDiv');
+    if (canvasAnio) {
+        if (window._chartAnioDiv) window._chartAnioDiv.destroy();
+        window._chartAnioDiv = new Chart(canvasAnio.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: anioLabels,
+                datasets: [{
+                    label: 'Dividendos netos',
+                    data: anioLabels.map(a => porAnioDiv[a]),
+                    backgroundColor: anioLabels.map(a => a === ANIO_SELECCIONADO ? '#E4C777' : '#34C77B'),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => fe(ctx.parsed.y) } }
+                },
+                scales: {
+                    y: { ticks: { color: '#707B93' }, grid: { color: 'rgba(112,123,147,0.1)' } },
+                    x: { ticks: { color: '#707B93' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    const tbDivs = document.getElementById('tb-anio-divs');
+    if (tbDivs) {
+        tbDivs.innerHTML = divsAnio.length ? divsAnio.sort((a, b) => b.f.localeCompare(a.f)).map(d =>
+            '<tr><td style="text-align:left">' + d.n + '</td><td>' + d.f + '</td><td class="gn">' + fe(
+                d.neto_real) + '</td></tr>').join('') :
+            '<tr><td colspan="3" style="text-align:center;color:var(--mt);padding:16px">Sin dividendos en este periodo</td></tr>';
+    }
+
+    const tbOps = document.getElementById('tb-anio-ops');
+    if (tbOps) {
+        tbOps.innerHTML = opsAnio.length ? opsAnio.map(o =>
+            '<tr><td style="text-align:left">' + o.n + '</td><td>' + o.fecha + '</td><td style="color:' + (
+                o.gp >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-weight:700">' + (o.gp >= 0 ? '+' : '') + fe(o
+                .gp) + '</td></tr>').join('') :
+            '<tr><td colspan="3" style="text-align:center;color:var(--mt);padding:16px">Sin ventas en este periodo</td></tr>';
+    }
+}
+
 async function recargar() {
     const btn = document.getElementById('btn-estado');
     if (btn) { btn.textContent = 'Sincronizando radar...'; btn.classList.remove('ac'); }
@@ -809,8 +964,9 @@ async function recargar() {
                 t.acciones,      // r[6]
                 t.capital,       // r[7]
                 t.divAcc,        // r[8]
-                (t.yield * 100).toFixed(2) + '%',  // r[9] — convertir a % legible
-                t.pago           // r[10]
+                (t.trampa ? (t.divAcc / t.trampa * 100).toFixed(2) + '%' : '—'),  // r[9] — yield calculado (div/trampa)
+                t.pago,          // r[10]
+                t.ordenPuesta    // r[11] — ¿tienes la orden límite puesta en Trade Republic?
             ]);
         }
 
@@ -832,6 +988,9 @@ async function recargar() {
         renderCartera();
         renderTrampas();
         renderOperaciones();
+        renderAnalisis();
+        renderProyecciones();
+        renderHistoricoAnual();
 
         const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         if (btn) { btn.textContent = '📡 En línea · ' + hora; btn.classList.add('ac'); }
@@ -905,8 +1064,17 @@ function renderDashboard() {
 
     // ── Radar de variación del día (como el % que muestra Trade Republic) ──
     const varDia = calcularVariacionDia(totV);
+    const hoyDiaSemana = new Date().getDay(); // 0=domingo, 6=sábado
+    const esFinDeSemana = hoyDiaSemana === 0 || hoyDiaSemana === 6;
     let radarHtml = '';
-    if (varDia) {
+    if (esFinDeSemana) {
+        radarHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+            '<div class="radar-dia" style="background:rgba(112,123,147,0.16);color:var(--mt)">' +
+            '<span>🏳️ Mercados cerrados</span>' +
+            '</div>' +
+            '<span style="color:var(--mt);font-size:9px">fin de semana · precios del último cierre</span>' +
+            '</div>';
+    } else if (varDia) {
         const p = varDia.variacionPct;
         let estado, color, bg, tri, pulso;
         if (p <= -3) {
@@ -971,7 +1139,7 @@ function renderDashboard() {
     // ── Trampas ordenadas por cercanía (compartido entre Dashboard y Modo Focus) ──
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
-            r[7]), dv: cn(r[8]) }))
+            r[7]), dv: cn(r[8]), op: r[11] === true }))
         .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
@@ -1000,14 +1168,34 @@ function renderDashboard() {
         const claseFila = enZona ? ' zona-disparo' : '';
         const estiloExtra = enZona ? '' : (destacada ?
             ';background:rgba(52,199,123,0.10);border-left:3px solid var(--gn)' : '');
+        let estadoOrden;
+        const fEstado = grande ? '13px' : '7.5px';
+        const padEstado = grande ? '4px 10px' : '1px 5px';
+        if (enZona && !t.op) {
+            estadoOrden = ' <span class="zona-tag" style="font-size:' + fEstado + ';padding:' + padEstado +
+                '">🚨 SIN ORDEN</span>';
+        } else if (enZona && t.op) {
+            estadoOrden =
+                ' <span class="zona-tag" style="background:rgba(52,199,123,0.25);border-color:rgba(52,199,123,0.5);color:#B8F5D0;animation:none;font-size:' +
+                fEstado + ';padding:' + padEstado + '">✅ CUBIERTA</span>';
+        } else if (t.op) {
+            estadoOrden =
+                ' <span style="font-size:' + fEstado +
+                ';font-weight:700;color:#8FE0B4;background:rgba(52,199,123,0.12);border:1px solid rgba(52,199,123,0.3);border-radius:4px;padding:' +
+                padEstado + ';margin-left:4px">✅ Cubierta</span>';
+        } else {
+            estadoOrden =
+                ' <span style="font-size:' + fEstado +
+                ';font-weight:700;color:var(--mt);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:' +
+                padEstado + ';margin-left:4px">○ Sin orden</span>';
+        }
         return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
             ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
             estiloExtra + '">' +
             '<span class="pr ' + pc + '"' + (grande ? ' style="font-size:16px;padding:6px 11px"' : '') + '>' + t.p +
             '</span>' +
             '<div style="flex:1;min-width:120px">' +
-            '<div style="font-size:' + fName + ';font-weight:700">' + t.n + (enZona ?
-                ' <span class="zona-tag">A TIRO</span>' : '') + '</div>' +
+            '<div style="font-size:' + fName + ';font-weight:700">' + t.n + estadoOrden + '</div>' +
             '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:4px">' + (t.acc ? f2(t.acc) + ' acc.' :
                 '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
             '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
@@ -1248,7 +1436,7 @@ function renderCartera() {
         const pe = totCost ? p.ct / totCost * 100 : 0;
         totV += val;
         totGP += gp;
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         return '<tr style="' + bg + '">' +
             '<td><div style="font-weight:600;font-size:11px">' + p.n + (tieneResultadosEsteMes(p.n) ?
                 ' <span style="font-size:8px;font-weight:800;color:var(--gn);background:rgba(52,199,123,0.15);border:1px solid rgba(52,199,123,0.4);border-radius:4px;padding:1px 5px;margin-left:4px">RESULTADOS</span>' :
@@ -1352,6 +1540,63 @@ function renderCartera() {
                 '</div>';
         }).join('');
     }
+
+    // ── Reparto por sector ──
+    const porSector = {};
+    pos.forEach(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const val = pa ? pa * p.sh : p.ct;
+        const sec = p.sector || 'Sin clasificar';
+        porSector[sec] = (porSector[sec] || 0) + val;
+    });
+    const sectorEntradas = Object.entries(porSector).sort((a, b) => b[1] - a[1]);
+    const totalSector = sectorEntradas.reduce((s, [, v]) => s + v, 0);
+    const paletaSector = ['#C9A24B', '#34C77B', '#B7A6E8', '#E85A5A', '#5B8FD9', '#E29A3E', '#8FE0B4', '#D97BB0',
+        '#707B93'
+    ];
+    const colorSector = idx => paletaSector[idx % paletaSector.length];
+
+    const canvasSector = document.getElementById('cSector');
+    if (canvasSector) {
+        if (window._chartSector) window._chartSector.destroy();
+        window._chartSector = new Chart(canvasSector.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: sectorEntradas.map(([s]) => s),
+                datasets: [{
+                    data: sectorEntradas.map(([, v]) => v),
+                    backgroundColor: sectorEntradas.map((_, i) => colorSector(i)),
+                    borderColor: '#12151F',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fe(ctx.parsed) } }
+                }
+            }
+        });
+    }
+
+    const leyendaSector = document.getElementById('sector-leyenda');
+    if (leyendaSector) {
+        leyendaSector.innerHTML = sectorEntradas.map(([s, v], i) => {
+            const pct = totalSector ? (v / totalSector * 100) : 0;
+            const color = colorSector(i);
+            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">' +
+                '<span style="width:10px;height:10px;border-radius:3px;background:' + color +
+                ';flex-shrink:0"></span>' +
+                '<span style="font-size:11px;font-weight:600;flex:1">' + s + '</span>' +
+                '<span style="font-size:11px;font-weight:700;font-family:monospace;color:' + color + '">' + pct
+                .toFixed(1) + '%</span>' +
+                '</div>';
+        }).join('');
+    }
+
+    poblarSelectorVenta();
 }
 
 // ── TRAMPAS ──
@@ -1389,8 +1634,15 @@ function renderTrampas() {
         const cal = esE ?
             '<span style="color:var(--am);font-size:8px;font-weight:700">ESPECULATIVA</span>' :
             '<span style="color:var(--mt);font-size:8px">' + r[1] + '</span>';
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         const dv = d1;
+        const op = r[11] === true;
+        const enZonaTabla = ad <= 1.5;
+        const celdaOrden = op ?
+            '<span style="color:var(--gn);font-weight:700;font-size:11px">✅ Sí</span>' :
+            (enZonaTabla ?
+                '<span style="color:var(--rd);font-weight:700;font-size:11px;animation:pulse 1.4s ease-in-out infinite">🚨 No</span>' :
+                '<span style="color:var(--mt);font-weight:600;font-size:11px">○ No</span>');
         return '<tr style="' + bg + (esE ? ';background:rgba(251,191,36,0.04)' : '') + '"><td><div style="font-weight:600;font-size:11px">' +
             r[0] + '</div><div style="font-size:8px;color:var(--mt)">' + pago + '</div></td>' +
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
@@ -1402,6 +1654,7 @@ function renderTrampas() {
             '<td class="gn">' + (divAcc > 0 ? f2(divAcc) + ' €' : '—') + '</td>' +
             '<td class="gn">' + yld + '</td>' +
             '<td class="mt2" style="font-size:8px">' + pago + '</td>' +
+            '<td>' + celdaOrden + '</td>' +
             '</tr>';
     }).join('');
 }
@@ -1467,7 +1720,7 @@ function renderDividendos() {
 
     const tbA = document.getElementById('tb-acum');
     if (tbA) tbA.innerHTML = acumList.map((a, i) => {
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         const retPct = a.pais === 'USA' ? '15%' : a.pais === 'FRA' ? '12,8%' : '0%';
         return '<tr style="' + bg + '">' +
             '<td><div style="font-weight:700;font-size:12px">' + a.n + '</div></td>' +
@@ -1513,7 +1766,7 @@ function renderDividendos() {
             '</div></div>').join('');
 
     document.getElementById('tb-divs').innerHTML = divs.map((d, i) => {
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         const retPct = d.pais === 'USA' ? '15%' : d.pais === 'FRA' ? '12,8%' : '0%';
         return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + d.n +
             '</div></td>' +
@@ -1547,7 +1800,7 @@ function renderDividendos() {
     if (tbRes) {
         tbRes.innerHTML = res2.sort((a, b) => b.año - a.año || b.neto_real - a.neto_real)
             .map((r, i) => {
-                const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+                const bg = i % 2 ? 'background:var(--s2)' : '';
                 const retPct = r.pais === 'USA' ? '15%' : r.pais === 'FRA' ? '12,8%' : '0%';
                 const ret_o = round2(r.bruto - r.neto_tr);
                 const tax_es = round2(r.neto_tr - r.neto_final);
@@ -1613,7 +1866,7 @@ function renderDividendos() {
     const pend = D.pendientes || [];
     const tbP = document.getElementById('tb-pend');
     if (tbP) tbP.innerHTML = pend.map((p, i) => {
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         const proxColor = p.prox_est.includes('2026') ?
             'color:#34C77B;font-weight:700' :
             'color:var(--mt)';
@@ -1708,7 +1961,7 @@ function renderIntereses() {
     let ac = 0;
     document.getElementById('tb-int').innerHTML = ints.map((i, j) => {
         ac += i.neto;
-        const bg = j % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = j % 2 ? 'background:var(--s2)' : '';
         return '<tr style="' + bg + '"><td style="font-weight:600">' + i.f + '</td>' +
             '<td class="am">' + fe(i.bruto) + '</td>' +
             '<td class="rd">-' + fe(i.tax) + '</td>' +
@@ -1766,7 +2019,7 @@ function renderEvolucion() {
 
     document.getElementById('tb-evol').innerHTML = ev.map((e, i) => {
         const n = e.ventas + e.divs + e.int - e.compras;
-        const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+        const bg = i % 2 ? 'background:var(--s2)' : '';
         return '<tr style="' + bg + '"><td style="font-weight:600">' + e.mes + '</td>' +
             '<td class="rd">' + (e.compras ? '-' + fe(e.compras) : '—') + '</td>' +
             '<td class="gn">' + (e.ventas ? '+' + fe(e.ventas) : '—') + '</td>' +
@@ -1905,6 +2158,115 @@ function renderProyecciones() {
 }
 
 // ── SIMULADOR ──
+// ── Tramos IRPF del ahorro 2026 (ganancias por venta de acciones, dividendos e intereses) ──
+const TRAMOS_AHORRO = [
+    [6000, 0.19],
+    [50000, 0.21],
+    [200000, 0.23],
+    [300000, 0.27],
+    [Infinity, 0.30]
+];
+
+function calcularImpuestoAhorro(base) {
+    if (base <= 0) return 0;
+    let impuesto = 0,
+        anterior = 0;
+    for (const [limite, tipo] of TRAMOS_AHORRO) {
+        if (base <= anterior) break;
+        const enEsteTramo = Math.min(base, limite) - anterior;
+        impuesto += enEsteTramo * tipo;
+        anterior = limite;
+        if (base <= limite) break;
+    }
+    return impuesto;
+}
+
+// Impuesto MARGINAL de una ganancia nueva, teniendo en cuenta lo que ya llevas generado
+// este año en dividendos + intereses + otras ventas (así el tramo aplicado es el correcto).
+function impuestoMarginalGanancia(baseYaGenerada, ganancia) {
+    if (ganancia <= 0) return 0;
+    return calcularImpuestoAhorro(baseYaGenerada + ganancia) - calcularImpuestoAhorro(baseYaGenerada);
+}
+
+// Base de ahorro ya generada este año: dividendos netos + intereses netos + ganancias
+// ya realizadas en ventas (Operaciones Cerradas) de este ejercicio.
+function calcularBaseAhorroAnual() {
+    const anioActual = new Date().getFullYear();
+    const divsAnio = (D.dividendos || []).filter(d => d.f.includes(String(anioActual)))
+        .reduce((s, d) => s + d.neto_final, 0);
+    const intAnio = (D.intereses || []).filter(i => i.f.endsWith('/' + anioActual))
+        .reduce((s, i) => s + i.neto, 0);
+    const gpAnio = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
+        .reduce((s, o) => s + o.gp, 0);
+    return divsAnio + intAnio + gpAnio;
+}
+
+function poblarSelectorVenta() {
+    const sel = document.getElementById('simv-activo');
+    if (!sel) return;
+    const pos = posicionesVivas();
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Elige una posición...</option>' + pos.map(p =>
+        '<option value="' + p.n + '" data-acciones="' + p.sh + '" data-pcompra="' + p.pm + '">' + p.n + ' (' +
+        f2(p.sh) + ' acc.)</option>').join('');
+    if (actual) sel.value = actual;
+}
+
+function simularVenta() {
+    const sel = document.getElementById('simv-activo');
+    const opt = sel.options[sel.selectedIndex];
+    const nombre = sel.value;
+    const accionesMax = parseFloat(opt?.dataset.acciones) || 0;
+    const pCompra = parseFloat(opt?.dataset.pcompra) || 0;
+    const acciones = parseFloat(document.getElementById('simv-acciones').value) || 0;
+    const pVenta = parseFloat(document.getElementById('simv-precio').value) || 0;
+    const comision = document.getElementById('simv-comision').value ?
+        parseFloat(document.getElementById('simv-comision').value) : 1;
+    const cont = document.getElementById('simv-resultado');
+
+    if (!nombre || !acciones || !pVenta) {
+        cont.innerHTML =
+            '<div style="padding:12px;text-align:center;color:var(--am);font-size:11px">Elige una posición, acciones a vender y precio de venta</div>';
+        return;
+    }
+    if (acciones > accionesMax + 1e-6) {
+        cont.innerHTML = '<div style="padding:12px;text-align:center;color:var(--rd);font-size:11px">Solo tienes ' +
+            f2(accionesMax) + ' acciones de ' + nombre + '</div>';
+        return;
+    }
+
+    const coste = acciones * pCompra;
+    const ingreso = acciones * pVenta - comision;
+    const ganancia = ingreso - coste;
+    const gananciaPct = coste ? (ganancia / coste * 100) : 0;
+
+    const baseYaGenerada = calcularBaseAhorroAnual();
+    const impuesto = impuestoMarginalGanancia(baseYaGenerada, ganancia);
+    const neto = ganancia - impuesto;
+    const tipoEfectivo = ganancia > 0 ? (impuesto / ganancia * 100) : 0;
+
+    cont.innerHTML =
+        '<div class="sim-result">' +
+        '<div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mt2">Coste de compra</span><span class="bl">' +
+        fe(coste) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mt2">Ingreso neto de venta</span><span class="bl">' +
+        fe(ingreso) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--bd);margin-top:4px;padding-top:8px"><span class="mt2">Ganancia/pérdida bruta</span><span style="color:' +
+        (ganancia >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-weight:700">' + (ganancia >= 0 ? '+' : '') + fe(
+            ganancia) + ' (' + (gananciaPct >= 0 ? '+' : '') + gananciaPct.toFixed(1) + '%)</span></div>' +
+        (ganancia > 0 ? (
+            '<div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mt2">Base ahorro ya generada este año</span><span class="mt2">' +
+            fe(baseYaGenerada) + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mt2">Impuesto estimado (tramo marginal ' +
+            tipoEfectivo.toFixed(1) + '%)</span><span class="rd">−' + fe(impuesto) + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--bd);margin-top:4px"><span style="font-weight:700">Ganancia neta tras impuestos</span><span class="gn" style="font-weight:700;font-size:14px">+' +
+            fe(neto) + '</span></div>'
+        ) : (
+            '<div style="padding:8px 0;color:var(--mt);font-size:10px">Con pérdida no hay impuesto — de hecho, esta pérdida podría compensar otras ganancias del año en tu declaración.</div>'
+        )) +
+        '</div>';
+}
+
 function simularCompra() {
     const activo = document.getElementById('sim-activo').value.trim();
     const acciones = parseFloat(document.getElementById('sim-acciones').value);
@@ -2039,7 +2401,7 @@ function renderAnalisis() {
     if (tbEf) tbEf.innerHTML = Object.values(eficiencia).sort((a, b) => (b.real / b.bruto) - (a.real / a.bruto))
         .map((e, i) => {
             const eff = e.bruto > 0 ? (e.real / e.bruto * 100) : 0;
-            const bg = i % 2 ? 'background:rgba(26,34,53,0.5)' : '';
+            const bg = i % 2 ? 'background:var(--s2)' : '';
             return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + e.n +
                 '</div></td>' +
                 '<td>' + pb(e.pais) + '</td>' +
@@ -2095,6 +2457,7 @@ renderDashboard();
 renderCartera();
 renderProyecciones();
 renderAnalisis();
+renderHistoricoAnual();
 recargar();
 setInterval(recargar, 5 * 60 * 1000);
 cargarCalendarioResultados();
