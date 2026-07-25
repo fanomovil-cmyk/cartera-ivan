@@ -130,7 +130,7 @@ body{
 
 /* ── Insignias de país: neutras, sin arcoíris ── */
 .pb{font-size:8px;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px;background:var(--s2);color:var(--mt);border:1px solid var(--bd);letter-spacing:0.3px}
-.pb.USA,.pb.FRA,.pb.ESP,.pb.IRL{background:var(--s2);color:#9FAABD;border:1px solid var(--bd)}
+.pb.USA,.pb.FRA,.pb.ESP,.pb.IRL{background:var(--s2);color:var(--mt);border:1px solid var(--bd)}
 
 .pbar{background:var(--bd);border-radius:3px;height:5px;margin-top:6px;overflow:hidden}
 .pfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width 1s}
@@ -143,6 +143,10 @@ body{
 .pr.am2{background:rgba(201,162,75,0.07);color:#B7A26B;border-color:rgba(201,162,75,0.15)}
 .pr.b{background:var(--s2);color:var(--mt);border-color:var(--bd)}
 .pr.es{background:rgba(226,154,62,0.18);color:#F0BC7A;border-color:rgba(226,154,62,0.3)}
+html.light .pr.ap{background:rgba(201,162,75,0.25);color:#8A6A1E;border-color:rgba(201,162,75,0.5)}
+html.light .pr.a{background:rgba(201,162,75,0.16);color:#8A6A1E;border-color:rgba(201,162,75,0.35)}
+html.light .pr.am2{background:rgba(201,162,75,0.1);color:#8A6A1E;border-color:rgba(201,162,75,0.25)}
+html.light .pr.es{background:rgba(226,154,62,0.22);color:#9A5F0B;border-color:rgba(226,154,62,0.4)}
 
 @keyframes pulse{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}
 
@@ -153,6 +157,7 @@ body{
 }
 .zona-disparo{animation:alertaZona 2.2s ease-in-out infinite;border-left:3px solid var(--rd)!important;background:rgba(232,90,90,0.06)!important}
 .zona-disparo .zona-tag{display:inline-block;font-size:7.5px;font-weight:800;letter-spacing:0.6px;color:#FFD7D7;background:rgba(232,90,90,0.25);border:1px solid rgba(232,90,90,0.5);border-radius:4px;padding:1px 5px;margin-left:6px;animation:pulse 1.4s ease-in-out infinite}
+html.light .zona-disparo .zona-tag{color:#8A1F1F}
 
 /* ── Radar de variación del día ── */
 .radar-dia{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:5px 12px 5px 6px;border-radius:20px;font-size:12px;font-weight:700;width:fit-content}
@@ -203,8 +208,9 @@ body{
 .notification .close-btn{position:absolute;top:12px;right:14px;cursor:pointer;color:var(--mt);font-size:16px}
 
 .badge-orden{font-size:7px;padding:2px 6px;border-radius:4px;font-weight:700;font-family:'JetBrains Mono',monospace}
-.badge-orden.compra{background:rgba(52,199,123,0.15);color:#8FE0B4}
+.badge-orden.compra{background:rgba(52,199,123,0.15);color:var(--gn)}
 .badge-orden.venta{background:rgba(232,90,90,0.15);color:#F0A3A3}
+html.light .badge-orden.venta{color:#B33A3A}
 
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -296,7 +302,7 @@ body{
   <div class="g2">
     <div class="card">
       <div class="ch"><h3>💼 Posiciones</h3><span class="mt2" style="font-size:9px" id="n-pos">14 activos</span></div>
-      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Valor</th><th>Rent.</th><th>Div/año</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
+      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div/año</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
     </div>
     <div class="card">
       <div class="ch"><h3>🎯 Radar de trampas</h3></div>
@@ -324,7 +330,7 @@ body{
   <div class="kg" id="kg1"></div>
   <div class="card">
     <div class="ch"><h3>💼 Escáner de posiciones — TR + precios en vivo</h3><span class="mt2" style="font-size:9px" id="pu-estado">Cargando precios...</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Coste €</th><th>Valor €</th><th>G/P €</th><th>Rent.%</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="10" class="mt2">—</td></tr></tfoot></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P €</th><th>Rent.%</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="10" class="mt2">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Análisis de concentración</h3></div>
@@ -539,6 +545,7 @@ function toggleDark() {
         root.style.setProperty('--bd', '#D1D9E6');
         root.style.setProperty('--tx', '#1E293B');
         root.style.setProperty('--mt', '#64748B');
+        root.classList.add('light');
     } else {
         root.style.setProperty('--bg', '#0A0C12');
         root.style.setProperty('--s1', '#12151F');
@@ -546,6 +553,7 @@ function toggleDark() {
         root.style.setProperty('--bd', '#242A3A');
         root.style.setProperty('--tx', '#ECEFF6');
         root.style.setProperty('--mt', '#707B93');
+        root.classList.remove('light');
     }
 }
 
@@ -757,12 +765,11 @@ function posicionesVivas() {
     return POSICIONES_GS.map(live => {
         const estatico = D.posiciones.find(p => (MAP[p.n] || p.n) === live.nombre) || {};
         // El nombre en TR_DATOS a veces difiere del de la hoja CARTERA (ej. "Alphabet (A)" vs "Alphabet GOOGL").
-        // Probamos varias claves posibles antes de dar la comisión por no encontrada.
         const clavesPosibles = [estatico.n, live.nombre, live.nombre === 'Alphabet GOOGL' ? 'Alphabet (A)' :
             null];
-        let comisionExtra = 0;
+        let comisionInfo = 0;
         for (const clave of clavesPosibles) {
-            if (clave && COMISIONES_ABIERTAS[clave]) { comisionExtra = COMISIONES_ABIERTAS[clave].comision; break; }
+            if (clave && COMISIONES_ABIERTAS[clave]) { comisionInfo = COMISIONES_ABIERTAS[clave].comision; break; }
         }
         return {
             n: live.nombre,
@@ -771,8 +778,13 @@ function posicionesVivas() {
             ret: estatico.ret || 0,
             sh: live.acciones,
             pm: live.pCompra,
-            ct: live.acciones * live.pCompra + comisionExtra,
-            comisiones: comisionExtra,
+            divAcc: live.divAcc || 0,
+            divAnio: live.divAnio || 0,
+            // El P.Compra de tu hoja YA incluye la comisión de compra cuando la hubo
+            // (salvo en planes de inversión, saveback y redondeo, que no tienen comisión).
+            // No hay que sumarla otra vez aquí — solo la guardamos como dato informativo.
+            ct: live.acciones * live.pCompra,
+            comisiones: comisionInfo,
             nc: estatico.nc || 1,
             f: estatico.f || '—'
         };
@@ -1006,8 +1018,15 @@ async function recargar() {
 // ── DASHBOARD ──
 function renderDashboard() {
     const r = D.resumen;
-    const intMes = r.intNeto / 11;
-    const divMes = r.divNetoReal / 12;
+    const divTotalReal2 = (D.dividendos || []).reduce((s, d) => s + d.neto_real, 0);
+    const divDevolucionTotal = (D.dividendos || []).reduce((s, d) => s + d.devolucion, 0);
+    const intTotalReal = (D.intereses || []).reduce((s, i) => s + i.neto, 0);
+    const sbTotalReal = (D.savebacks || []).reduce((s, sb) => s + sb.i, 0);
+    const numMesesInt = Math.max(1, (D.intereses || []).length);
+    const numMesesDiv = 12; // dividendos: media sobre 12 meses del año, no sobre el histórico completo
+
+    const intMes = intTotalReal / numMesesInt;
+    const divMes = divTotalReal2 / numMesesDiv;
     const totMes = intMes + divMes + 150;
     const pct = Math.min(100, totMes / 300 * 100);
 
@@ -1019,12 +1038,12 @@ function renderDashboard() {
             totGP += pa * p.sh - p.ct; } });
 
     document.getElementById('kg0').innerHTML = [
-        { l: 'Capital invertido', v: fe(r.invertido - r.vendido), s: 'Coste real TR', c: '#E4C777' },
+        { l: 'Capital invertido', v: fe(totCost), s: 'Datos reales TR', c: '#E4C777' },
         { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? sg(totGP) : 'Cargando', c: '#8FE0B4' },
-        { l: 'Dividendos cobrados', v: fe(r.divNetoReal), s: D.dividendos.length + ' pagos · neto real', c: '#34C77B' },
-        { l: 'Intereses TR netos', v: fe(r.intNeto), s: '11 meses · ' + fe(r.intNeto / 11) + '/mes', c: '#E29A3E' },
-        { l: 'Saveback recibido', v: fe(r.sbTotal), s: '1% compras elegibles', c: '#B7A6E8' },
-        { l: 'A devolver Hacienda', v: fe(r.divDevolucion), s: 'Doble imposición', c: '#8FE0B4' },
+        { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: D.dividendos.length + ' pagos · neto real', c: '#34C77B' },
+        { l: 'Intereses TR netos', v: fe(intTotalReal), s: (D.intereses || []).length + ' meses', c: '#E29A3E' },
+        { l: 'Saveback recibido', v: fe(sbTotalReal), s: '1% compras elegibles', c: '#B7A6E8' },
+        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#8FE0B4' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:' + (k.v.length > 10 ? '14px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
             '</div></div>').join('');
@@ -1055,7 +1074,7 @@ function renderDashboard() {
         '✅ ¡Ya has alcanzado el objetivo!';
 
     const gpRealizado = OPERACIONES_CERRADAS.reduce((s, o) => s + o.gp, 0);
-    const divTotalReal = (D.resumen && D.resumen.divNetoReal) || 0;
+    const divTotalReal = divTotalReal2;
     const gpCombinado = totGP + gpRealizado + divTotalReal;
     // Base = solo el capital que tienes invertido AHORA (no el histórico ya vendido,
     // que diluía el % de forma engañosa)
@@ -1100,8 +1119,8 @@ function renderDashboard() {
     document.getElementById('focus-kpis').innerHTML =
         '<div class="kpi" style="--kc:#8FE0B4">' +
         '<div class="kl" style="font-size:11px">Valor cartera</div>' +
-        '<div class="kv" style="color:#8FE0B4;font-size:30px">' + (totV ? fe(totV) : '—') + '</div>' +
-        (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:#8FE0B4">Invertido: ' + fe(
+        '<div class="kv" style="color:var(--gn);font-size:30px">' + (totV ? fe(totV) : '—') + '</div>' +
+        (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' + fe(
             totCost) + '</div>' : '') +
         radarHtml +
         '</div>' +
@@ -1176,12 +1195,12 @@ function renderDashboard() {
                 '">🚨 SIN ORDEN</span>';
         } else if (enZona && t.op) {
             estadoOrden =
-                ' <span class="zona-tag" style="background:rgba(52,199,123,0.25);border-color:rgba(52,199,123,0.5);color:#B8F5D0;animation:none;font-size:' +
+                ' <span class="zona-tag" style="background:rgba(52,199,123,0.25);border-color:rgba(52,199,123,0.5);color:#1F9D5C;animation:none;font-size:' +
                 fEstado + ';padding:' + padEstado + '">✅ CUBIERTA</span>';
         } else if (t.op) {
             estadoOrden =
                 ' <span style="font-size:' + fEstado +
-                ';font-weight:700;color:#8FE0B4;background:rgba(52,199,123,0.12);border:1px solid rgba(52,199,123,0.3);border-radius:4px;padding:' +
+                ';font-weight:700;color:var(--gn);background:rgba(52,199,123,0.12);border:1px solid rgba(52,199,123,0.3);border-radius:4px;padding:' +
                 padEstado + ';margin-left:4px">✅ Cubierta</span>';
         } else {
             estadoOrden =
@@ -1220,14 +1239,17 @@ function renderDashboard() {
     if (tbody) tbody.innerHTML = pos.map(p => {
         const pa = PA[MAP[p.n] || p.n] || 0;
         const val = pa ? pa * p.sh : 0;
-        const rp = pa && p.ct ? ((pa * p.sh - p.ct) / p.ct * 100) : 0;
-        const da = D.dividendos.filter(d => d.n === p.n).reduce((s, d) => s + d.neto_real, 0);
+        const gpEuros = pa && p.ct ? (val - p.ct) : 0;
+        const rp = pa && p.ct ? (gpEuros / p.ct * 100) : 0;
         const ip = rp >= 0;
         return '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
+            '<td class="bl" style="font-size:10px">' + f2(p.pm) + ' €</td>' +
             '<td class="mt2">' + (val ? fe(val, 0) : '—') + '</td>' +
             '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700;font-size:10px">' + (rp ? (ip ? '+' :
                 '') + f1(rp) + '%' : '—') + '</td>' +
-            '<td class="gn" style="font-size:10px">' + (da ? fe(da) : '—') + '</td></tr>';
+            '<td style="color:' + gc(gpEuros) + ';font-family:monospace;font-weight:700;font-size:10px">' + (gpEuros ? (
+                gpEuros >= 0 ? '+' : '') + fe(gpEuros) : '—') + '</td>' +
+            '<td class="gn" style="font-size:10px">' + (p.divAnio ? fe(p.divAnio) : '—') + '</td></tr>';
     }).join('');
 
     const tlist = document.getElementById('dash-trampas');
@@ -1441,15 +1463,15 @@ function renderCartera() {
             '<td><div style="font-weight:600;font-size:11px">' + p.n + (tieneResultadosEsteMes(p.n) ?
                 ' <span style="font-size:8px;font-weight:800;color:var(--gn);background:rgba(52,199,123,0.15);border:1px solid rgba(52,199,123,0.4);border-radius:4px;padding:1px 5px;margin-left:4px">RESULTADOS</span>' :
                 '') + '</div><div style="font-size:8px;color:var(--mt)">' +
-            p.nc + 'x · desde ' + p.f + (p.comisiones ? ' · <span style="color:var(--rd)">' + f2(p.comisiones) +
-                '€ comisión</span>' : '') + '</div></td>' +
+            p.nc + 'x · desde ' + p.f + (p.comisiones ? ' · <span style="color:var(--mt)">' + f2(p.comisiones) +
+                '€ comisión incluida</span>' : '') + '</div></td>' +
             '<td>' + pb(p.pais) + '</td>' +
-            '<td class="mt2">' + (p.sh % 1 ? p.sh.toFixed(4) : p.sh) + '</td>' +
+            '<td class="mt2">' + (p.sh % 1 ? p.sh.toFixed(6) : p.sh) + '</td>' +
             '<td class="bl">' + f2(p.pm) + ' €</td>' +
-            '<td style="font-weight:600;color:#ECEFF6;font-family:monospace">' + (pa ? f2(pa) + ' €' :
+            '<td style="font-weight:600;color:var(--tx);font-family:monospace">' + (pa ? f2(pa) + ' €' :
                 '<span style="color:var(--mt)">—</span>') + '</td>' +
-            '<td class="bl">' + Math.round(p.ct) + ' €</td>' +
-            '<td style="color:#E4C777;font-family:monospace;font-weight:700">' + (val ? Math.round(val) + ' €' :
+            '<td class="bl">' + fe(p.ct) + '</td>' +
+            '<td style="color:var(--ac);font-family:monospace;font-weight:700">' + (val ? Math.round(val) + ' €' :
                 '—') + '</td>' +
             '<td style="color:' + gc(gp) + ';font-family:monospace;font-weight:700">' + (gp ? sg(gp) : '—') +
             '</td>' +
@@ -1461,8 +1483,8 @@ function renderCartera() {
 
     const rTot = totCost && totV ? (totGP / totCost * 100) : 0;
     document.getElementById('tf-cartera').innerHTML = '<td>TOTAL</td><td></td><td></td><td></td><td></td>' +
-        '<td class="bl">' + Math.round(totCost) + ' €</td>' +
-        '<td style="color:#E4C777;font-family:monospace;font-weight:700">' + (totV ? Math.round(totV) + ' €' :
+        '<td class="bl">' + fe(totCost) + '</td>' +
+        '<td style="color:var(--ac);font-family:monospace;font-weight:700">' + (totV ? Math.round(totV) + ' €' :
         '—') + '</td>' +
         '<td style="color:' + gc(totGP) + ';font-family:monospace;font-weight:700">' + (totV ? sg(totGP) : '—') +
         '</td>' +
@@ -1647,7 +1669,7 @@ function renderTrampas() {
             r[0] + '</div><div style="font-size:8px;color:var(--mt)">' + pago + '</div></td>' +
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
             '<td class="rd">' + (tr1 ? f2(tr1) + ' €' : '—') + '</td>' +
-            '<td style="font-family:monospace;color:#ECEFF6">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
+            '<td style="font-family:monospace;color:var(--tx)">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
             '<td class="' + dcls + '">' + (d1 ? dv.toFixed(1) + '%' : '—') + '</td>' +
             '<td class="mt2">' + (a1 || '—') + '</td>' +
             '<td class="bl">' + (cap1 ? Math.round(cap1) + ' €' : '—') + '</td>' +
@@ -1732,7 +1754,7 @@ function renderDividendos() {
             '<td class="am">' + fe(a.neto_tr) + '</td>' +
             '<td class="rd">' + (a.tax_es > 0 ? '-' + fe(a.tax_es) : '—') + '</td>' +
             '<td class="am" style="font-weight:600">' + fe(a.neto_f) + '</td>' +
-            '<td style="color:#8FE0B4;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
+            '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
             (a.dev > 0 ? '+' + fe(a.dev) : '—') + '</td>' +
             '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(a.real) +
             '</td>' +
@@ -1747,7 +1769,7 @@ function renderDividendos() {
         '<td class="am">' + fe(totA.neto_tr) + '</td>' +
         '<td class="rd">-' + fe(totA.tax_es) + '</td>' +
         '<td class="am" style="font-weight:700">' + fe(totA.neto_f) + '</td>' +
-        '<td style="color:#8FE0B4;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">+' +
+        '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">+' +
         fe(totA.dev) + '</td>' +
         '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(totA.real) +
         '</td>';
@@ -1816,7 +1838,7 @@ function renderDividendos() {
                     '<td class="am">' + fe(r.neto_tr) + '</td>' +
                     '<td class="rd">' + (tax_es > 0 ? '-' + fe(tax_es) : '—') + '</td>' +
                     '<td class="am">' + fe(r.neto_final) + '</td>' +
-                    '<td style="color:#8FE0B4;font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
+                    '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
                     (r.devolucion > 0 ? '+' + fe(r.devolucion) : '—') + '</td>' +
                     '<td class="gn" style="font-weight:700">' + fe(r.neto_real) + '</td>' +
                     '<td style="color:' + (rendimientoReal > 80 ? 'var(--gn)' : 'var(--am)') +
@@ -1881,7 +1903,7 @@ function renderDividendos() {
             '<td class="bl">' + (p.bruto_est ? fe(p.bruto_est) : '—') + '</td>' +
             '<td class="rd">' + (p.ret_o_est > 0 ? '-' + fe(p.ret_o_est) : '—') + '</td>' +
             '<td class="am">' + fe(p.neto_tr_est) + '</td>' +
-            '<td style="color:#8FE0B4;font-family:monospace;font-weight:700">' + (p.dev_est > 0 ? '+' +
+            '<td style="color:var(--gn);font-family:monospace;font-weight:700">' + (p.dev_est > 0 ? '+' +
                 fe(p.dev_est) : '—') + '</td>' +
             '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(p
                 .neto_real_est) + '</td>' +
@@ -1903,7 +1925,7 @@ function renderDividendos() {
         '<td class="bl">' + fe(totP.bruto) + '</td>' +
         '<td class="rd">-' + fe(totP.ret_o) + '</td>' +
         '<td class="am">' + fe(totP.neto_tr) + '</td>' +
-        '<td style="color:#8FE0B4;font-family:monospace;font-weight:700">+' + fe(totP.dev) + '</td>' +
+        '<td style="color:var(--gn);font-family:monospace;font-weight:700">+' + fe(totP.dev) + '</td>' +
         '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(totP.real) +
         '</td>' +
         '<td style="color:#E29A3E;font-family:monospace;font-weight:700">' + fe(totP.ya) + '</td>';
@@ -2152,7 +2174,7 @@ function renderProyecciones() {
     }
 
     document.getElementById('recomendaciones-container').innerHTML = recoms.map(r =>
-        '<div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:10px;color:#ECEFF6;background:var(--s2);border-radius:6px;margin-bottom:4px">' +
+        '<div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--tx);background:var(--s2);border-radius:6px;margin-bottom:4px">' +
         r + '</div>'
     ).join('');
 }
