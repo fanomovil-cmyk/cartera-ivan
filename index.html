@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -256,16 +257,13 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tb on" onclick="sw(0)">📊 Centro de Mando</button>
-  <button class="tb" onclick="sw(1)">💼 Flota de Activos</button>
-  <button class="tb" onclick="sw(2)">🎯 Trampas Activas</button>
-  <button class="tb" onclick="sw(3)">💰 Flujo de Caja</button>
-  <button class="tb" onclick="sw(4)">🏦 Intereses TR</button>
-  <button class="tb" onclick="sw(5)">📅 Línea Temporal</button>
-  <button class="tb" onclick="sw(6)">🔮 Simulaciones</button>
-  <button class="tb" onclick="sw(7)">🧠 Analíticas</button>
-  <button class="tb" onclick="sw(8)">📈 Operaciones Cerradas</button>
-  <button class="tb" onclick="sw(9)">🗓️ Histórico Anual</button>
+  <button class="tb on" data-tab="0" onclick="sw(0)">📊 Centro de Mando</button>
+  <button class="tb" data-tab="2" onclick="sw(2)">🎯 Trampas Activas</button>
+  <button class="tb" data-tab="5" onclick="sw(5)">📅 Línea Temporal</button>
+  <button class="tb" data-tab="6" onclick="sw(6)">🔮 Simulaciones</button>
+  <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analíticas</button>
+  <button class="tb" data-tab="8" onclick="sw(8)">📈 Operaciones Cerradas</button>
+  <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Histórico Anual</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -544,7 +542,7 @@ const pb = p => '<span class="pb ' + p + '">' + p + '</span>';
 const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
 
 function sw(i) {
-    document.querySelectorAll('.tb').forEach((b, j) => b.classList.toggle('on', i === j));
+    document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
     ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9'].forEach((id, j) => document.getElementById(id)
         .classList.toggle('on', i === j));
 }
@@ -1585,13 +1583,15 @@ function renderDashboard() {
     VALOR_CARTERA_ACTUAL = totV;
 
     document.getElementById('kg0').innerHTML = [
-        { l: 'Capital invertido', v: fe(totCost), s: 'Datos reales TR', c: '#E4C777' },
-        { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? sg(totGP) : 'Cargando', c: '#8FE0B4' },
-        { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: D.dividendos.length + ' pagos · neto real', c: '#34C77B' },
-        { l: 'Intereses TR netos', v: fe(intTotalReal), s: (D.intereses || []).length + ' meses', c: '#E29A3E' },
+        { l: 'Capital invertido', v: fe(totCost), s: 'Datos reales TR', c: '#E4C777', tab: 1 },
+        { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? sg(totGP) : 'Cargando', c: '#8FE0B4', tab: 1 },
+        { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: D.dividendos.length + ' pagos · neto real', c: '#34C77B', tab: 3 },
+        { l: 'Intereses TR netos', v: fe(intTotalReal), s: (D.intereses || []).length + ' meses', c: '#E29A3E', tab: 4 },
         { l: 'Saveback recibido', v: fe(sbTotalReal), s: '1% compras elegibles', c: '#B7A6E8' },
-        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#8FE0B4' },
-    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
+        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#8FE0B4', tab: 3 },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + (k.tab !== undefined ? ';cursor:pointer' : '') + '"' + (
+            k.tab !== undefined ? ' onclick="sw(' + k.tab + ')"' : '') + '><div class="kl">' + k.l +
+        '</div><div class="kv" style="color:' +
             k.c + ';font-size:' + (k.v.length > 10 ? '14px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
             '</div></div>').join('');
 
