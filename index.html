@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -1729,12 +1730,10 @@ function renderDashboard() {
     const esFinDeSemana = hoyDiaSemana === 0 || hoyDiaSemana === 6;
     let radarHtml = '';
     if (esFinDeSemana) {
-        radarHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">' +
-            '<div class="radar-dia" style="background:rgba(112,123,147,0.16);color:var(--mt)">' +
-            '<span>🏳️ Mercados cerrados</span>' +
+        radarHtml = '<div class="radar-dia" style="background:rgba(112,123,147,0.16);color:var(--mt);font-size:10px">' +
+            '<span>🏳️ Cerrado</span>' +
             '</div>' +
-            '<span style="color:var(--mt);font-size:9px">fin de semana · precios del último cierre</span>' +
-            '</div>';
+            '<div style="color:var(--mt);font-size:8px;margin-top:3px">fin de semana</div>';
     } else if (varDia) {
         const p = varDia.variacionPct;
         let estado, color, bg, tri, pulso;
@@ -1748,41 +1747,43 @@ function renderDashboard() {
         } else {
             estado = 'Día neutro'; color = 'var(--am)'; bg = 'rgba(226,154,62,0.14)'; tri = '▶'; pulso = '';
         }
-        radarHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">' +
-            '<div class="radar-dia ' + pulso + '" style="background:' + bg + ';color:' + color + '">' +
+        radarHtml = '<div class="radar-dia ' + pulso + '" style="background:' + bg + ';color:' + color +
+            ';font-size:13px;padding:6px 12px;white-space:nowrap">' +
             '<span class="radar-triangulo">' + tri + '</span>' +
             '<span>' + (varDia.variacion >= 0 ? '+' : '') + fe(varDia.variacion) + '</span>' +
             '<span>(' + (p >= 0 ? '+' : '') + p.toFixed(2) + '%)</span>' +
             '</div>' +
-            '<span style="color:var(--mt);font-size:9px">' + estado + ' · hoy</span>' +
-            '</div>';
+            '<div style="color:var(--mt);font-size:8px;margin-top:3px">' + estado + ' · hoy</div>';
     }
 
     document.getElementById('focus-kpis').innerHTML =
-        '<div class="kpi" style="--kc:#8FE0B4">' +
+        '<div class="kpi" style="--kc:#8FE0B4;position:relative">' +
+        (radarHtml ? '<div style="position:absolute;top:14px;right:14px;text-align:right">' + radarHtml +
+            '</div>' : '') +
         '<div class="kl" style="font-size:11px">Valor cartera</div>' +
         '<div class="kv" style="color:var(--gn);font-size:clamp(22px,7vw,30px)">' + (totV ? fe(totV) : '—') + '</div>' +
         (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' + fe(
             totCost) + '</div>' : '') +
-        radarHtml +
         '</div>' +
         '<div class="kpi" style="--kc:#34C77B">' +
         '<div class="kl" style="font-size:11px">Rentabilidad acciones</div>' +
-        '<div class="kv" style="color:#34C77B;font-size:clamp(22px,7vw,30px)">' + (totCost ? pctAcciones.toFixed(1) + '%' :
-            '—') + '</div>' +
-        (totGP ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:#34C77B">Total: ' + (totGP >=
-            0 ? '+' : '') + fe(totGP) + '</div>' : '') +
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">' +
+        '<div style="color:#34C77B;font-size:clamp(22px,7vw,30px);font-weight:700;font-family:\'JetBrains Mono\',monospace">' +
+            (totCost ? pctAcciones.toFixed(1) + '%' : '—') + '</div>' +
+        (totGP ? '<div style="font-size:16px;font-weight:700;color:#34C77B">Total: ' + (totGP >= 0 ? '+' : '') +
+            fe(totGP) + '</div>' : '') +
+        '</div>' +
         '</div>';
 
     const rentTotalEl = document.getElementById('focus-rent-total');
     if (rentTotalEl) {
         rentTotalEl.innerHTML =
-            '<div style="text-align:center">' +
-            '<div style="font-size:clamp(32px,11vw,44px);font-weight:700;color:#C9A24B;font-family:\'JetBrains Mono\',monospace;line-height:1.1">' +
-            (totCost ? pctTotal.toFixed(1) + '%' : '—') + '</div>' +
-            '<div style="font-size:clamp(16px,5vw,20px);font-weight:700;margin-top:6px;color:' + (gpCombinado >=
-                0 ? 'var(--gn)' : 'var(--rd)') + '">' + (gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) +
-            '</div>' +
+            '<div style="display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap">' +
+            '<div style="font-size:clamp(28px,10vw,40px);font-weight:700;color:' + (gpCombinado >= 0 ?
+                'var(--gn)' : 'var(--rd)') + ';font-family:\'JetBrains Mono\',monospace;line-height:1.1">' + (
+                gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) + '</div>' +
+            '<div style="font-size:clamp(18px,6vw,24px);font-weight:700;color:#C9A24B;font-family:\'JetBrains Mono\',monospace">' +
+            (totCost ? '(' + pctTotal.toFixed(1) + '%)' : '—') + '</div>' +
             '</div>' +
             '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--bd)">' +
             '<div style="text-align:center;min-width:0"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Acciones</div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;margin-top:4px;color:' +
@@ -2288,7 +2289,8 @@ function renderTrampas() {
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
-    document.getElementById('tb-trampas').innerHTML = TRAMPAS_GS.map((r, i) => {
+    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => Math.abs(cn(a[5])) - Math
+        .abs(cn(b[5]))).map((r, i) => {
         const esE = (r[1] || '').toUpperCase().includes('ESPEC');
         const prio = r[2] || 'B';
         const pc = prio === 'A+' ? 'ap' : prio === 'A' ? 'a' : prio === 'A-' ? 'am2' : esE ? 'es' : 'b';
