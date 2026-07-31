@@ -252,6 +252,7 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="btn" onclick="recargar()">↻ Refrescar radar</div>
     <div class="btn" id="btn-estado">Sincronizando...</div>
     <div class="btn" onclick="document.getElementById('focus').classList.toggle('on')">📡 Radar</div>
+    <div style="width:24px"></div>
     <div class="btn" onclick="exportarCSV()">📥 Exportar</div>
     <div class="btn" onclick="generarInformeMensual()">📄 Informe PDF</div>
     <div class="btn" onclick="toggleDark()">🌓</div>
@@ -801,6 +802,8 @@ let COMISIONES_TOTAL = 0,
     NUM_OPERACIONES_TOTAL = 0;
 let DIVIDENDOS_GS = null,
     RESUMEN_DIVS_GS = null;
+let FLUJOS_CAJA_GS = [];
+let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
 // Combina los datos EN VIVO de tu hoja (acciones, precio de compra) con los metadatos
@@ -836,6 +839,38 @@ function calcularVariacionDia(valorActual, costeActual) {
 
 // Dividendos en vivo desde TR_DATOS (con la retención España/Francia/EE.UU. ya calculada
 // correctamente). Si la API aún no ha respondido, usamos el snapshot estático como respaldo.
+// ── TIR real (XIRR) — tiene en cuenta CUÁNDO metiste cada euro, no solo el total ──
+function calcularXIRR(flujosRaw) {
+    const flujos = (flujosRaw || []).filter(f => f && f.fecha && isFinite(f.monto) && f.monto !== 0);
+    if (flujos.length < 2) return null;
+    const fechaBase = new Date(flujos[0].fecha);
+    const dias = flujos.map(f => (new Date(f.fecha) - fechaBase) / 86400000);
+    const montos = flujos.map(f => f.monto);
+    if (dias.some(d => isNaN(d))) return null;
+
+    function npv(rate) {
+        let suma = 0;
+        for (let i = 0; i < montos.length; i++) suma += montos[i] / Math.pow(1 + rate, dias[i] / 365);
+        return suma;
+    }
+
+    // Búsqueda por bisección (mucho más estable que Newton-Raphson, no puede "dispararse")
+    let lo = -0.99,
+        hi = 10; // de -99% a +1000% anual, rango de sobra para una cartera normal
+    let fLo = npv(lo),
+        fHi = npv(hi);
+    if (!isFinite(fLo) || !isFinite(fHi) || fLo * fHi > 0) return null;
+
+    let mid = 0;
+    for (let iter = 0; iter < 200; iter++) {
+        mid = (lo + hi) / 2;
+        const fMid = npv(mid);
+        if (Math.abs(fMid) < 1e-6 || (hi - lo) < 1e-9) break;
+        if ((fMid > 0) === (fLo > 0)) { lo = mid; fLo = fMid; } else { hi = mid; }
+    }
+    return mid * 100;
+}
+
 function divsEnVivo() {
     return DIVIDENDOS_GS && DIVIDENDOS_GS.length ? DIVIDENDOS_GS : D.dividendos;
 }
@@ -1595,6 +1630,12 @@ async function recargar() {
         if (data.resumenDivs) {
             RESUMEN_DIVS_GS = data.resumenDivs;
         }
+        if (data.flujosCaja) {
+            FLUJOS_CAJA_GS = data.flujosCaja;
+        }
+        if (data.totales && data.totales.efectivoPropioTR !== undefined) {
+            EFECTIVO_PROPIO_TR = data.totales.efectivoPropioTR;
+        }
 
         renderDashboard();
         renderCartera();
@@ -1768,12 +1809,13 @@ function renderDashboard() {
             estado = 'Día neutro'; color = 'var(--am)'; bg = 'rgba(226,154,62,0.14)'; tri = '▶'; pulso = '';
         }
         radarHtml = '<div class="radar-dia ' + pulso + '" style="background:' + bg + ';color:' + color +
-            ';font-size:10px;padding:4px 9px;white-space:nowrap">' +
-            '<span class="radar-triangulo">' + tri + '</span>' +
-            '<span>' + (varDia.variacion >= 0 ? '+' : '') + fe(varDia.variacion) + '</span>' +
-            '<span>(' + (p >= 0 ? '+' : '') + p.toFixed(2) + '%)</span>' +
+            ';flex-direction:column;align-items:center;gap:1px;padding:9px 16px;border-radius:14px;white-space:nowrap">' +
+            '<span style="font-size:16px;font-weight:800">' + tri + ' ' + (varDia.variacion >= 0 ? '+' : '') +
+            fe(varDia.variacion) + '</span>' +
+            '<span style="font-size:12px;font-weight:700;opacity:0.85">(' + (p >= 0 ? '+' : '') + p.toFixed(2) +
+            '%)</span>' +
             '</div>' +
-            '<div style="color:var(--mt);font-size:8px;margin-top:3px">' + estado + ' · hoy</div>';
+            '<div style="color:var(--mt);font-size:8px;margin-top:4px;text-align:center">' + estado + ' · hoy</div>';
     }
 
     document.getElementById('focus-kpis').innerHTML =
