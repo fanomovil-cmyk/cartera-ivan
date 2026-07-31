@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -392,7 +391,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg2"></div>
   <div class="card">
     <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
   </div>
 </div>
 
@@ -548,6 +547,25 @@ const gc = n => n >= 0 ? 'var(--gn)' : 'var(--rd)';
 const sg = n => (n >= 0 ? '+' : '') + fe(n);
 const pb = p => '<span class="pb ' + p + '">' + p + '</span>';
 const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
+
+// Días transcurridos desde una fecha en formato dd/MM/yyyy, d-M-yy, o yyyy-MM-dd (ISO, sin ambigüedad)
+function diasDesde(fechaStr) {
+    if (!fechaStr) return null;
+    const partes = fechaStr.split(/[\/\-]/);
+    if (partes.length !== 3) return null;
+    let d, m, y;
+    if (partes[0].length === 4) {
+        // Formato ISO: yyyy-MM-dd
+        [y, m, d] = partes.map(x => parseInt(x, 10));
+    } else {
+        // Formato español: d-M-yy o dd/MM/yyyy
+        [d, m, y] = partes.map(x => parseInt(x, 10));
+        if (y < 100) y += 2000;
+    }
+    const fecha = new Date(y, m - 1, d);
+    if (isNaN(fecha.getTime())) return null;
+    return Math.max(0, Math.round((new Date() - fecha) / 86400000));
+}
 
 function sw(i) {
     document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
@@ -1546,7 +1564,9 @@ async function recargar() {
                 t.divAcc,        // r[8]
                 (t.trampa ? (t.divAcc / t.trampa * 100).toFixed(2) + '%' : '—'),  // r[9] — yield calculado (div/trampa)
                 t.pago,          // r[10]
-                t.ordenPuesta    // r[11] — ¿tienes la orden límite puesta en Trade Republic?
+                t.ordenPuesta,   // r[11] — ¿tienes la orden límite puesta en Trade Republic?
+                t.precioAlAnadir, // r[12] — precio cuando se empezó a vigilar
+                t.fechaAlAnadir  // r[13] — fecha en que se empezó a vigilar
             ]);
         }
 
@@ -1748,7 +1768,7 @@ function renderDashboard() {
             estado = 'Día neutro'; color = 'var(--am)'; bg = 'rgba(226,154,62,0.14)'; tri = '▶'; pulso = '';
         }
         radarHtml = '<div class="radar-dia ' + pulso + '" style="background:' + bg + ';color:' + color +
-            ';font-size:13px;padding:6px 12px;white-space:nowrap">' +
+            ';font-size:10px;padding:4px 9px;white-space:nowrap">' +
             '<span class="radar-triangulo">' + tri + '</span>' +
             '<span>' + (varDia.variacion >= 0 ? '+' : '') + fe(varDia.variacion) + '</span>' +
             '<span>(' + (p >= 0 ? '+' : '') + p.toFixed(2) + '%)</span>' +
@@ -1761,7 +1781,7 @@ function renderDashboard() {
         (radarHtml ? '<div style="position:absolute;top:14px;right:14px;text-align:right">' + radarHtml +
             '</div>' : '') +
         '<div class="kl" style="font-size:11px">Valor cartera</div>' +
-        '<div class="kv" style="color:var(--gn);font-size:clamp(22px,7vw,30px)">' + (totV ? fe(totV) : '—') + '</div>' +
+        '<div class="kv" style="color:var(--gn);font-size:clamp(19px,6vw,26px)">' + (totV ? fe(totV) : '—') + '</div>' +
         (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' + fe(
             totCost) + '</div>' : '') +
         '</div>' +
@@ -1803,7 +1823,7 @@ function renderDashboard() {
     // ── Trampas ordenadas por cercanía (compartido entre Dashboard y Modo Focus) ──
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
-            r[7]), dv: cn(r[8]), op: r[11] === true }))
+            r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null }))
         .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
@@ -1870,6 +1890,14 @@ function renderDashboard() {
                 0 ? '+' : '') + fe(t.pa - t.t) + '</span></div>' +
             (t.dv ? '<div style="font-size:' + fSub + ';color:var(--gn);margin-top:2px">Div. ' + fe(t.dv) +
                 '/año · ' + (t.dv / t.t * 100).toFixed(2) + '% yield</div>' : '') +
+            (t.pAnadir ? (() => {
+                const dias = diasDesde(t.fAnadir);
+                const pctDesde = ((t.pa - t.pAnadir) / t.pAnadir * 100);
+                return '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">👁️ Vista a ' + fe(t
+                    .pAnadir) + (dias !== null ? ' hace ' + dias + ' día' + (dias === 1 ? '' : 's') : '') +
+                    ' · <span style="color:' + (pctDesde <= 0 ? 'var(--gn)' : 'var(--am)') + '">' + (pctDesde >=
+                        0 ? '+' : '') + pctDesde.toFixed(1) + '% desde entonces</span></div>';
+            })() : '') +
             '</div>' +
             (grande ? '' :
                 '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
@@ -2316,6 +2344,8 @@ function renderTrampas() {
             (enZonaTabla ?
                 '<span style="color:var(--rd);font-weight:700;font-size:11px;animation:pulse 1.4s ease-in-out infinite">🚨 No</span>' :
                 '<span style="color:var(--mt);font-weight:600;font-size:11px">○ No</span>');
+        const pAnadir1 = cn(r[12]);
+        const diasEsp = diasDesde(r[13]);
         return '<tr style="' + bg + (esE ? ';background:rgba(251,191,36,0.04)' : '') + '"><td><div style="font-weight:600;font-size:11px">' +
             r[0] + '</div><div style="font-size:8px;color:var(--mt)">' + pago + '</div></td>' +
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
@@ -2328,6 +2358,8 @@ function renderTrampas() {
             '<td class="gn">' + yld + '</td>' +
             '<td class="mt2" style="font-size:8px">' + pago + '</td>' +
             '<td>' + celdaOrden + '</td>' +
+            '<td class="mt2">' + (pAnadir1 ? f2(pAnadir1) + ' €' : '—') + '</td>' +
+            '<td class="mt2" style="font-size:8px">' + (diasEsp !== null ? diasEsp + ' días' : '—') + '</td>' +
             '</tr>';
     }).join('');
 }
