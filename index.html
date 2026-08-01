@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2051,69 +2052,78 @@ function renderDashboard() {
         }
 
         // ── Previsión 100% en vivo ──
-        // Para cada empresa, miramos en qué meses ha pagado dividendo realmente en el pasado (su
-        // "calendario" de pagos), y repartimos el dividendo/año actual (acciones × divAcc EN VIVO)
-        // entre esos meses a partes iguales. Así nunca depende de una foto fija guardada, y
-        // funciona igual de bien para posiciones nuevas que aún no tienen mucho histórico.
+        // Para cada empresa, calculamos la frecuencia REAL de pago mirando cuántos días pasan
+        // entre un cobro y el siguiente (no un umbral fijo de "meses distintos"), y generamos
+        // el ciclo completo de pagos del año a partir del primer mes conocido. Así, aunque solo
+        // hayamos cobrado 2 o 3 veces (como Realty Income, mensual desde mayo), se rellenan
+        // igualmente todos los meses del año (incluido agosto, que aún no hemos cobrado nunca).
         const RMAP_LOCAL = {};
         for (const [k, v] of Object.entries(MAP)) RMAP_LOCAL[v] = k;
-        const mesesHistoricosPorEmpresa = {}; // nombre (como aparece en divsEnVivo) → Set de meses 0-indexed
-        const mesesHistoricosPorISIN = {}; // ISIN → Set de meses — cruce exacto, no depende del nombre/idioma
+        const fechasPorISIN = {}; // ISIN → [{fecha:Date, mes:0-indexed}], ordenadas
+        const fechasPorEmpresa = {}; // nombre TR_DATOS → igual, de respaldo si no hay ISIN
         (divsEnVivo() || []).forEach(d => {
-            const mes = (+d.f.split('/')[1]) - 1;
-            if (mes < 0 || mes > 11) return;
-            if (!mesesHistoricosPorEmpresa[d.n]) mesesHistoricosPorEmpresa[d.n] = new Set();
-            mesesHistoricosPorEmpresa[d.n].add(mes);
-            if (d.isin) {
-                if (!mesesHistoricosPorISIN[d.isin]) mesesHistoricosPorISIN[d.isin] = new Set();
-                mesesHistoricosPorISIN[d.isin].add(mes);
-            }
+            const partes = d.f.split('/');
+            const fecha = new Date(+partes[2], (+partes[1]) - 1, +partes[0]);
+            const registro = { fecha, mes: (+partes[1]) - 1 };
+            if (d.isin) { (fechasPorISIN[d.isin] = fechasPorISIN[d.isin] || []).push(registro); }
+            (fechasPorEmpresa[d.n] = fechasPorEmpresa[d.n] || []).push(registro);
         });
 
         const previstos = Array(12).fill(0);
         const previstosDetalle = Array.from({ length: 12 }, () => []);
         pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
             // 1) Cruce por ISIN (columna B de tu hoja) — exacto siempre, no depende de idioma ni traducción.
-            let mesesSet = p.isin ? mesesHistoricosPorISIN[p.isin] : null;
+            let fechas = p.isin ? fechasPorISIN[p.isin] : null;
 
             // 2) Si no hay ISIN o no hay histórico con ese ISIN, caemos al cruce por nombre (menos fiable).
-            if (!mesesSet) {
+            if (!fechas) {
                 const normalizar = s => (s || '').split(' ')[0].toLowerCase().normalize('NFD').replace(
                     /[\u0300-\u036f]/g, '');
                 const clavesPosibles = [p.n, RMAP_LOCAL[p.n], p.n.replace(
                     / SA$| Inc$| Corp$| PLC$| Corporation$/, '').trim()];
                 for (const clave of clavesPosibles) {
-                    if (clave && mesesHistoricosPorEmpresa[clave]) { mesesSet = mesesHistoricosPorEmpresa[clave];
-                        break; }
+                    if (clave && fechasPorEmpresa[clave]) { fechas = fechasPorEmpresa[clave]; break; }
                 }
-                if (!mesesSet) {
+                if (!fechas) {
                     const pPrimera = normalizar(p.n);
-                    for (const claveDivs of Object.keys(mesesHistoricosPorEmpresa)) {
-                        if (normalizar(claveDivs) === pPrimera) { mesesSet = mesesHistoricosPorEmpresa[claveDivs];
-                            break; }
+                    for (const claveDivs of Object.keys(fechasPorEmpresa)) {
+                        if (normalizar(claveDivs) === pPrimera) { fechas = fechasPorEmpresa[claveDivs]; break; }
                     }
                 }
             }
+
             const anualTotal = p.divAcc * p.sh;
-            if (mesesSet && mesesSet.size >= 5) {
-                // 5+ meses distintos con menos de un año de histórico → casi seguro es mensual.
-                // Rellenamos los 12 meses, aunque algún mes concreto (ej. agosto) aún no lo hayamos cobrado nunca.
-                const importePorMes = anualTotal / 12;
-                for (let mes = 0; mes < 12; mes++) {
-                    previstos[mes] += importePorMes;
-                    previstosDetalle[mes].push({ n: p.n, monto: importePorMes });
+            if (fechas && fechas.length) {
+                fechas = [...fechas].sort((a, b) => a.fecha - b.fecha);
+                let numPagosAnio;
+                if (fechas.length >= 2) {
+                    let sumaGaps = 0;
+                    for (let i = 1; i < fechas.length; i++) sumaGaps += (fechas[i].fecha - fechas[i - 1].fecha) /
+                        86400000;
+                    const gapMedio = sumaGaps / (fechas.length - 1);
+                    numPagosAnio = gapMedio <= 45 ? 12 : gapMedio <= 100 ? 4 : gapMedio <= 200 ? 2 : 1;
+                } else {
+                    numPagosAnio = 1; // un único pago conocido: por defecto anual (más seguro que inventar trimestres que no existen)
                 }
-            } else if (mesesSet && mesesSet.size) {
-                const importePorPago = anualTotal / mesesSet.size;
-                mesesSet.forEach(mes => {
+                const pasoMeses = 12 / numPagosAnio;
+                const importePorPago = anualTotal / numPagosAnio;
+                const mesInicio = fechas[0].mes;
+                for (let i = 0; i < numPagosAnio; i++) {
+                    const mes = Math.round(mesInicio + i * pasoMeses) % 12;
                     previstos[mes] += importePorPago;
                     previstosDetalle[mes].push({ n: p.n, monto: importePorPago });
-                });
+                }
             } else {
-                // Posición sin histórico de cobro todavía (muy reciente) — no sabemos en qué mes paga,
-                // así que mostramos el total anual estimado en diciembre, marcado como suposición.
-                previstos[11] += anualTotal;
-                previstosDetalle[11].push({ n: p.n + ' (sin histórico, estimado)', monto: anualTotal });
+                // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
+                // ni el mes exacto, así que asumimos trimestral (lo más habitual) repartido desde el mes
+                // que viene, en vez de amontonarlo todo de golpe en diciembre.
+                const importeTrimestral = anualTotal / 4;
+                const mesInicioEstimado = (mesActual + 1) % 12;
+                for (let i = 0; i < 4; i++) {
+                    const mes = (mesInicioEstimado + i * 3) % 12;
+                    previstos[mes] += importeTrimestral;
+                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', monto: importeTrimestral });
+                }
             }
         });
 
