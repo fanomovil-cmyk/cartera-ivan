@@ -494,7 +494,6 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg7"></div>
   <div class="card"><div class="ch"><h3>📊 Comparativa con índices</h3></div><div style="padding:14px 16px" id="comparativa-container"></div></div>
   <div class="card" style="margin-top:12px"><div class="ch"><h3>🏷️ Eficiencia fiscal por activo</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>País</th><th>Ret.Origen</th><th>Ret.Hacienda</th><th>Eficiencia</th></tr></thead><tbody id="tb-eficiencia"></tbody></table></div></div>
-  <div class="card" style="margin-top:12px"><div class="ch"><h3>📈 Análisis de tendencia</h3></div><div style="padding:14px 16px" id="tendencia-container"></div></div>
   <div class="card" style="margin-top:12px"><div class="ch"><h3>🚨 Alertas activas</h3></div><div style="padding:14px 16px" id="alertas-detalle"></div></div>
 </div>
 
@@ -806,6 +805,7 @@ let COMISIONES_TOTAL = 0,
 let DIVIDENDOS_GS = null,
     RESUMEN_DIVS_GS = null;
 let FLUJOS_CAJA_GS = [];
+let CALENDARIO_DIVIDENDOS_GS = [];
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -1641,6 +1641,9 @@ async function recargar() {
         if (data.totales && data.totales.efectivoPropioTR !== undefined) {
             EFECTIVO_PROPIO_TR = data.totales.efectivoPropioTR;
         }
+        if (data.calendarioDividendos) {
+            CALENDARIO_DIVIDENDOS_GS = data.calendarioDividendos;
+        }
 
         renderDashboard();
         renderCartera();
@@ -2071,7 +2074,24 @@ function renderDashboard() {
 
         const previstos = Array(12).fill(0);
         const previstosDetalle = Array.from({ length: 12 }, () => []);
+        const calendarioPorISIN = {};
+        CALENDARIO_DIVIDENDOS_GS.forEach(c => { if (c.isin) calendarioPorISIN[c.isin] = c.meses; });
+
         pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
+            const anualTotal = p.divAcc * p.sh;
+
+            // 0) Fuente principal: calendario manual de la pestaña DIVIDENDOS — exacto, tú lo has puesto a mano.
+            const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
+            if (mesesManual && mesesManual.length) {
+                const importePorPago = anualTotal / mesesManual.length;
+                mesesManual.forEach(m => {
+                    const mes = m - 1; // la hoja usa 1=enero..12=diciembre
+                    previstos[mes] += importePorPago;
+                    previstosDetalle[mes].push({ n: p.n, monto: importePorPago });
+                });
+                return; // ya resuelto, no hace falta adivinar nada más para esta posición
+            }
+
             // 1) Cruce por ISIN (columna B de tu hoja) — exacto siempre, no depende de idioma ni traducción.
             let fechas = p.isin ? fechasPorISIN[p.isin] : null;
 
@@ -2092,7 +2112,6 @@ function renderDashboard() {
                 }
             }
 
-            const anualTotal = p.divAcc * p.sh;
             if (fechas && fechas.length) {
                 fechas = [...fechas].sort((a, b) => a.fecha - b.fecha);
                 let numPagosAnio;
@@ -2130,7 +2149,12 @@ function renderDashboard() {
         const esAnioActualReal = !esAnioPrevision && anioTermoNum === anioActual;
         const maxT = Math.max(1, ...totales, ...previstos);
         heatmap.innerHTML = meses.map((m, idx) => {
-            const esFuturo = esAnioPrevision || (esAnioActualReal && idx > mesActual);
+            const esMesActual = esAnioActualReal && idx === mesActual;
+            // El mes actual: si ya hay algo cobrado este mes, lo mostramos como "cobrado";
+            // si todavía no ha llegado nada, mostramos la previsión (antes se quedaba en blanco).
+            const usarPrevision = esAnioPrevision || (esAnioActualReal && idx > mesActual) ||
+                (esMesActual && totales[idx] <= 0);
+            const esFuturo = usarPrevision;
             const valor = esFuturo ? previstos[idx] : totales[idx];
             const detalle = agregarPorEmpresa(esFuturo ? previstosDetalle[idx] : historicoDetalle[idx]);
             // Verde = ya cobrado (mes pasado o actual con importe), Naranja = por cobrar (futuro), Gris = sin dato
@@ -2154,21 +2178,26 @@ function renderDashboard() {
         // ── Estadísticas: Ø promedio mensual, total del año, y rentabilidad media de las que sí reparten ──
         const statsTermo = document.getElementById('termo-stats');
         if (statsTermo) {
-            const totalAnio = totales.reduce((s, v) => s + v, 0) + previstos.reduce((s, v) => s + v, 0);
+            let totalAnio = 0;
+            for (let idx = 0; idx < 12; idx++) {
+                const esMesActualIdx = esAnioActualReal && idx === mesActual;
+                const usarPrevisionIdx = esAnioPrevision || (esAnioActualReal && idx > mesActual) ||
+                    (esMesActualIdx && totales[idx] <= 0);
+                totalAnio += usarPrevisionIdx ? previstos[idx] : totales[idx];
+            }
             const mesesConDato = esAnioPrevision ? 12 : (esAnioActualReal ? mesActual + 1 : 12);
             const promedioMensual = mesesConDato ? totalAnio / 12 : 0; // sobre 12 meses, para comparar años enteros
 
-            // Rentabilidad media, solo de las posiciones que sí reparten dividendo, ponderada por lo invertido en cada una
+            // Rentabilidad media: suma de TODOS los dividendos anuales de las que pagan, entre la suma de
+            // lo que cuestan esas mismas posiciones — un único cálculo agregado, no una media de porcentajes.
             const posPagan = pos.filter(p => (p.divAcc || 0) > 0);
-            let sumaPonderada = 0,
+            let sumaDivAnual = 0,
                 sumaCoste = 0;
             posPagan.forEach(p => {
-                const pa = PA[MAP[p.n] || p.n] || p.pm;
-                const yieldP = pa ? (p.divAcc / pa * 100) : 0;
-                sumaPonderada += yieldP * p.ct;
+                sumaDivAnual += p.divAcc * p.sh;
                 sumaCoste += p.ct;
             });
-            const rentMediaPagan = sumaCoste ? (sumaPonderada / sumaCoste) : 0;
+            const rentMediaPagan = sumaCoste ? (sumaDivAnual / sumaCoste * 100) : 0;
 
             statsTermo.innerHTML =
                 '<div><div class="mt2" style="font-size:8px">Ø PROMEDIO MENSUAL</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
@@ -3283,30 +3312,6 @@ function renderAnalisis() {
                 '<td style="color:' + (eff > 80 ? 'var(--gn)' : 'var(--am)') +
                 ';font-family:monospace;font-weight:700">' + eff.toFixed(1) + '%</td></tr>';
         }).join('');
-
-    const ev = D.evolucion;
-    const flujos = ev.map(e => e.ventas + e.divs + e.int - e.compras);
-    const media = flujos.reduce((s, v) => s + v, 0) / flujos.length;
-    const ultimos3 = flujos.slice(-3);
-    const tendencia = ultimos3.every(v => v > 0) ? '📈 Alcista' :
-        ultimos3.every(v => v < 0) ? '📉 Bajista' : '➡️ Lateral';
-
-    document.getElementById('tendencia-container').innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
-                <div style="font-size:8px;color:var(--mt)">Tendencia actual</div>
-                <div style="font-size:18px;font-weight:700;color:${tendencia.includes('Alcista') ? 'var(--gn)' : tendencia.includes('Bajista') ? 'var(--rd)' : 'var(--am)'}">${tendencia}</div>
-            </div>
-            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
-                <div style="font-size:8px;color:var(--mt)">Flujo neto medio</div>
-                <div style="font-size:18px;font-weight:700;color:${media > 0 ? 'var(--gn)' : 'var(--rd)'}">${media > 0 ? '+' : ''}${fe(media, 0)}</div>
-            </div>
-            <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
-                <div style="font-size:8px;color:var(--mt)">Últimos 3 meses</div>
-                <div style="font-size:14px;font-weight:700;font-family:monospace;color:${ultimos3.every(v => v > 0) ? 'var(--gn)' : 'var(--am)'}">${ultimos3.map(v => (v > 0 ? '+' : '') + fe(v, 0)).join(' · ')}</div>
-            </div>
-        </div>
-    `;
 
     const alerts = [];
     if (pos.length < 15) alerts.push('📊 Tu cartera tiene ' + pos.length +
