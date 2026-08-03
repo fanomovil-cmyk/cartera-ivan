@@ -278,6 +278,10 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="ch"><h3>🗓️ Periodo</h3><span class="mt2" style="font-size:8px">afecta a dividendos, intereses, saveback y devolución</span></div>
     <div id="periodo-filtros" style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">—</div>
   </div>
+  <div class="card" style="margin-bottom:12px" id="salud-cartera-card">
+    <div class="ch"><h3>🩺 Salud de la cartera</h3></div>
+    <div style="padding:14px 16px" id="salud-cartera-container"></div>
+  </div>
   <div class="kg" id="kg0"></div>
   <div class="card" style="margin-bottom:12px">
     <div class="ch"><h3>📈 Evolución del patrimonio</h3><span class="mt2" style="font-size:8px">cierres diarios guardados</span></div>
@@ -286,7 +290,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="g2">
     <div class="card">
       <div class="ch"><h3>💼 Posiciones</h3><span class="mt2" style="font-size:9px" id="n-pos">14 activos</span></div>
-      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div/año</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
+      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div. cobrado</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
     </div>
     <div class="card">
       <div class="ch"><h3>🎯 Radar de trampas</h3></div>
@@ -361,7 +365,9 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg1"></div>
   <div class="card">
     <div class="ch"><h3>💼 Escáner de posiciones — TR + precios en vivo</h3><span class="mt2" style="font-size:9px" id="pu-estado">Cargando precios...</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P €</th><th>Rent.%</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="10" class="mt2">—</td></tr></tfoot></table></div>
+    <div id="periodo-filtros-cartera" style="padding:0 0 4px;display:flex;gap:8px;flex-wrap:wrap">—</div>
+    <div class="mt2" style="font-size:8px;padding:0 0 10px">Los dividendos y la rentabilidad total se filtran por el periodo elegido. El G/P por precio siempre es el total acumulado (aún no guardamos el precio de cada posición a cierre de año).</div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P € (total)</th><th>Rent.% (total)</th><th>Div. cobrados (periodo)</th><th>Rent. Total% (precio total + div. periodo)</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="12" class="mt2">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Análisis de concentración</h3></div>
@@ -472,6 +478,10 @@ html.light .badge-orden.venta{color:#B33A3A}
       <div style="margin-top:10px"><button class="btn" onclick="simularCompra()" style="width:100%;padding:10px;font-size:12px">▶️ Simular compra</button></div>
       <div id="sim-resultado" style="margin-top:12px"></div>
     </div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--am)">
+    <div class="ch"><h3>🌾 Cosecha de pérdidas fiscales</h3><span class="mt2" style="font-size:8px">compensar ganancias del año</span></div>
+    <div style="padding:14px 16px" id="cosecha-container"></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>💸 Simulador de venta — impacto fiscal</h3><span class="mt2" style="font-size:8px">tramos IRPF ahorro 2026</span></div>
@@ -893,11 +903,15 @@ function posicionesVivas() {
         for (const clave of clavesPosibles) {
             if (clave && COMISIONES_ABIERTAS[clave]) { comisionInfo = COMISIONES_ABIERTAS[clave].comision; break; }
         }
+        const paisPorIsin = { ES: 'ESP', FR: 'FRA', US: 'USA', IE: 'IRL', DE: 'DEU', GB: 'GBR', NL: 'NLD',
+            CH: 'CHE', LU: 'LUX', IT: 'ITA' };
+        const isinLimpio = (live.isin || '').trim().toUpperCase();
+        const paisDesdeIsin = isinLimpio ? paisPorIsin[isinLimpio.substring(0, 2)] : null;
         return {
             n: live.nombre,
-            isin: (live.isin || '').trim().toUpperCase(),
+            isin: isinLimpio,
             tipo: live.tipo || 'Forever',
-            pais: estatico.pais || '—',
+            pais: estatico.pais || paisDesdeIsin || '—',
             sector: live.sector || 'Sin clasificar',
             ret: estatico.ret || 0,
             sh: live.acciones,
@@ -1698,6 +1712,7 @@ function seleccionarPeriodo(p) {
     PERIODO_SELECCIONADO = p;
     renderFiltroPeriodo();
     renderDashboard();
+    renderCartera();
 }
 
 function seleccionarAnioTermo(anio) {
@@ -1706,8 +1721,6 @@ function seleccionarAnioTermo(anio) {
 }
 
 function renderFiltroPeriodo() {
-    const cont = document.getElementById('periodo-filtros');
-    if (!cont) return;
     const anios = new Set();
     (divsEnVivo() || []).forEach(d => anios.add(d.f.split('/')[2]));
     (D.intereses || []).forEach(i => anios.add(i.f.split('/')[1]));
@@ -1716,13 +1729,19 @@ function renderFiltroPeriodo() {
     const boton = (valor, label) => '<button class="btn' + (PERIODO_SELECCIONADO === valor ? ' ac' : '') +
         '" onclick="seleccionarPeriodo(\'' + valor + '\')">' + label + '</button>';
 
-    cont.innerHTML = boton('mes', '📅 Este mes') + listaAnios.map(a => boton(a, a)).join('') + boton('todo',
+    const html = boton('mes', '📅 Este mes') + listaAnios.map(a => boton(a, a)).join('') + boton('todo',
         '♾️ Todo el periodo');
+
+    const cont = document.getElementById('periodo-filtros');
+    if (cont) cont.innerHTML = html;
+    const contCartera = document.getElementById('periodo-filtros-cartera');
+    if (contCartera) contCartera.innerHTML = html;
 }
 
 function renderDashboard() {
     const r = D.resumen;
     renderFiltroPeriodo();
+    renderSaludCartera();
 
     // Totales SIN filtrar (para el objetivo 300€/mes, que siempre es "el ritmo actual", no depende del periodo elegido)
     const divTotalSinFiltro = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0);
@@ -1966,6 +1985,16 @@ function renderDashboard() {
         trampasOrdenadas.slice(0, 6).map((t, i) => filaTrampa(t, i === 0, true)).join('') :
         '<div style="padding:20px;text-align:center;color:var(--mt);font-size:12px">No hay trampas activas</div>';
 
+    const divsPorISINDash = {};
+    const divsPorISINyAnioDash = {};
+    (divsEnVivo() || []).forEach(d => {
+        if (!d.isin) return;
+        if (fechaEnPeriodo_DDMMYYYY(d.f)) divsPorISINDash[d.isin] = (divsPorISINDash[d.isin] || 0) + d.neto_real;
+        const anio = d.f.split('/')[2];
+        if (!divsPorISINyAnioDash[d.isin]) divsPorISINyAnioDash[d.isin] = {};
+        divsPorISINyAnioDash[d.isin][anio] = (divsPorISINyAnioDash[d.isin][anio] || 0) + d.neto_real;
+    });
+
     const tbody = document.getElementById('tb-dash-pos');
     if (tbody) tbody.innerHTML = pos.map(p => {
         const pa = PA[MAP[p.n] || p.n] || 0;
@@ -1973,6 +2002,10 @@ function renderDashboard() {
         const gpEuros = pa && p.ct ? (val - p.ct) : 0;
         const rp = pa && p.ct ? (gpEuros / p.ct * 100) : 0;
         const ip = rp >= 0;
+        const divReal = p.isin ? (divsPorISINDash[p.isin] || 0) : 0;
+        const divAnioTip = p.isin ? (divsPorISINyAnioDash[p.isin] || {}) : {};
+        const tipDiv = Object.keys(divAnioTip).sort().map(a => a + ': ' + fe(divAnioTip[a])).join(' · ') ||
+            'Sin dividendos cobrados aún';
         return '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
             '<td class="bl" style="font-size:10px">' + f2(p.pm) + ' €</td>' +
             '<td class="mt2">' + (val ? fe(val, 0) : '—') + '</td>' +
@@ -1980,7 +2013,8 @@ function renderDashboard() {
                 '') + f1(rp) + '%' : '—') + '</td>' +
             '<td style="color:' + gc(gpEuros) + ';font-family:monospace;font-weight:700;font-size:10px">' + (gpEuros ? (
                 gpEuros >= 0 ? '+' : '') + fe(gpEuros) : '—') + '</td>' +
-            '<td class="gn" style="font-size:10px">' + (p.divAnio ? fe(p.divAnio) : '—') + '</td></tr>';
+            '<td class="gn" style="font-size:10px;cursor:help" title="' + tipDiv + '">' + (divReal ? fe(divReal) +
+                ' 🛈' : '—') + '</td></tr>';
     }).join('');
 
     const tlist = document.getElementById('dash-trampas');
@@ -2305,7 +2339,118 @@ function tieneResultadosEsteMes(nombre) {
     });
 }
 
+// ── SALUD DE LA CARTERA — puntuación 0-100 de un vistazo ──
+function renderSaludCartera() {
+    const cont = document.getElementById('salud-cartera-container');
+    if (!cont) return;
+    const pos = posicionesVivas();
+    const totCost = pos.reduce((s, p) => s + p.ct, 0);
+    if (!totCost) return;
+
+    let totV = 0,
+        totGP = 0;
+    pos.forEach(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        if (pa) { totV += pa * p.sh;
+            totGP += pa * p.sh - p.ct; }
+    });
+    const rentTotalPct = totCost ? (totGP / totCost * 100) : 0;
+
+    const avisos = [];
+    let puntos = 0;
+    const maxPuntos = 100;
+
+    // 1) Diversificación por número de activos (20 puntos) — ideal 15-25
+    const nActivos = pos.length;
+    let pDiv;
+    if (nActivos >= 15 && nActivos <= 25) pDiv = 20;
+    else if (nActivos >= 10) pDiv = 14;
+    else if (nActivos >= 6) pDiv = 8;
+    else pDiv = 3;
+    puntos += pDiv;
+    if (nActivos < 15) avisos.push({ tipo: 'warn', msg: '📊 Tienes ' + nActivos +
+        ' activos — diversificar a 15-25 reduce el riesgo de depender de pocas empresas.' });
+
+    // 2) Concentración por POSICIÓN individual (20 puntos) — ninguna >25% ideal
+    const pesoMax = Math.max(...pos.map(p => p.ct / totCost * 100));
+    const posMax = pos.find(p => p.ct / totCost * 100 === pesoMax);
+    let pConc;
+    if (pesoMax <= 15) pConc = 20;
+    else if (pesoMax <= 25) pConc = 14;
+    else if (pesoMax <= 35) pConc = 7;
+    else pConc = 2;
+    puntos += pConc;
+    if (pesoMax > 25) avisos.push({ tipo: 'warn', msg: '⚠️ ' + posMax.n + ' pesa el ' + pesoMax.toFixed(1) +
+        '% de tu cartera — más del 25% en una sola posición añade riesgo de concentración.' });
+
+    // 3) Concentración por SECTOR (25 puntos) — ningún sector >30-35% ideal
+    const porSector = {};
+    pos.forEach(p => { porSector[p.sector] = (porSector[p.sector] || 0) + p.ct; });
+    const sectorEntradas = Object.entries(porSector).map(([s, v]) => ({ sector: s, peso: v / totCost * 100 }))
+        .sort((a, b) => b.peso - a.peso);
+    const sectorMax = sectorEntradas[0] || { sector: '—', peso: 0 };
+    let pSector;
+    if (sectorMax.peso <= 25) pSector = 25;
+    else if (sectorMax.peso <= 35) pSector = 17;
+    else if (sectorMax.peso <= 45) pSector = 9;
+    else pSector = 3;
+    puntos += pSector;
+    if (sectorMax.peso > 30) avisos.push({ tipo: 'warn', msg: '🏥 El sector ' + sectorMax.sector + ' pesa el ' +
+        sectorMax.peso.toFixed(1) + '% de tu cartera (entre varias posiciones) — aunque cada una por separado parezca poca cosa, juntas concentran demasiado riesgo en el mismo sector.' });
+
+    // 4) Rentabilidad total (20 puntos)
+    let pRent;
+    if (rentTotalPct >= 10) pRent = 20;
+    else if (rentTotalPct >= 5) pRent = 15;
+    else if (rentTotalPct >= 0) pRent = 10;
+    else pRent = 4;
+    puntos += pRent;
+    if (rentTotalPct < 0) avisos.push({ tipo: 'warn', msg: '📉 Tu rentabilidad total ahora mismo es negativa (' +
+        rentTotalPct.toFixed(1) + '%) — normal en ciertos momentos del mercado, pero merece vigilancia si se mantiene.' });
+
+    // 5) Yield de la cartera (15 puntos) — sobre coste, solo activos con dividendo
+    const posPagan = pos.filter(p => (p.divAcc || 0) > 0);
+    const divAnualTotal = posPagan.reduce((s, p) => s + p.divAcc * p.sh, 0);
+    const costePagan = posPagan.reduce((s, p) => s + p.ct, 0);
+    const yieldCartera = costePagan ? (divAnualTotal / costePagan * 100) : 0;
+    let pYield;
+    if (yieldCartera >= 4) pYield = 15;
+    else if (yieldCartera >= 2.5) pYield = 11;
+    else if (yieldCartera >= 1) pYield = 6;
+    else pYield = 2;
+    puntos += pYield;
+
+    const nota = Math.round(puntos);
+    const color = nota >= 75 ? 'var(--gn)' : nota >= 50 ? 'var(--am)' : 'var(--rd)';
+    const etiqueta = nota >= 75 ? 'Saludable' : nota >= 50 ? 'Mejorable' : 'Necesita atención';
+
+    cont.innerHTML =
+        '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px">' +
+        '<div style="font-size:42px;font-weight:800;color:' + color + ';font-family:monospace">' + nota +
+        '<span style="font-size:16px;color:var(--mt)">/100</span></div>' +
+        '<div><div style="font-size:14px;font-weight:700;color:' + color + '">' + etiqueta + '</div>' +
+        '<div class="mt2" style="font-size:9px">Diversificación, concentración, sector, rentabilidad y yield combinados</div></div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px">' +
+        [
+            { l: 'Diversificación', v: pDiv, max: 20 },
+            { l: 'Concentración', v: pConc, max: 20 },
+            { l: 'Sectores', v: pSector, max: 25 },
+            { l: 'Rentabilidad', v: pRent, max: 20 },
+            { l: 'Yield', v: pYield, max: 15 },
+        ].map(k => '<div style="background:var(--s2);border-radius:8px;padding:8px;text-align:center;border:1px solid var(--bd)">' +
+            '<div style="font-size:8px;color:var(--mt)">' + k.l + '</div>' +
+            '<div style="font-size:13px;font-weight:700;font-family:monospace;color:' + (k.v / k.max >= 0.7 ?
+                'var(--gn)' : k.v / k.max >= 0.4 ? 'var(--am)' : 'var(--rd)') + '">' + k.v + '/' + k.max + '</div>' +
+            '</div>').join('') +
+        '</div>' +
+        (avisos.length ? avisos.map(a => '<div style="padding:8px 12px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:10px;color:var(--am);margin-bottom:6px">' +
+            a.msg + '</div>').join('') :
+            '<div style="padding:8px 12px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px;font-size:10px;color:var(--gn)">✅ Sin avisos — tu cartera está bien equilibrada en todos los aspectos que medimos.</div>');
+}
+
 function renderCartera() {
+    renderFiltroPeriodo();
     const pos = posicionesVivas();
     const totCost = pos.reduce((s, p) => s + p.ct, 0);
     let totV = 0,
@@ -2322,6 +2467,18 @@ function renderCartera() {
             k.c + ';font-size:' + (String(k.v).length > 8 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
             '</div></div>').join('');
 
+    // Dividendos cobrados por posición EN EL PERIODO SELECCIONADO (para la columna y la rentabilidad total)
+    // + desglose por año siempre completo (para el tooltip), independientemente del periodo elegido
+    const divsPorISIN = {};
+    const divsPorISINyAnio = {};
+    (divsEnVivo() || []).forEach(d => {
+        if (!d.isin) return;
+        if (fechaEnPeriodo_DDMMYYYY(d.f)) divsPorISIN[d.isin] = (divsPorISIN[d.isin] || 0) + d.neto_real;
+        const anio = d.f.split('/')[2];
+        if (!divsPorISINyAnio[d.isin]) divsPorISINyAnio[d.isin] = {};
+        divsPorISINyAnio[d.isin][anio] = (divsPorISINyAnio[d.isin][anio] || 0) + d.neto_real;
+    });
+
     document.getElementById('tb-cartera').innerHTML = pos.map((p, i) => {
         const gs = MAP[p.n] || p.n;
         const pa = PA[gs] || 0;
@@ -2329,6 +2486,11 @@ function renderCartera() {
         const gp = pa ? val - p.ct : 0;
         const rp = p.ct && pa ? (gp / p.ct * 100) : 0;
         const pe = totCost ? p.ct / totCost * 100 : 0;
+        const divsRecibidos = p.isin ? (divsPorISIN[p.isin] || 0) : 0;
+        const rentTotalReal = p.ct && pa ? ((gp + divsRecibidos) / p.ct * 100) : 0;
+        const divsAnioEsta = p.isin ? (divsPorISINyAnio[p.isin] || {}) : {};
+        const tooltipDivs = Object.keys(divsAnioEsta).sort().map(a => a + ': ' + fe(divsAnioEsta[a])).join(' · ') ||
+            'Sin dividendos cobrados aún';
         totV += val;
         totGP += gp;
         const bg = i % 2 ? 'background:var(--s2)' : '';
@@ -2350,11 +2512,18 @@ function renderCartera() {
             '</td>' +
             '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700">' + (rp ? (rp >= 0 ? '+' :
                 '') + f1(rp) + '%' : '—') + '</td>' +
+            '<td style="color:var(--gn);font-family:monospace;cursor:help" title="' + tooltipDivs + '">' +
+            (divsRecibidos ? fe(divsRecibidos) + ' 🛈' : '<span style="color:var(--mt)">—</span>') + '</td>' +
+            '<td style="color:' + gc(rentTotalReal) + ';font-family:monospace;font-weight:700" title="Precio (' +
+            (rp >= 0 ? '+' : '') + f1(rp) + '%) + dividendos cobrados">' + (pa ? (rentTotalReal >= 0 ? '+' : '') +
+                f1(rentTotalReal) + '%' : '—') + '</td>' +
             '<td class="mt2">' + f1(pe) + '%</td>' +
             '</tr>';
     }).join('');
 
+    const totDivsRecibidos = pos.reduce((s, p) => s + (p.isin ? (divsPorISIN[p.isin] || 0) : 0), 0);
     const rTot = totCost && totV ? (totGP / totCost * 100) : 0;
+    const rTotReal = totCost && totV ? ((totGP + totDivsRecibidos) / totCost * 100) : 0;
     document.getElementById('tf-cartera').innerHTML = '<td>TOTAL</td><td></td><td></td><td></td><td></td>' +
         '<td class="bl">' + fe(totCost) + '</td>' +
         '<td style="color:var(--ac);font-family:monospace;font-weight:700">' + (totV ? Math.round(totV) + ' €' :
@@ -2363,6 +2532,10 @@ function renderCartera() {
         '</td>' +
         '<td style="color:' + gc(rTot) + ';font-family:monospace;font-weight:700">' + (totV ? (rTot >= 0 ? '+' :
             '') + f1(rTot) + '%' : '—') + '</td>' +
+        '<td style="color:var(--gn);font-family:monospace">' + (totDivsRecibidos ? fe(totDivsRecibidos) : '—') +
+        '</td>' +
+        '<td style="color:' + gc(rTotReal) + ';font-family:monospace;font-weight:700">' + (totV ? (rTotReal >= 0 ?
+            '+' : '') + f1(rTotReal) + '%' : '—') + '</td>' +
         '<td></td>';
 
     const conc = document.getElementById('concentracion-container');
@@ -2493,6 +2666,7 @@ function renderCartera() {
 
     poblarSelectorVenta();
     poblarSelectorVerificacion();
+    renderCosechaPerdidas();
 }
 
 // ── TRAMPAS ──
@@ -2941,11 +3115,20 @@ function renderEvolucion() {
 
 // ── PROYECCIONES ──
 function renderProyecciones() {
-    const divs2026 = divsEnVivo().filter(d => d.f.includes('2026'));
-    const netoRealMensual = divs2026.reduce((s, d) => s + d.neto_real, 0) / Math.max(1, divs2026.length);
+    const anioActual = new Date().getFullYear();
+    const mesActualNum = new Date().getMonth() + 1; // meses transcurridos este año (1-12)
+    const divsAnioEnCurso = divsEnVivo().filter(d => d.f.endsWith('/' + anioActual));
+    const totalDivsAnio = divsAnioEnCurso.reduce((s, d) => s + d.neto_real, 0);
+    // Dividimos entre los MESES transcurridos, no entre el número de pagos — si has tenido 18
+    // pagos en 7 meses, la media mensual real es total/7, no total/18.
+    const netoRealMensual = totalDivsAnio / Math.max(1, mesActualNum);
+    // Run-rate actual: lo que generan tus posiciones DE HOY en un año completo, entre 12 —
+    // más representativo que la media histórica si la cartera ha crecido durante el año.
+    const runRateMensual = posicionesVivas().reduce((s, p) => s + (p.divAnio || 0), 0) / 12;
 
     const proyMeses = 12;
-    const crecimientoEstimado = 0.025;
+    const crecimientoAnualEstimado = 0.05; // 5% anual real (escenario "Moderado"), no mensual
+    const crecimientoEstimado = Math.pow(1 + crecimientoAnualEstimado, 1 / 12) - 1;
     let proyTotal = 0;
     let proyMensual = netoRealMensual;
     const proyData = [];
@@ -2958,8 +3141,14 @@ function renderProyecciones() {
     document.getElementById('proyecciones-container').innerHTML = `
         <div class="g2" style="gap:12px">
             <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
-                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Dividendo mensual actual</div>
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Media mensual ${anioActual} (${mesActualNum} meses)</div>
                 <div style="font-size:18px;font-weight:700;color:#34C77B">${fe(netoRealMensual)}</div>
+                <div style="font-size:8px;color:var(--mt);margin-top:2px">Incluye meses sin cobro — no es "lo que cobras cada mes"</div>
+            </div>
+            <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
+                <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Run-rate actual (cartera de hoy ÷ 12)</div>
+                <div style="font-size:18px;font-weight:700;color:#34C77B">${fe(runRateMensual)}</div>
+                <div style="font-size:8px;color:var(--mt);margin-top:2px">Lo que generarían tus posiciones ACTUALES en un año, repartido en 12</div>
             </div>
             <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
                 <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Proyección a 12 meses</div>
@@ -2989,17 +3178,18 @@ function renderProyecciones() {
     `;
 
     const escenarios = [
-        { nombre: 'Optimista', crecimiento: 0.05, desc: 'Reinversión agresiva + mercado alcista' },
-        { nombre: 'Moderado', crecimiento: 0.025, desc: 'Reinversión conservadora' },
-        { nombre: 'Pesimista', crecimiento: 0.01, desc: 'Sin reinvestimiento, solo crecimiento orgánico' },
+        { nombre: 'Optimista', crecimientoAnual: 0.08, desc: 'Reinversión agresiva + mercado alcista' },
+        { nombre: 'Moderado', crecimientoAnual: 0.05, desc: 'Reinversión conservadora' },
+        { nombre: 'Pesimista', crecimientoAnual: 0.02, desc: 'Sin reinversión, solo crecimiento orgánico' },
     ];
 
     document.getElementById('escenarios-container').innerHTML = escenarios.map(esc => {
+        const crecMensual = Math.pow(1 + esc.crecimientoAnual, 1 / 12) - 1;
         let total = 0;
         let mensual = netoRealMensual;
-        for (let i = 0; i < 12; i++) { mensual = mensual * (1 + esc.crecimiento);
+        for (let i = 0; i < 12; i++) { mensual = mensual * (1 + crecMensual);
             total += mensual; }
-        const color = esc.crecimiento >= 0.04 ? 'var(--gn)' : esc.crecimiento >= 0.02 ? 'var(--am)' :
+        const color = esc.crecimientoAnual >= 0.07 ? 'var(--gn)' : esc.crecimientoAnual >= 0.04 ? 'var(--am)' :
             'var(--rd)';
         return `<div style="background:var(--s2);border-radius:8px;padding:10px 14px;border:1px solid var(--bd)">
             <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3007,27 +3197,32 @@ function renderProyecciones() {
                 <span style="font-family:monospace;font-size:11px;color:${color};font-weight:700">${fe(total)}</span>
             </div>
             <div style="font-size:8px;color:var(--mt)">${esc.desc}</div>
-            <div style="margin-top:4px;font-size:8px;color:var(--mt)">Crecimiento mensual: ${(esc.crecimiento*100).toFixed(1)}%</div>
+            <div style="margin-top:4px;font-size:8px;color:var(--mt)">Crecimiento anual: ${(esc.crecimientoAnual*100).toFixed(1)}%</div>
         </div>`;
     }).join('');
 
     const años = 5;
     const proy5 = [];
     let m5 = netoRealMensual;
+    let totalAnioEnCurso = 0;
     for (let i = 0; i < años * 12; i++) {
         m5 = m5 * (1 + crecimientoEstimado);
-        if (i % 12 === 11) proy5.push({ año: i / 12 + 1, valor: m5 });
+        totalAnioEnCurso += m5;
+        if (i % 12 === 11) {
+            proy5.push({ año: Math.floor(i / 12) + 1, valor: totalAnioEnCurso, valorMensual: m5 });
+            totalAnioEnCurso = 0;
+        }
     }
     document.getElementById('proyeccion5-container').innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px">
             ${proy5.map(p => `
-                <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)">
+                <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)" title="~${fe(p.valorMensual)}/mes ese año">
                     <div style="font-size:8px;color:var(--mt)">Año ${p.año}</div>
                     <div style="font-size:12px;font-family:monospace;font-weight:700;color:#B7A6E8">${fe(p.valor, 0)}</div>
                 </div>
             `).join('')}
         </div>
-        <div style="margin-top:8px;font-size:8px;color:var(--mt)">Crecimiento anual estimado: ${((Math.pow(proy5[proy5.length-1].valor / netoRealMensual, 1/años) - 1) * 100).toFixed(1)}%</div>
+        <div style="margin-top:8px;font-size:8px;color:var(--mt)">Total de dividendos cobrados ese año · Crecimiento anual estimado: ${(crecimientoAnualEstimado*100).toFixed(1)}%</div>
     `;
 
     const recoms = [];
@@ -3045,15 +3240,15 @@ function renderProyecciones() {
     recoms.push('📈 Para aumentar dividendos, refuerza posiciones con mejor ratio: ' + topYield.map(p => p.n +
         ' (' + fe(p.neto_real_est / p.sh) + '/acc)').join('; '));
 
-    const divs2026total = divs2026.reduce((s, d) => s + d.neto_real, 0);
+    const divs2026total = divsAnioEnCurso.reduce((s, d) => s + d.neto_real, 0);
     if (divs2026total > 50) {
         recoms.push('💰 Has cobrado ' + fe(divs2026total) +
-            ' en 2026. Reinvertir estos dividendos podría acelerar tu objetivo un 15-20%.');
+            ' en ' + anioActual + '. Reinvertir estos dividendos podría acelerar tu objetivo un 15-20%.');
     } else {
         recoms.push('📊 Tus dividendos aún son modestos. Considera aumentar posiciones en REITs como Realty Income o VICI Properties para generar más flujo mensual.');
     }
 
-    const metaFalta = 300 - (D.resumen.intNeto / 11) - (divs2026total / Math.max(1, divs2026.length)) - 150;
+    const metaFalta = 300 - (D.resumen.intNeto / 11) - (divs2026total / Math.max(1, mesActualNum)) - 150;
     if (metaFalta > 0) {
         recoms.push('🎯 Para alcanzar los 300€/mes necesitas generar ' + fe(metaFalta) +
             ' adicionales al mes. Refuerza posiciones con yield >5% o aumenta aportaciones mensuales en ' +
@@ -3108,6 +3303,120 @@ function calcularBaseAhorroAnual() {
     const gpAnio = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
         .reduce((s, o) => s + o.gp, 0);
     return divsAnio + intAnio + gpAnio;
+}
+
+// Cosecha de pérdidas fiscales: si este año llevas ganancias realizadas (ventas con beneficio),
+// vender posiciones que ahora estén en pérdidas las compensa y reduce lo que pagas a Hacienda.
+// OJO regla de los 2 meses: si recompras la misma acción antes de 2 meses, Hacienda no deja
+// deducir esa pérdida hasta que la vendas definitivamente sin recomprar en ese plazo.
+let FILTRO_COSECHA = 'todas'; // 'todas' | 'especulativa' | 'forever'
+
+function seleccionarFiltroCosecha(f) {
+    FILTRO_COSECHA = f;
+    renderCosechaPerdidas();
+}
+
+function renderCosechaPerdidas() {
+    const cont = document.getElementById('cosecha-container');
+    if (!cont) return;
+    const anioActual = new Date().getFullYear();
+    const gananciasRealizadas = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
+        .reduce((s, o) => s + o.gp, 0);
+    const perdidasRealizadas = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp < 0)
+        .reduce((s, o) => s + o.gp, 0); // negativo
+    const netoYaRealizado = gananciasRealizadas + perdidasRealizadas;
+
+    const botonFiltro = (valor, label) => '<button class="btn' + (FILTRO_COSECHA === valor ? ' ac' : '') +
+        '" onclick="seleccionarFiltroCosecha(\'' + valor + '\')" style="font-size:10px">' + label + '</button>';
+    const filtrosHtml = '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+        botonFiltro('todas', 'Todas') + botonFiltro('especulativa', '🎲 Especulativas') +
+        botonFiltro('forever', '🌳 Forever') + '</div>';
+
+    const pos = posicionesVivas().filter(p => {
+        if (FILTRO_COSECHA === 'especulativa') return (p.tipo || '').toLowerCase().startsWith('especulativ');
+        if (FILTRO_COSECHA === 'forever') return !(p.tipo || '').toLowerCase().startsWith('especulativ');
+        return true;
+    });
+    const perdidasNoRealizadas = pos.map(p => {
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const val = pa ? pa * p.sh : 0;
+        const gp = pa && p.ct ? (val - p.ct) : 0;
+        const rp = p.ct && pa ? (gp / p.ct * 100) : 0;
+        return { n: p.n, gp, ct: p.ct, sh: p.sh, pm: p.pm, pa, val, rp };
+    }).filter(p => p.gp < 0).sort((a, b) => a.gp - b.gp);
+
+    // ── Tabla completa: SIEMPRE visible, con todos los datos, haya o no ganancias que compensar ──
+    const tablaHtml = perdidasNoRealizadas.length ?
+        '<div class="sc"><table class="dt" style="margin-bottom:12px"><thead><tr>' +
+        '<th style="text-align:left">Activo</th><th>Acciones</th><th>P.Compra</th><th>Invertido</th>' +
+        '<th>P.Actual</th><th>Valor</th><th>Pérdida €</th><th>Pérdida %</th></tr></thead><tbody>' +
+        perdidasNoRealizadas.map(p => '<tr>' +
+            '<td style="font-weight:600;font-size:11px">' + p.n + '</td>' +
+            '<td class="mt2">' + (p.sh % 1 ? p.sh.toFixed(4) : p.sh) + '</td>' +
+            '<td class="bl">' + f2(p.pm) + ' €</td>' +
+            '<td class="bl">' + fe(p.ct) + '</td>' +
+            '<td style="font-family:monospace">' + f2(p.pa) + ' €</td>' +
+            '<td style="font-family:monospace">' + Math.round(p.val) + ' €</td>' +
+            '<td style="color:var(--rd);font-family:monospace;font-weight:700">' + fe(p.gp) + '</td>' +
+            '<td style="color:var(--rd);font-family:monospace;font-weight:700">' + f1(p.rp) + '%</td>' +
+            '</tr>').join('') + '</tbody></table></div>' :
+        '<div style="padding:10px;color:var(--mt);font-size:11px;margin-bottom:12px">No tienes ninguna posición en pérdidas ahora mismo (con este filtro).</div>';
+
+    if (netoYaRealizado <= 0) {
+        cont.innerHTML = filtrosHtml + tablaHtml +
+            '<div style="padding:10px;color:var(--mt);font-size:11px">Este año todavía no llevas ganancias netas realizadas (' +
+            fe(netoYaRealizado) + '), así que de momento no hay nada que compensar con esto. Este apartado cobra más sentido de cara a diciembre, cuando ya sepas el resultado del año — pero ya puedes ver arriba cuánta pérdida acumulada tienes disponible por si acaso.</div>';
+        return;
+    }
+
+    // Para cada posición en pérdidas, vamos restando de lo que falta por compensar. Si la posición
+    // entera se queda corta, la vendemos entera. Si se pasa, calculamos la PARTE proporcional
+    // (acciones e importe invertido) que hace falta vender para compensar justo lo que resta —
+    // así no vendes de más generando una pérdida real que no compensa nada.
+    let restante = netoYaRealizado;
+    const seleccionadas = [];
+    for (const p of perdidasNoRealizadas) {
+        if (restante <= 0) break;
+        const perdidaAbs = Math.abs(p.gp);
+        if (perdidaAbs <= restante) {
+            seleccionadas.push({ ...p, parcial: false, gpUsado: p.gp, shVender: p.sh, ctVender: p.ct });
+            restante -= perdidaAbs;
+        } else {
+            const fraccion = restante / perdidaAbs;
+            seleccionadas.push({
+                ...p, parcial: true, gpUsado: -restante, shVender: p.sh * fraccion, ctVender: p.ct * fraccion
+            });
+            restante = 0;
+        }
+    }
+    const compensado = netoYaRealizado - restante;
+    const impuestoSinCosecha = calcularImpuestoAhorro(calcularBaseAhorroAnual());
+    const impuestoConCosecha = calcularImpuestoAhorro(calcularBaseAhorroAnual() - compensado);
+    const ahorroFiscal = impuestoSinCosecha - impuestoConCosecha;
+
+    cont.innerHTML = filtrosHtml + tablaHtml +
+        '<div class="mt2" style="font-size:10px;margin-bottom:10px">Ganancias netas ya realizadas en ' + anioActual +
+        ': <b style="color:var(--gn)">' + fe(netoYaRealizado) + '</b></div>' +
+        (seleccionadas.length ?
+            '<div style="font-size:11px;margin-bottom:8px">Vendiendo esto, compensarías ' + fe(compensado) +
+            ' de esas ganancias:</div>' +
+            seleccionadas.map(p => '<div style="padding:8px 0;border-bottom:1px solid var(--bd);font-size:11px">' +
+                '<div style="display:flex;justify-content:space-between">' +
+                '<span>' + p.n + (p.parcial ? ' <span style="color:var(--am);font-size:9px">(venta parcial)</span>' :
+                    ' <span style="color:var(--mt);font-size:9px">(posición completa)</span>') + '</span>' +
+                '<span style="color:var(--rd);font-family:monospace;font-weight:700">' + fe(p.gpUsado) + '</span>' +
+                '</div>' +
+                (p.parcial ? '<div class="mt2" style="font-size:9px;margin-top:2px">Vende ~' + f2(p.shVender) +
+                    ' acciones (~' + fe(p.ctVender) +
+                    ' del importe invertido) — el resto no compensa nada, sería pérdida real sin motivo</div>' : '') +
+                '</div>').join('') +
+            '<div style="margin-top:10px;padding:10px;background:var(--s2);border-radius:8px;font-size:11px">' +
+            '💰 Ahorro fiscal estimado: <b style="color:var(--gn)">' + fe(ahorroFiscal) + '</b></div>' +
+            (restante > 0.01 ? '<div class="mt2" style="font-size:9px;margin-top:6px">Quedan ' + fe(restante) +
+                ' de ganancias sin compensar — no tienes más pérdidas disponibles en este filtro.</div>' : '') :
+            '<div style="padding:10px;color:var(--mt);font-size:11px">No tienes ninguna posición en pérdidas ahora mismo (con este filtro) que puedas usar para compensar.</div>') +
+        '<div style="margin-top:10px;padding:10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:10px;color:var(--am)">' +
+        '⚠️ Regla de los 2 meses: si recompras la misma acción antes de 2 meses tras venderla en pérdidas, Hacienda no te deja deducir esa pérdida hasta que la vendas definitivamente sin recomprar en ese plazo.</div>';
 }
 
 function poblarSelectorVenta() {
