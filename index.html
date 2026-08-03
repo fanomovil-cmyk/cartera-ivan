@@ -419,8 +419,19 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Activo</th><th>País</th><th>Año</th><th>Pagos</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES €</th><th>Neto cobrado</th><th>Dev.Hacienda €</th><th>Neto real €</th><th>Rendimiento real</th></tr></thead><tbody id="tb-divs-res"></tbody><tfoot><tr id="tf-divs-res"><td colspan="11">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--am)">
-    <div class="ch"><h3>🏆 Ranking — Mejores activos por dividendo real</h3></div>
-    <div style="padding:14px 16px" id="ranking-dividendos"></div>
+    <div class="ch"><h3>🏆 Ranking — Mejores activos por dividendo</h3></div>
+    <div class="g2" style="gap:0">
+      <div style="padding:14px 16px;border-right:1px solid var(--bd)">
+        <div class="mt2" style="font-size:9px;margin-bottom:8px" id="ranking-titulo-actual">Este año (real)</div>
+        <div id="ranking-dividendos"></div>
+        <div class="mt2" style="font-size:10px;margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">Total: <b id="ranking-total-actual" style="color:var(--gn)">—</b></div>
+      </div>
+      <div style="padding:14px 16px">
+        <div class="mt2" style="font-size:9px;margin-bottom:8px" id="ranking-titulo-siguiente">Año que viene (proyectado)</div>
+        <div id="ranking-dividendos-siguiente"></div>
+        <div class="mt2" style="font-size:10px;margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">Total: <b id="ranking-total-siguiente" style="color:var(--am)">—</b></div>
+      </div>
+    </div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>🏛️ Acumulado por empresa — Devolución Hacienda</h3></div>
@@ -503,6 +514,14 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="card"><div class="ch"><h3>📊 Comparativa con índices</h3></div><div style="padding:14px 16px" id="comparativa-container"></div></div>
   <div class="card" style="margin-top:12px"><div class="ch"><h3>🏷️ Eficiencia fiscal por activo</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>País</th><th>Ret.Origen</th><th>Ret.Hacienda</th><th>Eficiencia</th></tr></thead><tbody id="tb-eficiencia"></tbody></table></div></div>
   <div class="card" style="margin-top:12px"><div class="ch"><h3>🚨 Alertas activas</h3></div><div style="padding:14px 16px" id="alertas-detalle"></div></div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🔮 Proyección — invirtiendo 1.000€ en cada posición actual</h3><span class="mt2" style="font-size:8px">valor + dividendos acumulados, escenario medio (pasa el ratón para ver baja/alta)</span></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:120px">Activo</th><th>Precio</th><th>Yield</th><th>5 años</th><th>10 años</th><th>15 años</th><th>20 años</th></tr></thead><tbody id="tb-proy-posiciones"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🎯 Proyección — invirtiendo 1.000€ en cada trampa activa</h3><span class="mt2" style="font-size:8px">valor + dividendos acumulados, escenario medio (pasa el ratón para ver baja/alta)</span></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:120px">Activo</th><th>Precio</th><th>Yield</th><th>5 años</th><th>10 años</th><th>15 años</th><th>20 años</th></tr></thead><tbody id="tb-proy-trampas"></tbody></table></div>
+  </div>
 </div>
 
 <!-- ═══ OPERACIONES CERRADAS ═══ -->
@@ -1737,6 +1756,33 @@ function renderFiltroPeriodo() {
     if (contCartera) contCartera.innerHTML = html;
 }
 
+// ── Helpers globales: frecuencia en meses y próxima fecha REAL de cobro (siempre respecto a hoy) ──
+function freqMeses(f) {
+    const s = (f || '').toLowerCase();
+    if (s.includes('mensual')) return 1;
+    if (s.includes('trimestral')) return 3;
+    if (s.includes('semestral')) return 6;
+    return 12; // anual u otra
+}
+function proximoCobroReal(p) {
+    if (!p.ultimo_cobro || p.ultimo_cobro.toLowerCase().includes('sin cobro')) return null;
+    const partes = p.ultimo_cobro.split('/');
+    if (partes.length !== 3) return null;
+    const dia = Math.min((+partes[0]) || 1, 28);
+    let mes = +partes[1],
+        anio = +partes[2];
+    if (!mes || !anio) return null;
+    const paso = freqMeses(p.freq);
+    const ahora = new Date();
+    let candidata;
+    do {
+        mes += paso;
+        while (mes > 12) { mes -= 12; anio += 1; }
+        candidata = new Date(anio, mes - 1, dia);
+    } while (candidata <= ahora);
+    return { mes, anio };
+}
+
 function renderDashboard() {
     const r = D.resumen;
     renderFiltroPeriodo();
@@ -2035,30 +2081,6 @@ function renderDashboard() {
     const anioTermoNum = esAnioPrevision ? anioSiguiente : parseInt(ANIO_TERMO, 10);
 
     // ── Helpers: frecuencia en meses y próxima fecha REAL de cobro (siempre respecto a hoy, nunca un texto guardado) ──
-    const freqMeses = f => {
-        const s = (f || '').toLowerCase();
-        if (s.includes('mensual')) return 1;
-        if (s.includes('trimestral')) return 3;
-        if (s.includes('semestral')) return 6;
-        return 12; // anual u otra
-    };
-    const proximoCobroReal = p => {
-        if (!p.ultimo_cobro || p.ultimo_cobro.toLowerCase().includes('sin cobro')) return null;
-        const partes = p.ultimo_cobro.split('/');
-        if (partes.length !== 3) return null;
-        const dia = Math.min((+partes[0]) || 1, 28);
-        let mes = +partes[1],
-            anio = +partes[2];
-        if (!mes || !anio) return null;
-        const paso = freqMeses(p.freq);
-        let candidata;
-        do {
-            mes += paso;
-            while (mes > 12) { mes -= 12; anio += 1; }
-            candidata = new Date(anio, mes - 1, dia);
-        } while (candidata <= hoyFecha);
-        return { mes, anio };
-    };
     const agregarPorEmpresa = arr => {
         const mapa = {};
         arr.forEach(x => { mapa[x.n] = (mapa[x.n] || 0) + x.monto; });
@@ -2925,27 +2947,58 @@ function renderDividendos() {
             ';font-family:monospace;font-weight:700">' + rendTotal.toFixed(1) + '%</td>';
     }
 
-    const rankingContainer = document.getElementById('ranking-dividendos');
-    if (rankingContainer) {
-        const ranking = Object.entries(topActivo)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10);
-        rankingContainer.innerHTML = ranking.map(([n, v], i) => {
+    const anioActualRank = new Date().getFullYear();
+    const anioSiguienteRank = anioActualRank + 1;
+    const tituloActual = document.getElementById('ranking-titulo-actual');
+    if (tituloActual) tituloActual.textContent = anioActualRank + ' (real, ya cobrado)';
+    const tituloSiguiente = document.getElementById('ranking-titulo-siguiente');
+    if (tituloSiguiente) tituloSiguiente.textContent = anioSiguienteRank + ' (proyectado)';
+
+    const pintarRanking = (contId, entradas) => {
+        const cont = document.getElementById(contId);
+        if (!cont) return;
+        if (!entradas.length) { cont.innerHTML = '<div class="mt2" style="font-size:10px">Sin datos</div>';
+            return; }
+        const maxV = entradas[0][1];
+        cont.innerHTML = entradas.map(([n, v], i) => {
             const medalla = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-            const barWidth = Math.min(100, (v / ranking[0][1]) * 100);
-            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd)">' +
-                '<div style="font-size:14px;min-width:30px">' + medalla + '</div>' +
-                '<div style="font-weight:600;font-size:11px;flex:1;min-width:100px">' + n + '</div>' +
-                '<div style="flex:1;background:var(--bd);border-radius:3px;height:6px;overflow:hidden">' +
+            const barWidth = Math.min(100, (v / maxV) * 100);
+            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">' +
+                '<div style="font-size:12px;min-width:20px">' + medalla + '</div>' +
+                '<div style="font-weight:600;font-size:10px;flex:1;min-width:70px">' + n + '</div>' +
+                '<div style="flex:1;background:var(--bd);border-radius:3px;height:6px;overflow:hidden;min-width:40px">' +
                 '<div style="height:100%;width:' + barWidth + '%;background:linear-gradient(90deg,var(--ac),var(--gn));border-radius:3px"></div>' +
                 '</div>' +
-                '<div style="font-family:monospace;font-weight:700;font-size:11px;color:#34C77B;min-width:50px;text-align:right">' +
+                '<div style="font-family:monospace;font-weight:800;font-size:13px;color:var(--gn);min-width:55px;text-align:right">' +
                 fe(v) + '</div>' +
                 '</div>';
         }).join('');
-    }
+    };
 
-    const pend = D.pendientes || [];
+    const rankingActual = Object.entries(topActivo).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    pintarRanking('ranking-dividendos', rankingActual);
+    const totalActualEl = document.getElementById('ranking-total-actual');
+    if (totalActualEl) totalActualEl.textContent = fe(Object.values(topActivo).reduce((s, v) => s + v, 0));
+
+    // Ranking del año que viene: dividendo anual estimado (acciones × div/acc EN VIVO) de cada
+    // posición actual — si mañana vendes o compras algo, este ranking cambiará solo.
+    const topActivoSiguiente = {};
+    posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
+        topActivoSiguiente[p.n] = p.divAcc * p.sh;
+    });
+    const rankingSiguiente = Object.entries(topActivoSiguiente).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    pintarRanking('ranking-dividendos-siguiente', rankingSiguiente);
+    const totalSiguienteEl = document.getElementById('ranking-total-siguiente');
+    if (totalSiguienteEl) totalSiguienteEl.textContent = fe(Object.values(topActivoSiguiente).reduce((s, v) =>
+        s + v, 0));
+
+    const pend = (D.pendientes || []).slice().sort((a, b) => {
+        const proxA = proximoCobroReal(a);
+        const proxB = proximoCobroReal(b);
+        const ordenA = proxA ? proxA.anio * 12 + proxA.mes : Infinity;
+        const ordenB = proxB ? proxB.anio * 12 + proxB.mes : Infinity;
+        return ordenA - ordenB;
+    });
     const tbP = document.getElementById('tb-pend');
     if (tbP) tbP.innerHTML = pend.map((p, i) => {
         const bg = i % 2 ? 'background:var(--s2)' : '';
@@ -3639,6 +3692,76 @@ function renderAnalisis() {
         alerts.map(a => '<div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:10px;background:var(--s2);border-radius:6px;margin-bottom:4px">' +
             a + '</div>').join('') :
         '<div style="color:var(--gn);font-size:11px">✅ Todo en orden. Sigue así.</div>';
+
+    renderProyeccionActivos();
+}
+
+// ── Proyección a 5/10/15/20 años invirtiendo 1.000€: valor + dividendos acumulados ──
+// Escenarios de rentabilidad TOTAL anual (precio + dividendo, reinvertido implícitamente en el
+// crecimiento del valor): Baja/Media/Alta. El dividendo acumulado se calcula aplicando el yield
+// ACTUAL del activo sobre el valor de cada año (asumiendo que el yield se mantiene estable).
+function proyectarActivo(precio, yieldPct, anios, tasaAnual) {
+    let valor = 1000;
+    let divAcumulado = 0;
+    for (let i = 0; i < anios; i++) {
+        divAcumulado += valor * (yieldPct / 100);
+        valor *= (1 + tasaAnual);
+    }
+    return { valorFinal: valor, divAcumulado };
+}
+
+function renderProyeccionActivos() {
+    const ESCENARIOS = { baja: 0.04, media: 0.07, alta: 0.10 };
+    const HORIZONTES = [5, 10, 15, 20];
+
+    const celdaProyeccion = (precio, yieldPct, anios) => {
+        if (!precio) return '<td class="mt2">—</td>';
+        const media = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.media);
+        const baja = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.baja);
+        const alta = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.alta);
+        const rentPct = (v, d) => ((v + d - 1000) / 1000 * 100);
+        const rentMedia = rentPct(media.valorFinal, media.divAcumulado);
+        const tip = 'Baja (4%/año): ' + fe(baja.valorFinal, 0) + ' + ' + fe(baja.divAcumulado, 0) +
+            ' div · +' + rentPct(baja.valorFinal, baja.divAcumulado).toFixed(0) +
+            '%\nAlta (10%/año): ' + fe(alta.valorFinal, 0) + ' + ' + fe(alta.divAcumulado, 0) + ' div · +' +
+            rentPct(alta.valorFinal, alta.divAcumulado).toFixed(0) + '%';
+        return '<td style="cursor:help" title="' + tip + '">' +
+            '<div style="font-family:monospace;font-weight:700;font-size:11px;color:var(--ac)">' + fe(media
+                .valorFinal, 0) + '</div>' +
+            '<div style="font-family:monospace;font-size:9px;color:var(--gn)">+' + fe(media.divAcumulado, 0) +
+            ' div</div>' +
+            '<div style="font-family:monospace;font-size:9px;font-weight:700;color:var(--am)">+' + rentMedia
+                .toFixed(0) + '%</div></td>';
+    };
+
+    const tbPos = document.getElementById('tb-proy-posiciones');
+    if (tbPos) {
+        const pos = posicionesVivas();
+        tbPos.innerHTML = pos.map(p => {
+            const pa = PA[MAP[p.n] || p.n] || p.pm || 0;
+            const yieldPct = pa ? (p.divAcc / pa * 100) : 0;
+            return '<tr><td style="font-weight:600;font-size:11px">' + p.n + '</td>' +
+                '<td class="bl">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
+                '<td class="mt2">' + yieldPct.toFixed(2) + '%</td>' +
+                HORIZONTES.map(a => celdaProyeccion(pa, yieldPct, a)).join('') +
+                '</tr>';
+        }).join('');
+    }
+
+    const tbTrampas = document.getElementById('tb-proy-trampas');
+    if (tbTrampas) {
+        tbTrampas.innerHTML = (TRAMPAS_GS || []).map(r => {
+            const nombre = r[0];
+            const pActual = Number(r[4]) || 0;
+            const divAcc = Number(r[8]) || 0;
+            const yieldPct = pActual ? (divAcc / pActual * 100) : 0;
+            return '<tr><td style="font-weight:600;font-size:11px">' + nombre + '</td>' +
+                '<td class="bl">' + (pActual ? f2(pActual) + ' €' : '—') + '</td>' +
+                '<td class="mt2">' + yieldPct.toFixed(2) + '%</td>' +
+                HORIZONTES.map(a => celdaProyeccion(pActual, yieldPct, a)).join('') +
+                '</tr>';
+        }).join('');
+    }
 }
 
 // ── INIT ──
