@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2329,7 +2330,8 @@ function renderDashboard() {
                 1) + '% de la cartera (más del 25%)' });
     });
     pos.filter(p => (p.tipo || '').toLowerCase().startsWith('especulativ')).forEach(p => {
-        const rentPct = p.rent * 100;
+        const pa = PA[MAP[p.n] || p.n] || 0;
+        const rentPct = (pa && p.ct) ? ((pa * p.sh - p.ct) / p.ct * 100) : 0;
         if (rentPct >= 20) alertas.push({ tipo: 'success', icon: '💰', msg: p.n +
                 ' (especulativa) en +' + rentPct.toFixed(1) + '% — objetivo de venta alcanzado' });
         else if (rentPct >= 15) alertas.push({ tipo: 'warn', icon: '👀', msg: p.n +
@@ -3700,14 +3702,22 @@ function renderAnalisis() {
 // Escenarios de rentabilidad TOTAL anual (precio + dividendo, reinvertido implícitamente en el
 // crecimiento del valor): Baja/Media/Alta. El dividendo acumulado se calcula aplicando el yield
 // ACTUAL del activo sobre el valor de cada año (asumiendo que el yield se mantiene estable).
-function proyectarActivo(precio, yieldPct, anios, tasaAnual) {
+function proyectarActivo(precio, yieldPct, anios, tasaTotalAnual) {
+    // La rentabilidad TOTAL (precio + dividendo) es la del escenario elegido, igual para todos —
+    // pero se REPARTE entre precio y dividendo según el yield propio de cada activo. Los dividendos
+    // se REINVIERTEN cada año (vuelven a componer con el resto), para que la rentabilidad total
+    // final sea coherente sin importar cómo se reparta entre precio y dividendo — si no se
+    // reinvirtieran, los activos de más dividendo saldrían siempre peor sin motivo real.
+    const yieldDecimal = yieldPct / 100;
+    const tasaCrecimientoPrecio = Math.max(0, tasaTotalAnual - yieldDecimal);
     let valor = 1000;
-    let divAcumulado = 0;
+    let divAcumuladoNominal = 0; // informativo: cuánto ha llegado en forma de dividendo (ya reinvertido dentro de "valor")
     for (let i = 0; i < anios; i++) {
-        divAcumulado += valor * (yieldPct / 100);
-        valor *= (1 + tasaAnual);
+        const divEsteAnio = valor * yieldDecimal;
+        divAcumuladoNominal += divEsteAnio;
+        valor = (valor + divEsteAnio) * (1 + tasaCrecimientoPrecio);
     }
-    return { valorFinal: valor, divAcumulado };
+    return { valorFinal: valor, divAcumulado: divAcumuladoNominal };
 }
 
 function renderProyeccionActivos() {
@@ -3719,30 +3729,44 @@ function renderProyeccionActivos() {
         const media = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.media);
         const baja = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.baja);
         const alta = proyectarActivo(precio, yieldPct, anios, ESCENARIOS.alta);
-        const rentPct = (v, d) => ((v + d - 1000) / 1000 * 100);
-        const rentMedia = rentPct(media.valorFinal, media.divAcumulado);
-        const tip = 'Baja (4%/año): ' + fe(baja.valorFinal, 0) + ' + ' + fe(baja.divAcumulado, 0) +
-            ' div · +' + rentPct(baja.valorFinal, baja.divAcumulado).toFixed(0) +
-            '%\nAlta (10%/año): ' + fe(alta.valorFinal, 0) + ' + ' + fe(alta.divAcumulado, 0) + ' div · +' +
-            rentPct(alta.valorFinal, alta.divAcumulado).toFixed(0) + '%';
-        return '<td style="cursor:help" title="' + tip + '">' +
-            '<div style="font-family:monospace;font-weight:700;font-size:11px;color:var(--ac)">' + fe(media
-                .valorFinal, 0) + '</div>' +
-            '<div style="font-family:monospace;font-size:9px;color:var(--gn)">+' + fe(media.divAcumulado, 0) +
-            ' div</div>' +
-            '<div style="font-family:monospace;font-size:9px;font-weight:700;color:var(--am)">+' + rentMedia
-                .toFixed(0) + '%</div></td>';
+        const rentPct = v => ((v - 1000) / 1000 * 100); // el dividendo ya está reinvertido dentro de "v"
+        const gananciaTotal = media.valorFinal - 1000;
+        const pctTotal = gananciaTotal / 1000 * 100;
+        const pctDiv = media.divAcumulado / 1000 * 100; // informativo: cuánto de esa ganancia vino de dividendos
+        const pctPrecio = pctTotal - pctDiv; // el resto, la parte de crecimiento puro de precio
+        const tip = 'Baja (4%/año): ' + fe(baja.valorFinal, 0) + ' (de ahí ' + fe(baja.divAcumulado, 0) +
+            ' en dividendos) · +' + rentPct(baja.valorFinal).toFixed(0) +
+            '%\nAlta (10%/año): ' + fe(alta.valorFinal, 0) + ' (de ahí ' + fe(alta.divAcumulado, 0) +
+            ' en dividendos) · +' + rentPct(alta.valorFinal).toFixed(0) + '%';
+        return '<td style="cursor:help;padding:10px 8px" title="' + tip + '">' +
+            '<div style="font-family:monospace;font-weight:700;font-size:13px;color:var(--ac)">' + fe(media
+                .valorFinal, 0) + ' <span style="font-size:10px;color:var(--mt)">(+' + fe(gananciaTotal, 0) +
+            ')</span></div>' +
+            '<div style="font-family:monospace;font-size:9px;color:var(--mt)">+' + pctPrecio.toFixed(0) +
+            '% acc + ' + pctDiv.toFixed(0) + '% div</div>' +
+            '<div style="font-family:monospace;font-size:14px;font-weight:800;color:#1E3A8A">+' + fe(media
+                .divAcumulado, 0) + ' div · +' + pctTotal.toFixed(0) + '%</div></td>';
+    };
+
+    // Ordenamos por la rentabilidad total conjunta al horizonte más largo (20 años) — la que mejor
+    // se comporta en conjunto (precio + dividendos), arriba del todo.
+    const rentTotal20 = (precio, yieldPct) => {
+        if (!precio) return -Infinity;
+        const m = proyectarActivo(precio, yieldPct, 20, ESCENARIOS.media);
+        return (m.valorFinal - 1000);
     };
 
     const tbPos = document.getElementById('tb-proy-posiciones');
     if (tbPos) {
-        const pos = posicionesVivas();
-        tbPos.innerHTML = pos.map(p => {
+        const pos = posicionesVivas().map(p => {
             const pa = PA[MAP[p.n] || p.n] || p.pm || 0;
             const yieldPct = pa ? (p.divAcc / pa * 100) : 0;
-            return '<tr><td style="font-weight:600;font-size:11px">' + p.n + '</td>' +
-                '<td class="bl">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
-                '<td class="mt2">' + yieldPct.toFixed(2) + '%</td>' +
+            return { p, pa, yieldPct, rank: rentTotal20(pa, yieldPct) };
+        }).sort((a, b) => b.rank - a.rank);
+        tbPos.innerHTML = pos.map(({ p, pa, yieldPct }) => {
+            return '<tr><td style="font-weight:700;font-size:12px">' + p.n + '</td>' +
+                '<td class="bl" style="font-size:10px;padding:6px 4px">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
+                '<td class="mt2" style="font-size:10px;padding:6px 4px">' + yieldPct.toFixed(2) + '%</td>' +
                 HORIZONTES.map(a => celdaProyeccion(pa, yieldPct, a)).join('') +
                 '</tr>';
         }).join('');
@@ -3750,14 +3774,18 @@ function renderProyeccionActivos() {
 
     const tbTrampas = document.getElementById('tb-proy-trampas');
     if (tbTrampas) {
-        tbTrampas.innerHTML = (TRAMPAS_GS || []).map(r => {
+        const trampas = (TRAMPAS_GS || []).map(r => {
             const nombre = r[0];
             const pActual = Number(r[4]) || 0;
             const divAcc = Number(r[8]) || 0;
             const yieldPct = pActual ? (divAcc / pActual * 100) : 0;
-            return '<tr><td style="font-weight:600;font-size:11px">' + nombre + '</td>' +
-                '<td class="bl">' + (pActual ? f2(pActual) + ' €' : '—') + '</td>' +
-                '<td class="mt2">' + yieldPct.toFixed(2) + '%</td>' +
+            return { nombre, pActual, yieldPct, rank: rentTotal20(pActual, yieldPct) };
+        }).sort((a, b) => b.rank - a.rank);
+        tbTrampas.innerHTML = trampas.map(({ nombre, pActual, yieldPct }) => {
+            return '<tr><td style="font-weight:700;font-size:12px">' + nombre + '</td>' +
+                '<td class="bl" style="font-size:10px;padding:6px 4px">' + (pActual ? f2(pActual) + ' €' : '—') +
+                '</td>' +
+                '<td class="mt2" style="font-size:10px;padding:6px 4px">' + yieldPct.toFixed(2) + '%</td>' +
                 HORIZONTES.map(a => celdaProyeccion(pActual, yieldPct, a)).join('') +
                 '</tr>';
         }).join('');
