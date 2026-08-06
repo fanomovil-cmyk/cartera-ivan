@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2123,9 +2122,11 @@ function renderDashboard() {
         return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
             ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
             estiloExtra + '">' +
-            '<span class="pr ' + pc + '"' + (grande ? ' style="font-size:16px;padding:6px 11px"' : '') + '>' + t.p +
+            '<span class="pr ' + pc +
+            '" style="flex-shrink:0;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block' +
+            (grande ? ';font-size:16px;padding:6px 11px' : '') + '">' + t.p +
             '</span>' +
-            '<div style="flex:1;min-width:120px">' +
+            '<div style="flex:1;min-width:0">' +
             '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:' +
             fName + ';font-weight:700">' + t.n + '</span>' + estadoOrden + '</div>' +
             '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:4px">' + (t.acc ? f2(t.acc) + ' acc.' :
@@ -2147,7 +2148,8 @@ function renderDashboard() {
             (grande ? '' :
                 '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
                 cls + '" style="width:' + pct2 + '%"></div></div>') +
-            '<div style="font-size:' + fPct + ';font-weight:700;min-width:' + (grande ? '90px' : '44px') +
+            '<div style="font-size:' + fPct + ';font-weight:700;flex-shrink:0;min-width:' + (grande ? '90px' :
+                '44px') +
             ';text-align:right;color:' + colorPct + '">' + (d ? d.toFixed(1) + '%' : '—') + '</div>' +
             '</div>';
     };
