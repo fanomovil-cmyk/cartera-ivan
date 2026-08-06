@@ -173,8 +173,9 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .tfill.m{background:linear-gradient(90deg,var(--am),#F0BC7A)}
 .tfill.f{background:linear-gradient(90deg,var(--rd),#F09090)}
 .highlight{background:rgba(52,199,123,0.08)}
-.alert-box{background:rgba(232,90,90,0.08);border:1px solid var(--rd);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.alert-box .icon{font-size:16px}
+.alert-box{background:rgba(232,90,90,0.08);border:1px solid var(--rd);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;min-width:0}
+.alert-box .icon{font-size:16px;flex-shrink:0}
+.alert-box span:not(.icon){flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word}
 .alert-box.warn{background:rgba(232,90,90,0.08);border-color:var(--rd);animation:alertaZona 2.2s ease-in-out infinite}
 .alert-box.info{background:rgba(201,162,75,0.08);border-color:var(--ac)}
 .alert-box.success{background:rgba(52,199,123,0.08);border-color:var(--gn)}
@@ -197,7 +198,7 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .export-btn{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:4px 12px;font-size:9px;color:var(--mt);cursor:pointer;transition:all 0.18s ease;font-family:'JetBrains Mono',monospace}
 .export-btn:hover{border-color:var(--pu);color:var(--pu)}
 
-.focus-mode{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;display:none;padding:40px;overflow-y:auto}
+.focus-mode{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;display:none;padding:40px;overflow-y:auto;overflow-x:hidden}
 .focus-mode.on{display:block;animation:fadeIn 0.3s ease}
 .focus-mode .close{position:fixed;top:20px;right:20px;font-size:24px;cursor:pointer;color:var(--mt);transition:color 0.2s}
 .focus-mode .close:hover{color:var(--tx)}
@@ -269,6 +270,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analíticas</button>
   <button class="tb" data-tab="8" onclick="sw(8)">📈 Operaciones Cerradas</button>
   <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Histórico Anual</button>
+  <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle de Activo</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -565,6 +567,17 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
 </div>
 
+<!-- ═══ DETALLE DE ACTIVO ═══ -->
+<div class="tp" id="t10">
+  <div class="card">
+    <div class="ch"><h3>🔍 Elige un activo</h3></div>
+    <div style="padding:14px 16px">
+      <select class="sim-input" id="detalle-activo-select" style="width:100%" onchange="renderDetalleActivo()"><option value="">Elige una posición...</option></select>
+    </div>
+  </div>
+  <div id="detalle-activo-container"></div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
 </script>
 <script>
@@ -600,7 +613,7 @@ function diasDesde(fechaStr) {
 
 function sw(i) {
     document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9'].forEach((id, j) => document.getElementById(id)
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'].forEach((id, j) => document.getElementById(id)
         .classList.toggle('on', i === j));
 }
 
@@ -1121,6 +1134,118 @@ function poblarSelectorVerificacion() {
     sel.innerHTML = html;
     if (actual) sel.value = actual;
 }
+
+// ── DETALLE DE ACTIVO — resumen individual estilo getquin ──
+function poblarSelectorDetalle() {
+    const sel = document.getElementById('detalle-activo-select');
+    if (!sel) return;
+    const actual = sel.value;
+    const pos = posicionesVivas();
+    sel.innerHTML = '<option value="">Elige una posición...</option>' +
+        pos.map(p => '<option value="' + p.isin + '">' + p.n + '</option>').join('');
+    if (actual) sel.value = actual;
+}
+
+function renderDetalleActivo() {
+    const sel = document.getElementById('detalle-activo-select');
+    const cont = document.getElementById('detalle-activo-container');
+    if (!sel || !cont) return;
+    const isin = sel.value;
+    if (!isin) { cont.innerHTML = ''; return; }
+
+    const pos = posicionesVivas();
+    const p = pos.find(x => x.isin === isin);
+    if (!p) { cont.innerHTML = '<div class="mt2" style="padding:14px">No se encuentra esa posición.</div>';
+        return; }
+
+    const pa = PA[MAP[p.n] || p.n] || p.pm || 0;
+    const val = pa * p.sh;
+    const gananciaPrecio = pa ? (val - p.ct) : 0;
+    const rentPrecioPct = p.ct && pa ? (gananciaPrecio / p.ct * 100) : 0;
+
+    // Ganancia realizada: ventas parciales ya cerradas de este mismo activo (cruce por primera palabra del nombre)
+    const normalizar = s => (s || '').split(' ')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const nPrimera = normalizar(p.n);
+    const ventasCerradas = (OPERACIONES_CERRADAS || []).filter(o => normalizar(o.n) === nPrimera);
+    const gananciaRealizada = ventasCerradas.reduce((s, o) => s + o.gp, 0);
+
+    // Dividendos: total histórico + desglose por mes del año en curso (cruce exacto por ISIN)
+    const divsActivo = (divsEnVivo() || []).filter(d => d.isin === isin).sort((a, b) => {
+        const [da, ma, ya] = a.f.split('/');
+        const [db, mb, yb] = b.f.split('/');
+        return (yb + mb + db) - (ya + ma + da) < 0 ? 1 : -1; // más reciente primero
+    });
+    const divsTotal = divsActivo.reduce((s, d) => s + d.neto_real, 0);
+    const yieldSobreCoste = p.ct ? (divsTotal / p.ct * 100) : 0;
+
+    const anioActualDet = new Date().getFullYear();
+    const mesesCorto = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const divsPorMes = Array(12).fill(0);
+    divsActivo.filter(d => d.f.endsWith('/' + anioActualDet)).forEach(d => {
+        const mi = (+d.f.split('/')[1]) - 1;
+        if (mi >= 0 && mi < 12) divsPorMes[mi] += d.neto_real;
+    });
+    const maxDivMes = Math.max(1, ...divsPorMes);
+
+    const retornoTotal = gananciaPrecio + gananciaRealizada + divsTotal;
+    const retornoTotalPct = p.ct ? (retornoTotal / p.ct * 100) : 0;
+
+    // Movimientos: dividendos + ventas cerradas, todo junto y ordenado por fecha
+    const movimientos = [
+        ...divsActivo.map(d => ({ fecha: d.f, tipo: 'Dividendo', detalle: 'Cobro neto', monto: d.neto_real,
+            color: 'var(--gn)' })),
+        ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta', detalle: o
+                .acciones.toFixed(4) + ' acc. a ' + f2(o.pVenta) + '€', monto: o.gp, color: o.gp >= 0 ?
+                'var(--gn)' : 'var(--rd)' }))
+    ].sort((a, b) => {
+        const [da, ma, ya] = a.fecha.split('/');
+        const [db, mb, yb] = b.fecha.split('/');
+        return (yb + mb + db).localeCompare(ya + ma + da);
+    }).slice(0, 15);
+
+    cont.innerHTML = `
+        <div class="card" style="margin-top:12px">
+            <div class="ch"><h3>${p.n}</h3><span class="mt2" style="font-size:8px">${p.isin} · ${p.pais} · ${p.sector}</span></div>
+            <div style="padding:14px 16px">
+                <div style="font-size:28px;font-weight:800;font-family:monospace">${pa ? f2(pa) + ' €' : '—'}</div>
+                <div class="mt2" style="font-size:9px">Precio actual (GS)</div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+            <div class="ch"><h3>💰 Retorno</h3></div>
+            <div style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+                <div><div class="mt2" style="font-size:9px">Invertido</div><div style="font-size:15px;font-weight:700;font-family:monospace">${fe(p.ct)}</div></div>
+                <div><div class="mt2" style="font-size:9px">Valor actual</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:var(--ac)">${pa?fe(val):'—'}</div></div>
+                <div><div class="mt2" style="font-size:9px">Ganancia de precio</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:${gananciaPrecio>=0?'var(--gn)':'var(--rd)'}">${pa?(gananciaPrecio>=0?'+':'')+fe(gananciaPrecio)+' ('+(rentPrecioPct>=0?'+':'')+f1(rentPrecioPct)+'%)':'—'}</div></div>
+                <div><div class="mt2" style="font-size:9px">Ganancia realizada</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:${gananciaRealizada>=0?'var(--gn)':'var(--rd)'}">${ventasCerradas.length?(gananciaRealizada>=0?'+':'')+fe(gananciaRealizada):'—'}</div></div>
+                <div><div class="mt2" style="font-size:9px">Dividendos cobrados</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:var(--gn)">${divsTotal?fe(divsTotal):'—'}</div></div>
+                <div><div class="mt2" style="font-size:9px">Retorno total</div><div style="font-size:16px;font-weight:800;font-family:monospace;color:${retornoTotal>=0?'var(--gn)':'var(--rd)'}">${(retornoTotal>=0?'+':'')+fe(retornoTotal)+' ('+(retornoTotalPct>=0?'+':'')+f1(retornoTotalPct)+'%)'}</div></div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+            <div class="ch"><h3>📅 Calendario de dividendos ${anioActualDet}</h3></div>
+            <div style="padding:14px 16px;display:flex;gap:4px;justify-content:space-between">
+                ${mesesCorto.map((m,i) => `<div style="flex:1;text-align:center">
+                    <div style="font-size:8px;color:var(--mt)">${divsPorMes[i]?f2(divsPorMes[i]):'—'}</div>
+                    <div style="height:${divsPorMes[i]?Math.max(8,divsPorMes[i]/maxDivMes*40):4}px;background:${divsPorMes[i]?'var(--gn)':'var(--bd)'};border-radius:2px;margin:2px 0"></div>
+                    <div style="font-size:7px;color:var(--mt)">${m}</div>
+                </div>`).join('')}
+            </div>
+            <div class="mt2" style="font-size:9px;padding:0 16px 12px">Yield sobre coste (todo el histórico): ${yieldSobreCoste.toFixed(2)}%</div>
+        </div>
+        <div class="card" style="margin-top:12px">
+            <div class="ch"><h3>📋 Últimos movimientos</h3></div>
+            <div class="sc" style="max-height:300px">
+                ${movimientos.length ? movimientos.map(mv => `
+                    <div style="display:flex;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--bd);font-size:11px">
+                        <div><span class="mt2" style="font-size:9px">${mv.fecha}</span> · <b>${mv.tipo}</b><div class="mt2" style="font-size:9px">${mv.detalle}</div></div>
+                        <div style="font-family:monospace;font-weight:700;color:${mv.color}">${(mv.monto>=0?'+':'')+fe(mv.monto)}</div>
+                    </div>`).join('') : '<div class="mt2" style="padding:14px;font-size:10px">Sin movimientos registrados.</div>'}
+            </div>
+        </div>
+    `;
+}
+
 
 function verificarConTR() {
     const cont = document.getElementById('verif-resultado');
@@ -2690,6 +2815,8 @@ function renderCartera() {
     poblarSelectorVenta();
     poblarSelectorVerificacion();
     renderCosechaPerdidas();
+    poblarSelectorDetalle();
+    renderDetalleActivo();
 }
 
 // ── TRAMPAS ──
