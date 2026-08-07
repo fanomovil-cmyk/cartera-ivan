@@ -2068,7 +2068,8 @@ function renderDashboard() {
     // ── Trampas ordenadas por cercanía (compartido entre Dashboard y Modo Focus) ──
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
-            r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null }))
+            r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
+            '' }))
         .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
@@ -2150,6 +2151,8 @@ function renderDashboard() {
                     ' · <span style="color:' + (pctDesde <= 0 ? 'var(--gn)' : 'var(--am)') + '">' + (pctDesde >=
                         0 ? '+' : '') + pctDesde.toFixed(1) + '% desde entonces</span></div>';
             })() : '') +
+            (t.nota ? '<div style="font-size:' + fSub +
+                ';color:var(--ac);margin-top:2px;font-style:italic">📝 ' + t.nota + '</div>' : '') +
             '</div>' +
             (grande ? '' :
                 '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
