@@ -571,9 +571,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 <div class="tp" id="t10">
   <div class="card">
     <div class="ch"><h3>🔍 Elige un activo</h3></div>
-    <div style="padding:14px 16px">
-      <select class="sim-input" id="detalle-activo-select" style="width:100%" onchange="renderDetalleActivo()"><option value="">Elige una posición...</option></select>
-    </div>
+    <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px" id="detalle-activo-botones">—</div>
   </div>
   <div id="detalle-activo-container"></div>
 </div>
@@ -848,6 +846,7 @@ let DIVIDENDOS_GS = null,
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
+let HISTORICO_PRECIOS_POSICIONES_GS = {};
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -1137,21 +1136,28 @@ function poblarSelectorVerificacion() {
 }
 
 // ── DETALLE DE ACTIVO — resumen individual estilo getquin ──
+let DETALLE_ACTIVO_ISIN = '';
+
 function poblarSelectorDetalle() {
-    const sel = document.getElementById('detalle-activo-select');
-    if (!sel) return;
-    const actual = sel.value;
+    const cont = document.getElementById('detalle-activo-botones');
+    if (!cont) return;
     const pos = posicionesVivas();
-    sel.innerHTML = '<option value="">Elige una posición...</option>' +
-        pos.map(p => '<option value="' + p.isin + '">' + p.n + '</option>').join('');
-    if (actual) sel.value = actual;
+    if (!DETALLE_ACTIVO_ISIN && pos.length) DETALLE_ACTIVO_ISIN = pos[0].isin;
+    cont.innerHTML = pos.map(p => '<button class="btn' + (DETALLE_ACTIVO_ISIN === p.isin ? ' ac' : '') +
+        '" style="font-size:11px" onclick="seleccionarDetalleActivo(\'' + p.isin + '\')">' + p.n +
+        '</button>').join('');
+}
+
+function seleccionarDetalleActivo(isin) {
+    DETALLE_ACTIVO_ISIN = isin;
+    poblarSelectorDetalle();
+    renderDetalleActivo();
 }
 
 function renderDetalleActivo() {
-    const sel = document.getElementById('detalle-activo-select');
     const cont = document.getElementById('detalle-activo-container');
-    if (!sel || !cont) return;
-    const isin = sel.value;
+    if (!cont) return;
+    const isin = DETALLE_ACTIVO_ISIN;
     if (!isin) { cont.innerHTML = ''; return; }
 
     const pos = posicionesVivas();
@@ -1207,10 +1213,15 @@ function renderDetalleActivo() {
     cont.innerHTML = `
         <div class="card" style="margin-top:12px">
             <div class="ch"><h3>${p.n}</h3><span class="mt2" style="font-size:8px">${p.isin} · ${p.pais} · ${p.sector}</span></div>
-            <div style="padding:14px 16px">
+            <div style="padding:14px 16px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
                 <div style="font-size:28px;font-weight:800;font-family:monospace">${pa ? f2(pa) + ' €' : '—'}</div>
-                <div class="mt2" style="font-size:9px">Precio actual (GS)</div>
+                <div style="font-size:12px;color:var(--mt)">Compra: ${f2(p.pm)} € · <span style="color:${rentPrecioPct>=0?'var(--gn)':'var(--rd)'};font-weight:700">${pa?(rentPrecioPct>=0?'+':'')+f2(pa-p.pm)+' € ('+(rentPrecioPct>=0?'+':'')+f1(rentPrecioPct)+'%)':'—'}</span></div>
             </div>
+            <div class="mt2" style="font-size:9px;padding:0 16px 12px">Precio actual (GS)</div>
+        </div>
+        <div class="card" style="margin-top:12px">
+            <div class="ch"><h3>📈 Evolución del precio desde hoy</h3><span class="mt2" style="font-size:8px">se va guardando cada día — cuantos más días pasen, más historial tendrás aquí</span></div>
+            <div style="padding:14px 16px" id="detalle-grafico-precio-wrap"></div>
         </div>
         <div class="card" style="margin-top:12px">
             <div class="ch"><h3>💰 Retorno</h3></div>
@@ -1245,6 +1256,39 @@ function renderDetalleActivo() {
             </div>
         </div>
     `;
+
+    // Gráfico de evolución de precio: usamos el histórico diario que se va guardando para este
+    // ISIN concreto. Si aún no hay al menos 2 días guardados, no tiene sentido dibujar una línea.
+    const fechasConDato = Object.keys(HISTORICO_PRECIOS_POSICIONES_GS).filter(f =>
+        HISTORICO_PRECIOS_POSICIONES_GS[f][isin] !== undefined).sort();
+    const wrap = document.getElementById('detalle-grafico-precio-wrap');
+    if (wrap) {
+        if (fechasConDato.length < 2) {
+            wrap.innerHTML = '<div class="mt2" style="font-size:11px">Todavía no hay suficiente histórico guardado (' +
+                fechasConDato.length + ' día' + (fechasConDato.length === 1 ? '' : 's') +
+                ') — a partir de mañana ya empezará a dibujarse la línea. Vuelve a mirar dentro de unos días.</div>';
+        } else {
+            wrap.innerHTML = '<div class="cw" style="height:200px"><canvas id="cDetallePrecio"></canvas></div>';
+            const valores = fechasConDato.map(f => HISTORICO_PRECIOS_POSICIONES_GS[f][isin]);
+            const ctx = document.getElementById('cDetallePrecio');
+            if (ctx && window.Chart) {
+                if (window._chartDetallePrecio) window._chartDetallePrecio.destroy();
+                window._chartDetallePrecio = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: fechasConDato.map(f => f.slice(5).split('-').reverse().join('/')),
+                        datasets: [{ data: valores, borderColor: '#C9A24B', backgroundColor: 'rgba(201,162,75,0.1)',
+                            fill: true, tension: 0.3, pointRadius: 2 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { ticks: { callback: v => v + ' €' } } }
+                    }
+                });
+            }
+        }
+    }
 }
 
 
@@ -1806,6 +1850,9 @@ async function recargar() {
         }
         if (data.picosEspeculativas) {
             PICOS_ESPECULATIVAS_GS = data.picosEspeculativas;
+        }
+        if (data.historicoPreciosPosiciones) {
+            HISTORICO_PRECIOS_POSICIONES_GS = data.historicoPreciosPosiciones;
         }
 
         renderDashboard();
