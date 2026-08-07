@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -846,6 +847,7 @@ let DIVIDENDOS_GS = null,
     RESUMEN_DIVS_GS = null;
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
+let PICOS_ESPECULATIVAS_GS = {};
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -1802,6 +1804,9 @@ async function recargar() {
         if (data.calendarioDividendos) {
             CALENDARIO_DIVIDENDOS_GS = data.calendarioDividendos;
         }
+        if (data.picosEspeculativas) {
+            PICOS_ESPECULATIVAS_GS = data.picosEspeculativas;
+        }
 
         renderDashboard();
         renderCartera();
@@ -2468,10 +2473,22 @@ function renderDashboard() {
     pos.filter(p => (p.tipo || '').toLowerCase().startsWith('especulativ')).forEach(p => {
         const pa = PA[MAP[p.n] || p.n] || 0;
         const rentPct = (pa && p.ct) ? ((pa * p.sh - p.ct) / p.ct * 100) : 0;
-        if (rentPct >= 20) alertas.push({ tipo: 'success', icon: '💰', msg: p.n +
+        const pico = p.isin ? (PICOS_ESPECULATIVAS_GS[p.isin] || 0) : 0;
+        const retroceso = pico - rentPct; // cuántos puntos ha caído desde el máximo alcanzado
+
+        if (pico > 0 && retroceso >= 3) {
+            // Llegó a estar en +10% o más en algún momento, y ha retrocedido 3 puntos o más desde
+            // su máximo — mejor vender ya que seguir esperando pasivamente al +12% que quizá no llegue.
+            alertas.push({ tipo: 'warn', icon: '📉', msg: p.n + ' (especulativa) llegó a estar en +' + pico
+                    .toFixed(1) + '% y ahora está en +' + rentPct.toFixed(1) +
+                '% — ha retrocedido, considera vender ya en vez de esperar al 12%' });
+        } else if (rentPct >= 12) {
+            alertas.push({ tipo: 'success', icon: '💰', msg: p.n +
                 ' (especulativa) en +' + rentPct.toFixed(1) + '% — objetivo de venta alcanzado' });
-        else if (rentPct >= 15) alertas.push({ tipo: 'warn', icon: '👀', msg: p.n +
-                ' (especulativa) en +' + rentPct.toFixed(1) + '% — vigílala, se acerca a la zona de venta (20%)' });
+        } else if (rentPct >= 10) {
+            alertas.push({ tipo: 'warn', icon: '👀', msg: p.n +
+                ' (especulativa) en +' + rentPct.toFixed(1) + '% — vigílala, se acerca a la zona de venta (12%)' });
+        }
     });
     if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
             '% de tu objetivo de 300€/mes' });
