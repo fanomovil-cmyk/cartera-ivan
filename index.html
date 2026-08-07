@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2119,16 +2120,21 @@ function renderDashboard() {
                 ';font-weight:700;color:var(--mt);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:' +
                 padEstado + '">○ Sin orden</span>';
         }
+        const esLarga = (t.p || '').length > 3; // "ESPECULATIVA" no cabe al lado del nombre como una insignia normal
+        const insigniaCorta = esLarga ? '' :
+            ('<span class="pr ' + pc + '" style="flex-shrink:0' + (grande ? ';font-size:14px;padding:4px 9px' :
+                '') + '">' + t.p + '</span>');
+        const filaLarga = esLarga ?
+            ('<div style="margin-top:3px"><span class="pr ' + pc +
+                '" style="display:inline-block;font-size:' + (grande ? '11px' : '9px') +
+                ';padding:2px 7px">' + t.p + '</span></div>') : '';
         return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
             ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
             estiloExtra + '">' +
-            '<span class="pr ' + pc +
-            '" style="flex-shrink:0;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block' +
-            (grande ? ';font-size:16px;padding:6px 11px' : '') + '">' + t.p +
-            '</span>' +
             '<div style="flex:1;min-width:0">' +
             '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:' +
-            fName + ';font-weight:700">' + t.n + '</span>' + estadoOrden + '</div>' +
+            fName + ';font-weight:700">' + t.n + '</span>' + insigniaCorta + estadoOrden + '</div>' +
+            filaLarga +
             '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:4px">' + (t.acc ? f2(t.acc) + ' acc.' :
                 '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
             '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
