@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -532,6 +533,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg8"></div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📈 Historial de compras y ventas cerradas</h3><span class="mt2" style="font-size:9px">Ganancia/pérdida real por operación (FIFO)</span></div>
+    <div style="padding:10px 16px 0"><select class="sim-input" id="filtro-operaciones-select" style="width:100%;max-width:320px" onchange="renderOperaciones()"><option value="">Todas las operaciones</option></select></div>
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha venta</th><th>Acciones</th><th>P.Compra</th><th>P.Venta</th><th>Coste</th><th>Ingreso</th><th>G/P €</th><th>G/P %</th></tr></thead><tbody id="tb-operaciones"></tbody></table></div>
   </div>
 </div>
@@ -847,6 +849,7 @@ let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
+let ULTIMA_FECHA_CSV_GS = null;
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -971,7 +974,20 @@ function renderOperaciones() {
     const tb = document.getElementById('tb-operaciones');
     const kg = document.getElementById('kg8');
     if (!tb) return;
-    const ops = OPERACIONES_CERRADAS;
+
+    // Poblar el desplegable con los activos que tienen alguna operación cerrada, conservando
+    // la selección actual del usuario (se repuebla cada vez por si aún no habían llegado los datos)
+    const selFiltro = document.getElementById('filtro-operaciones-select');
+    if (selFiltro) {
+        const seleccionPrevia = selFiltro.value;
+        const nombresUnicos = [...new Set(OPERACIONES_CERRADAS.map(o => o.n))].sort();
+        selFiltro.innerHTML = '<option value="">Todas las operaciones</option>' +
+            nombresUnicos.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+        if (nombresUnicos.includes(seleccionPrevia)) selFiltro.value = seleccionPrevia;
+    }
+    const filtroActivo = selFiltro ? selFiltro.value : '';
+    const ops = filtroActivo ? OPERACIONES_CERRADAS.filter(o => o.n === filtroActivo) : OPERACIONES_CERRADAS;
+
     const totalGP = ops.reduce((s, o) => s + o.gp, 0);
     const ganadoras = ops.filter(o => o.gp > 0).length;
     const winRate = ops.length ? (ganadoras / ops.length * 100) : 0;
@@ -998,7 +1014,9 @@ function renderOperaciones() {
             '<td style="color:' + (o.gp >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-weight:700">' + (o.gpPct >=
                 0 ? '+' : '') + o.gpPct.toFixed(1) + '%</td>' +
             '</tr>';
-    }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--mt);padding:20px">Cargando operaciones desde tu hoja TR_DATOS...</td></tr>';
+    }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--mt);padding:20px">' +
+        (filtroActivo ? 'Sin operaciones cerradas para ' + filtroActivo :
+            'Cargando operaciones desde tu hoja TR_DATOS...') + '</td></tr>';
 }
 
 // ── HISTÓRICO ANUAL ──
@@ -1854,6 +1872,9 @@ async function recargar() {
         if (data.historicoPreciosPosiciones) {
             HISTORICO_PRECIOS_POSICIONES_GS = data.historicoPreciosPosiciones;
         }
+        if (data.ultimaFechaCSV) {
+            ULTIMA_FECHA_CSV_GS = data.ultimaFechaCSV;
+        }
 
         renderDashboard();
         renderCartera();
@@ -1965,6 +1986,22 @@ function renderDashboard() {
     const r = D.resumen;
     renderFiltroPeriodo();
     renderSaludCartera();
+
+    // Rango de fechas del Centro de Mando: inicio = primera compra real, fin = última fecha real del CSV
+    const rangoEl = document.getElementById('rango');
+    if (rangoEl) {
+        const aYYYYMMDD_barras = f => { // "DD/MM/YYYY" -> "YYYYMMDD" para poder comparar como texto
+            const partes = (f || '').split('/');
+            return partes.length === 3 ? partes[2] + partes[1].padStart(2, '0') + partes[0].padStart(2, '0') : '';
+        };
+
+        const fechasInicio = posicionesVivas().map(p => p.f).filter(f => f && f !== '—').sort((a, b) =>
+            aYYYYMMDD_barras(a).localeCompare(aYYYYMMDD_barras(b)));
+        const inicio = fechasInicio.length ? fechasInicio[0] : '—';
+        const fin = ULTIMA_FECHA_CSV_GS || inicio;
+
+        rangoEl.textContent = inicio + ' → ' + fin;
+    }
 
     // Totales SIN filtrar (para el objetivo 300€/mes, que siempre es "el ritmo actual", no depende del periodo elegido)
     const divTotalSinFiltro = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0);
@@ -3995,7 +4032,6 @@ function renderProyeccionActivos() {
 }
 
 // ── INIT ──
-document.getElementById('rango').textContent = D.resumen.inicio + ' → ' + D.resumen.fin;
 renderDividendos();
 renderIntereses();
 renderEvolucion();
