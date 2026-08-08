@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -409,9 +408,10 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- ═══ DIVIDENDOS ═══ -->
 <div class="tp" id="t3">
+  <div id="filtro-anio-dividendos" style="padding:0 0 12px;display:flex;gap:8px;flex-wrap:wrap">—</div>
   <div class="kg" id="kg3"></div>
   <div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,var(--s1),#241E10);border:1px solid var(--ac)">
-    <div class="ch"><h3>📊 Resumen ejecutivo dividendos 2026</h3></div>
+    <div class="ch"><h3 id="titulo-resumen-ejecutivo">📊 Resumen ejecutivo dividendos</h3></div>
     <div style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px" id="resumen-div-ejecutivo"></div>
   </div>
   <div class="card">
@@ -844,12 +844,16 @@ let COMISIONES_ABIERTAS = {};
 let COMISIONES_TOTAL = 0,
     NUM_OPERACIONES_TOTAL = 0;
 let DIVIDENDOS_GS = null,
-    RESUMEN_DIVS_GS = null;
+    RESUMEN_DIVS_GS = null,
+    INTERESES_GS = null,
+    SAVEBACKS_GS = null,
+    EVOLUCION_GS = null;
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
 let ULTIMA_FECHA_CSV_GS = null;
+let ANIO_DIVIDENDOS_TAB = null; // null = año actual por defecto; también puede ser 'todos' o un año concreto
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -921,6 +925,95 @@ function calcularXIRR(flujosRaw) {
 
 function divsEnVivo() {
     return DIVIDENDOS_GS && DIVIDENDOS_GS.length ? DIVIDENDOS_GS : D.dividendos;
+}
+
+// ── Próximos cobros: reconstruido 100% en vivo (posiciones actuales + calendario real de pagos) ──
+function proximosCobrosEnVivo() {
+    const pos = posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0);
+    const divsHist = divsEnVivo() || [];
+    const r2 = n => Math.round((n || 0) * 100) / 100;
+
+    const fechasPorISIN2 = {};
+    divsHist.forEach(d => {
+        if (!d.isin) return;
+        const partes = d.f.split('/');
+        const fecha = new Date(+partes[2], (+partes[1]) - 1, +partes[0]);
+        (fechasPorISIN2[d.isin] = fechasPorISIN2[d.isin] || []).push({ fecha, mes: (+partes[1]) - 1 });
+    });
+    const calendarioPorISIN2 = {};
+    (CALENDARIO_DIVIDENDOS_GS || []).forEach(c => { if (c.isin) calendarioPorISIN2[c.isin] = c.meses; });
+
+    const hoy2 = new Date();
+    const anioActual2 = hoy2.getFullYear();
+    const mesActual2 = hoy2.getMonth(); // 0-indexed
+
+    return pos.map(p => {
+        const anualTotal = p.divAcc * p.sh;
+        let mesesPago0 = null; // 0-indexed
+        const mesesManual = p.isin ? calendarioPorISIN2[p.isin] : null;
+        if (mesesManual && mesesManual.length) mesesPago0 = mesesManual.map(m => m - 1);
+
+        const fechasEsta = p.isin ? fechasPorISIN2[p.isin] : null;
+        if (!mesesPago0 && fechasEsta && fechasEsta.length) {
+            const ordenadas = [...fechasEsta].sort((a, b) => a.fecha - b.fecha);
+            let numPagos = 1;
+            if (ordenadas.length >= 2) {
+                let sumaGaps = 0;
+                for (let i = 1; i < ordenadas.length; i++) sumaGaps += (ordenadas[i].fecha - ordenadas[i - 1]
+                    .fecha) / 86400000;
+                const gapMedio = sumaGaps / (ordenadas.length - 1);
+                numPagos = gapMedio <= 45 ? 12 : gapMedio <= 100 ? 4 : gapMedio <= 200 ? 2 : 1;
+            }
+            mesesPago0 = [];
+            const paso = 12 / numPagos;
+            let mes = ordenadas[0].mes;
+            for (let i = 0; i < numPagos; i++) { mesesPago0.push(Math.round(mes) % 12);
+                mes += paso; }
+        }
+
+        const numPagosReal = mesesPago0 ? mesesPago0.length : 4; // sin ningún dato, suponemos trimestral
+        const freqTexto = numPagosReal >= 10 ? 'Mensual' : numPagosReal === 4 ? 'Trimestral' : numPagosReal ===
+            2 ? 'Semestral' : numPagosReal === 1 ? 'Anual' : 'Trimestral';
+
+        let prox = null;
+        if (mesesPago0 && mesesPago0.length) {
+            const futuros = mesesPago0.filter(m => m >= mesActual2).sort((a, b) => a - b);
+            prox = futuros.length ? { mes: futuros[0] + 1, anio: anioActual2 } : { mes: Math.min(...mesesPago0) +
+                1, anio: anioActual2 + 1 };
+        }
+
+        const importePorPago = numPagosReal ? anualTotal / numPagosReal : anualTotal;
+        const origenRate = p.pais === 'FRA' ? 0.128 : p.pais === 'USA' ? 0.15 : 0;
+        const retOEst = importePorPago * origenRate;
+        const subtotalEst = importePorPago - retOEst;
+        const taxEsEst = subtotalEst * 0.19;
+        const netoFinalEst = subtotalEst - taxEsEst;
+        const netoRealEst = netoFinalEst + retOEst;
+
+        const ultimoCobro = fechasEsta && fechasEsta.length ?
+            [...fechasEsta].sort((a, b) => b.fecha - a.fecha)[0].fecha.toLocaleDateString('es-ES') :
+            'Sin cobro aún';
+        const yaCobradoAnio = divsHist.filter(d => d.isin === p.isin && d.f.endsWith('/' + anioActual2)).reduce(
+            (s, d) => s + d.neto_real, 0);
+
+        return {
+            n: p.n, pais: p.pais, freq: freqTexto, sh: p.sh, ultimo_cobro: ultimoCobro, _prox: prox,
+            bruto_est: r2(importePorPago), ret_o_est: r2(retOEst), neto_tr_est: r2(subtotalEst),
+            dev_est: r2(retOEst), neto_real_est: r2(netoRealEst), ya_cobrado_2026: r2(yaCobradoAnio)
+        };
+    });
+}
+
+function interesesEnVivo() {
+    return INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses;
+}
+
+function savebacksEnVivo() {
+    return SAVEBACKS_GS && SAVEBACKS_GS.length ? SAVEBACKS_GS : D.savebacks;
+}
+
+function evolucionEnVivo() {
+    return EVOLUCION_GS && EVOLUCION_GS.length ? EVOLUCION_GS : D.evolucion;
 }
 
 function resumenDivsEnVivo() {
@@ -1034,7 +1127,7 @@ function renderHistoricoAnual() {
     // Años presentes en los datos (dividendos, intereses y operaciones cerradas)
     const anios = new Set();
     (divsEnVivo() || []).forEach(d => anios.add(d.f.split('/')[2]));
-    (D.intereses || []).forEach(i => anios.add(i.f.split('/')[1]));
+    interesesEnVivo().forEach(i => anios.add(i.f.split('/')[1]));
     OPERACIONES_CERRADAS.forEach(o => anios.add(o.fecha.slice(0, 4)));
     const listaAnios = [...anios].sort();
 
@@ -1049,8 +1142,8 @@ function renderHistoricoAnual() {
     const divsAnio = (divsEnVivo() || []).filter(d => perteneceAnio(d.f));
     const divsTotal = divsAnio.reduce((s, d) => s + d.neto_real, 0);
 
-    // Intereses del año seleccionado (formato fecha D.intereses: MM/YYYY)
-    const intAnio = (D.intereses || []).filter(i => perteneceAnio(i.f));
+    // Intereses del año seleccionado (formato fecha interesesEnVivo(): MM/YYYY)
+    const intAnio = interesesEnVivo().filter(i => perteneceAnio(i.f));
     const intTotal = intAnio.reduce((s, i) => s + i.neto, 0);
 
     // Ventas cerradas del año seleccionado (formato fecha: YYYY-MM-DD)
@@ -1523,7 +1616,7 @@ function renderProximaAccion() {
 
     // Prioridad 3: objetivo mensual cerca de cumplirse
     const rDiv = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0) / 12;
-    const rInt = (D.intereses || []).reduce((s, i) => s + i.neto, 0) / Math.max(1, (D.intereses || []).length);
+    const rInt = interesesEnVivo().reduce((s, i) => s + i.neto, 0) / Math.max(1, interesesEnVivo().length);
     const totMesActual = rDiv + rInt + 150;
     const faltaObjetivo = 300 - totMesActual;
     if (faltaObjetivo > 0 && faltaObjetivo < 30) {
@@ -1857,6 +1950,15 @@ async function recargar() {
         if (data.resumenDivs) {
             RESUMEN_DIVS_GS = data.resumenDivs;
         }
+        if (data.intereses) {
+            INTERESES_GS = data.intereses;
+        }
+        if (data.savebacks) {
+            SAVEBACKS_GS = data.savebacks;
+        }
+        if (data.evolucion) {
+            EVOLUCION_GS = data.evolucion;
+        }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
         }
@@ -1937,10 +2039,15 @@ function seleccionarAnioTermo(anio) {
     renderDashboard();
 }
 
+function seleccionarAnioDividendos(anio) {
+    ANIO_DIVIDENDOS_TAB = anio;
+    renderDividendos();
+}
+
 function renderFiltroPeriodo() {
     const anios = new Set();
     (divsEnVivo() || []).forEach(d => anios.add(d.f.split('/')[2]));
-    (D.intereses || []).forEach(i => anios.add(i.f.split('/')[1]));
+    interesesEnVivo().forEach(i => anios.add(i.f.split('/')[1]));
     const listaAnios = [...anios].sort();
 
     const boton = (valor, label) => '<button class="btn' + (PERIODO_SELECCIONADO === valor ? ' ac' : '') +
@@ -1983,7 +2090,6 @@ function proximoCobroReal(p) {
 }
 
 function renderDashboard() {
-    const r = D.resumen;
     renderFiltroPeriodo();
     renderSaludCartera();
 
@@ -2005,8 +2111,8 @@ function renderDashboard() {
 
     // Totales SIN filtrar (para el objetivo 300€/mes, que siempre es "el ritmo actual", no depende del periodo elegido)
     const divTotalSinFiltro = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0);
-    const intTotalSinFiltro = (D.intereses || []).reduce((s, i) => s + i.neto, 0);
-    const numMesesInt = Math.max(1, (D.intereses || []).length);
+    const intTotalSinFiltro = interesesEnVivo().reduce((s, i) => s + i.neto, 0);
+    const numMesesInt = Math.max(1, interesesEnVivo().length);
     const numMesesDiv = 12; // dividendos: media sobre 12 meses del año, no sobre el histórico completo
 
     const intMes = intTotalSinFiltro / numMesesInt;
@@ -2018,9 +2124,9 @@ function renderDashboard() {
     const divsFiltrados = (divsEnVivo() || []).filter(d => fechaEnPeriodo_DDMMYYYY(d.f));
     const divTotalReal2 = divsFiltrados.reduce((s, d) => s + d.neto_real, 0);
     const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.devolucion, 0);
-    const intFiltrados = (D.intereses || []).filter(i => fechaEnPeriodo_MMYYYY(i.f));
+    const intFiltrados = interesesEnVivo().filter(i => fechaEnPeriodo_MMYYYY(i.f));
     const intTotalReal = intFiltrados.reduce((s, i) => s + i.neto, 0);
-    const sbFiltrados = (D.savebacks || []).filter(sb => fechaEnPeriodo_DDMMYYYY(sb.f));
+    const sbFiltrados = (savebacksEnVivo() || []).filter(sb => fechaEnPeriodo_DDMMYYYY(sb.f));
     const sbTotalReal = sbFiltrados.reduce((s, sb) => s + sb.i, 0);
 
     const pos = posicionesVivas();
@@ -2512,11 +2618,11 @@ function renderDashboard() {
             '<div style="padding:16px;text-align:center;color:var(--mt);font-size:11px">Sin cobros todavía este año</div>';
     }
 
-    // ── PRÓXIMOS COBROS PREVISTOS (fecha siempre recalculada respecto a hoy) ──
+    // ── PRÓXIMOS COBROS PREVISTOS (100% en vivo: posiciones actuales + calendario real) ──
     const proximos = document.getElementById('dash-proximos');
     if (proximos) {
-        const lista = (D.pendientes || []).map(p => {
-            const prox = proximoCobroReal(p);
+        const lista = proximosCobrosEnVivo().map(p => {
+            const prox = p._prox;
             return Object.assign({}, p, {
                 _orden: prox ? prox.anio * 12 + prox.mes : Infinity,
                 _label: prox ? String(prox.mes).padStart(2, '0') + '/' + prox.anio : 'Próximos meses'
@@ -2998,10 +3104,28 @@ function renderTrampas() {
 
 // ── DIVIDENDOS (COMPLETO PERO RESUMIDO PARA AHORRAR ESPACIO) ──
 function renderDividendos() {
-    const divs = divsEnVivo();
-    const r = D.resumen;
+    const divsTodo = divsEnVivo();
 
-    const divs2026 = divs.filter(d => d.f.includes('2026'));
+    // ── Selector de año: afecta a todas las secciones de esta pestaña ──
+    const anioActualDiv = new Date().getFullYear();
+    if (ANIO_DIVIDENDOS_TAB === null) ANIO_DIVIDENDOS_TAB = String(anioActualDiv);
+    const filtroAnioCont = document.getElementById('filtro-anio-dividendos');
+    if (filtroAnioCont) {
+        const aniosConDatos = [...new Set(divsTodo.map(d => d.f.split('/')[2]))].sort();
+        if (!aniosConDatos.includes(String(anioActualDiv))) aniosConDatos.push(String(anioActualDiv));
+        const botonAnio = (valor, label) => '<button class="btn' + (ANIO_DIVIDENDOS_TAB === valor ? ' ac' : '') +
+            '" onclick="seleccionarAnioDividendos(\'' + valor + '\')">' + label + '</button>';
+        filtroAnioCont.innerHTML = aniosConDatos.sort().map(a => botonAnio(a, a)).join('') + botonAnio('todos',
+            '♾️ Todo el histórico');
+    }
+    const divs = ANIO_DIVIDENDOS_TAB === 'todos' ? divsTodo : divsTodo.filter(d => d.f.endsWith('/' +
+        ANIO_DIVIDENDOS_TAB));
+    const divs2026 = divs; // alias: ya está filtrado por el año elegido arriba
+
+    const tituloResumenEl = document.getElementById('titulo-resumen-ejecutivo');
+    if (tituloResumenEl) tituloResumenEl.textContent = '📊 Resumen ejecutivo dividendos ' + (
+        ANIO_DIVIDENDOS_TAB === 'todos' ? '(todo el histórico)' : ANIO_DIVIDENDOS_TAB);
+
     const total2026 = divs2026.reduce((s, d) => s + d.neto_real, 0);
     const dev2026 = divs2026.reduce((s, d) => s + d.devolucion, 0);
     const bruto2026 = divs2026.reduce((s, d) => s + d.bruto, 0);
@@ -3140,7 +3264,8 @@ function renderDividendos() {
         '<td class="gn">+' + fe(tot.dev) + '</td>' +
         '<td class="gn" style="font-weight:700">' + fe(tot.real) + '</td>';
 
-    const res2 = resumenDivsEnVivo() || [];
+    const res2 = (resumenDivsEnVivo() || []).filter(r => ANIO_DIVIDENDOS_TAB === 'todos' || String(r.año) ===
+        ANIO_DIVIDENDOS_TAB);
     const tbRes = document.getElementById('tb-divs-res');
     if (tbRes) {
         tbRes.innerHTML = res2.sort((a, b) => b.año - a.año || b.neto_real - a.neto_real)
@@ -3191,7 +3316,8 @@ function renderDividendos() {
     const anioActualRank = new Date().getFullYear();
     const anioSiguienteRank = anioActualRank + 1;
     const tituloActual = document.getElementById('ranking-titulo-actual');
-    if (tituloActual) tituloActual.textContent = anioActualRank + ' (real, ya cobrado)';
+    if (tituloActual) tituloActual.textContent = (ANIO_DIVIDENDOS_TAB === 'todos' ? 'Todo el histórico' :
+        ANIO_DIVIDENDOS_TAB) + ' (real, ya cobrado)';
     const tituloSiguiente = document.getElementById('ranking-titulo-siguiente');
     if (tituloSiguiente) tituloSiguiente.textContent = anioSiguienteRank + ' (proyectado)';
 
@@ -3233,17 +3359,18 @@ function renderDividendos() {
     if (totalSiguienteEl) totalSiguienteEl.textContent = fe(Object.values(topActivoSiguiente).reduce((s, v) =>
         s + v, 0));
 
-    const pend = (D.pendientes || []).slice().sort((a, b) => {
-        const proxA = proximoCobroReal(a);
-        const proxB = proximoCobroReal(b);
-        const ordenA = proxA ? proxA.anio * 12 + proxA.mes : Infinity;
-        const ordenB = proxB ? proxB.anio * 12 + proxB.mes : Infinity;
+    const pend = proximosCobrosEnVivo().slice().sort((a, b) => {
+        const ordenA = a._prox ? a._prox.anio * 12 + a._prox.mes : Infinity;
+        const ordenB = b._prox ? b._prox.anio * 12 + b._prox.mes : Infinity;
         return ordenA - ordenB;
     });
+    const anioActualPend = new Date().getFullYear();
     const tbP = document.getElementById('tb-pend');
     if (tbP) tbP.innerHTML = pend.map((p, i) => {
         const bg = i % 2 ? 'background:var(--s2)' : '';
-        const proxColor = p.prox_est.includes('2026') ?
+        const proxReal = p._prox;
+        const proxEstTexto = proxReal ? String(proxReal.mes).padStart(2, '0') + '/' + proxReal.anio : '—';
+        const proxColor = proxReal && proxReal.anio === anioActualPend ?
             'color:#34C77B;font-weight:700' :
             'color:var(--mt)';
         return '<tr style="' + bg + '">' +
@@ -3252,8 +3379,8 @@ function renderDividendos() {
             '<td class="mt2" style="font-size:9px">' + p.freq + '</td>' +
             '<td class="mt2">' + p.sh + '</td>' +
             '<td class="mt2" style="font-size:9px">' + p.ultimo_cobro + '</td>' +
-            '<td style="font-family:monospace;font-size:10px;font-weight:600;' + proxColor + '">' + p
-            .prox_est + '</td>' +
+            '<td style="font-family:monospace;font-size:10px;font-weight:600;' + proxColor + '">' +
+            proxEstTexto + '</td>' +
             '<td class="bl">' + (p.bruto_est ? fe(p.bruto_est) : '—') + '</td>' +
             '<td class="rd">' + (p.ret_o_est > 0 ? '-' + fe(p.ret_o_est) : '—') + '</td>' +
             '<td class="am">' + fe(p.neto_tr_est) + '</td>' +
@@ -3321,7 +3448,7 @@ function renderDividendos() {
 
 // ── INTERESES ──
 function renderIntereses() {
-    const ints = D.intereses;
+    const ints = interesesEnVivo();
     const tot = ints.reduce((s, i) => s + i.bruto, 0);
     const totn = ints.reduce((s, i) => s + i.neto, 0);
     const ult = ints[ints.length - 1]?.bruto || 0;
@@ -3371,7 +3498,7 @@ function renderIntereses() {
 
 // ── EVOLUCIÓN ──
 function renderEvolucion() {
-    const ev = D.evolucion;
+    const ev = evolucionEnVivo() || [];
     const canvasEvo = document.getElementById('ce');
     if (canvasEvo) {
         if (window._chartEvo) { window._chartEvo.destroy(); }
@@ -3454,7 +3581,7 @@ function renderProyecciones() {
             </div>
             <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
                 <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Aportación necesaria para 300€/mes</div>
-                <div style="font-size:18px;font-weight:700;color:#E85A5A">${fe(Math.max(0, 300 - netoRealMensual - 150 - (D.resumen.intNeto/11)))}</div>
+                <div style="font-size:18px;font-weight:700;color:#E85A5A">${fe(Math.max(0, 300 - netoRealMensual - 150 - (interesesEnVivo().reduce((s,i)=>s+i.neto,0)/Math.max(1,interesesEnVivo().length))))}</div>
             </div>
         </div>
         <div style="margin-top:12px;background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
@@ -3527,7 +3654,7 @@ function renderProyecciones() {
             '% de tu cartera. Considera diversificar para reducir riesgo.');
     });
 
-    const topYield = D.pendientes.filter(p => p.neto_real_est > 0)
+    const topYield = proximosCobrosEnVivo().filter(p => p.neto_real_est > 0)
         .sort((a, b) => (b.neto_real_est / b.sh) - (a.neto_real_est / a.sh))
         .slice(0, 3);
     recoms.push('📈 Para aumentar dividendos, refuerza posiciones con mejor ratio: ' + topYield.map(p => p.n +
@@ -3541,7 +3668,7 @@ function renderProyecciones() {
         recoms.push('📊 Tus dividendos aún son modestos. Considera aumentar posiciones en REITs como Realty Income o VICI Properties para generar más flujo mensual.');
     }
 
-    const metaFalta = 300 - (D.resumen.intNeto / 11) - (divs2026total / Math.max(1, mesActualNum)) - 150;
+    const metaFalta = 300 - (interesesEnVivo().reduce((s,i)=>s+i.neto,0)/Math.max(1,interesesEnVivo().length)) - (divs2026total / Math.max(1, mesActualNum)) - 150;
     if (metaFalta > 0) {
         recoms.push('🎯 Para alcanzar los 300€/mes necesitas generar ' + fe(metaFalta) +
             ' adicionales al mes. Refuerza posiciones con yield >5% o aumenta aportaciones mensuales en ' +
@@ -3591,7 +3718,7 @@ function calcularBaseAhorroAnual() {
     const anioActual = new Date().getFullYear();
     const divsAnio = (divsEnVivo() || []).filter(d => d.f.includes(String(anioActual)))
         .reduce((s, d) => s + d.neto_final, 0);
-    const intAnio = (D.intereses || []).filter(i => i.f.endsWith('/' + anioActual))
+    const intAnio = interesesEnVivo().filter(i => i.f.endsWith('/' + anioActual))
         .reduce((s, i) => s + i.neto, 0);
     const gpAnio = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
         .reduce((s, o) => s + o.gp, 0);
