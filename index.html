@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2389,37 +2390,36 @@ function renderDashboard() {
             ('<div style="margin-top:3px"><span class="pr ' + pc +
                 '" style="display:inline-block;font-size:' + (grande ? '11px' : '9px') +
                 ';padding:2px 7px">' + t.p + '</span></div>') : '';
+        const yieldPct = t.t ? (t.dv / t.t * 100) : 0;
+        const proy1000 = t.t ? (1000 / t.t * t.dv) : 0; // bruto anual si se invirtieran 1000€ a precio de la trampa
         return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
-            ';border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:' + (grande ? '14px' : '8px') +
-            estiloExtra + '">' +
-            '<div style="flex:1;min-width:0">' +
-            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:' +
-            fName + ';font-weight:700">' + t.n + '</span>' + insigniaCorta + estadoOrden + '</div>' +
+            ';border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:2px' + estiloExtra + '">' +
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">' +
+            '<span style="font-size:' + fName + ';font-weight:700;flex:1;min-width:0">' + t.n + '</span>' +
+            '<span style="font-size:' + (grande ? '16px' : '12px') + ';font-weight:800;color:' + colorPct +
+            ';flex-shrink:0">' + (d ? d.toFixed(1) + '%' : '—') + '</span>' +
+            insigniaCorta + estadoOrden + '</div>' +
             filaLarga +
-            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:4px">' + (t.acc ? f2(t.acc) + ' acc.' :
+            (grande ? '' :
+                '<div style="background:var(--bd);border-radius:2px;height:3px;overflow:hidden;margin:2px 0"><div class="tfill ' +
+                cls + '" style="width:' + pct2 + '%"></div></div>') +
+            '<div style="font-size:' + fSub + ';color:var(--mt)">' + (t.acc ? f2(t.acc) + ' acc.' :
                 '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
-            '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
+            '<div style="font-size:' + fSub + ';color:var(--mt)">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
             ' · <span style="color:' + (t.pa - t.t <= 0 ? 'var(--gn)' : 'var(--am)') + '">Dif ' + (t.pa - t.t >=
                 0 ? '+' : '') + fe(t.pa - t.t) + '</span></div>' +
-            (t.dv ? '<div style="font-size:' + fSub + ';color:var(--gn);margin-top:2px">Div. ' + fe(t.dv) +
-                '/año · ' + (t.dv / t.t * 100).toFixed(2) + '% yield</div>' : '') +
+            (t.dv ? '<div style="font-size:' + fSub + ';color:var(--gn)">Si inviertes 1.000€ a ' + fe(t.t) +
+                ': ' + fe(proy1000) + '/año bruto (' + yieldPct.toFixed(2) + '% yield)</div>' : '') +
             (t.pAnadir ? (() => {
                 const dias = diasDesde(t.fAnadir);
                 const pctDesde = ((t.pa - t.pAnadir) / t.pAnadir * 100);
-                return '<div style="font-size:' + fSub + ';color:var(--mt);margin-top:2px">👁️ Vista a ' + fe(t
+                return '<div style="font-size:' + fSub + ';color:var(--mt)">👁️ Vista a ' + fe(t
                     .pAnadir) + (dias !== null ? ' hace ' + dias + ' día' + (dias === 1 ? '' : 's') : '') +
                     ' · <span style="color:' + (pctDesde <= 0 ? 'var(--gn)' : 'var(--am)') + '">' + (pctDesde >=
                         0 ? '+' : '') + pctDesde.toFixed(1) + '% desde entonces</span></div>';
             })() : '') +
             (t.nota ? '<div style="font-size:' + fSub +
-                ';color:var(--ac);margin-top:2px;font-style:italic">📝 ' + t.nota + '</div>' : '') +
-            '</div>' +
-            (grande ? '' :
-                '<div style="flex:1;background:var(--bd);border-radius:2px;height:3px;overflow:hidden"><div class="tfill ' +
-                cls + '" style="width:' + pct2 + '%"></div></div>') +
-            '<div style="font-size:' + fPct + ';font-weight:700;flex-shrink:0;min-width:' + (grande ? '90px' :
-                '44px') +
-            ';text-align:right;color:' + colorPct + '">' + (d ? d.toFixed(1) + '%' : '—') + '</div>' +
+                ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
             '</div>';
     };
 
@@ -2747,6 +2747,23 @@ function renderDashboard() {
     });
     if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
             '% de tu objetivo de 300€/mes' });
+
+    // ── Plan de Pánico: avisar en cuanto cualquier activo cruce cualquier tramo ──
+    if (PLAN_PANICO_GS && PLAN_PANICO_GS.length) {
+        const CAPITAL_POR_TRAMO_ALERTA = 10000;
+        [1, 2, 3].forEach(t => {
+            const nivel = 'tramo' + t;
+            const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
+            const disparados = PLAN_PANICO_GS.filter(p => p.precioActual && p[nivel] && p.precioActual <= p[
+                nivel]);
+            if (disparados.length) {
+                const importeCada = CAPITAL_POR_TRAMO_ALERTA / disparados.length;
+                alertas.push({ tipo: 'success', icon: '🚨', msg: 'PANICO: Tramo ' + t + ' (' + caidaPct +
+                        ') activado — ' + disparados.map(d => d.nombre).join(', ') + '. Invertir ' + fe(
+                        importeCada, 0) + ' en cada una' });
+            }
+        });
+    }
     if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
 
     const alertasHtml = alertas.map(a =>
@@ -2793,13 +2810,13 @@ function renderPlanPanico() {
         const disparados = disparadosPorTramo[t];
         const importePorActivo = disparados.length ? CAPITAL_POR_TRAMO / disparados.length : 0;
         const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
-        return '<div style="background:' + (disparados.length ? 'rgba(232,90,90,0.1)' : 'var(--s2)') +
-            ';border:1px solid ' + (disparados.length ? 'var(--rd)' : 'var(--bd)') +
+        return '<div style="background:' + (disparados.length ? 'rgba(52,199,123,0.12)' : 'var(--s2)') +
+            ';border:1px solid ' + (disparados.length ? 'var(--gn)' : 'var(--bd)') +
             ';border-radius:8px;padding:10px;margin-bottom:8px">' +
             '<div style="display:flex;justify-content:space-between;align-items:center">' +
             '<b style="font-size:11px">Tramo ' + t + ' (' + caidaPct + ') — ' + fe(CAPITAL_POR_TRAMO, 0) +
             '</b>' +
-            (disparados.length ? '<span style="color:var(--rd);font-weight:800;font-size:11px">🚨 ' +
+            (disparados.length ? '<span style="color:var(--gn);font-weight:800;font-size:11px">🟢 ' +
                 disparados.length + ' activo' + (disparados.length === 1 ? '' : 's') + ' a tiro</span>' :
                 '<span class="mt2" style="font-size:10px">Esperando</span>') +
             '</div>' +
@@ -2810,7 +2827,7 @@ function renderPlanPanico() {
     }).join('');
 
     const totalActivosPlan = PLAN_PANICO_GS.length;
-    const tablaActivos = '<div class="mt2" style="font-size:8px;padding:0 0 8px">El importe en gris (con ~) es una referencia si se repartiera entre las 10, antes de disparar. En rojo/verde es el importe real a invertir ahora mismo, repartido solo entre las que ya han disparado ese tramo.</div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Precio hoy</th><th>Tramo 1</th><th>Tramo 2</th><th>Tramo 3</th></tr></thead><tbody>' +
+    const tablaActivos = '<div class="mt2" style="font-size:8px;padding:0 0 8px">El importe en gris (con ~) es una referencia si se repartiera entre las 10, antes de disparar. En verde es el importe real a invertir ahora mismo, repartido solo entre las que ya han disparado ese tramo.</div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Precio hoy</th><th>Tramo 1</th><th>Tramo 2</th><th>Tramo 3</th></tr></thead><tbody>' +
         PLAN_PANICO_GS.map(p => {
             const celda = (nivel, num) => {
                 const disparado = p.precioActual && p[nivel] && p.precioActual <= p[nivel];
@@ -2818,8 +2835,9 @@ function renderPlanPanico() {
                 const nDisparadosEsteTramo = disparadosPorTramo[num].length;
                 const importeVivo = disparado ? (CAPITAL_POR_TRAMO / nDisparadosEsteTramo) : (CAPITAL_POR_TRAMO /
                     totalActivosPlan); // si aún no ha disparado nadie, referencia aproximada (reparto entre todos)
-                return '<td style="' + (disparado ? 'color:var(--rd);font-weight:800' : 'color:var(--mt)') +
-                    '">' + fe(p[nivel], 0) + (disparado ? ' 🚨<div style="font-size:10px;font-weight:800;color:var(--gn)">' +
+                return '<td style="' + (disparado ? 'color:var(--gn);font-weight:800;background:rgba(52,199,123,0.1)' :
+                    'color:var(--mt)') +
+                    '">' + fe(p[nivel], 0) + (disparado ? ' 🟢<div style="font-size:10px;font-weight:800;color:var(--gn)">' +
                         fe(importeVivo, 0) + '</div>' : '<div class="mt2" style="font-size:8px">' + (distPct >=
                         0 ? '+' : '') + distPct.toFixed(0) + '% · ~' + fe(importeVivo, 0) + '</div>') + '</td>';
             };
