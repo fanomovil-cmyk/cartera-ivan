@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -262,14 +263,17 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- TABS -->
 <div class="tabs">
-  <button class="tb on" data-tab="0" onclick="sw(0)">📊 Centro de Mando</button>
-  <button class="tb" data-tab="2" onclick="sw(2)">🎯 Trampas Activas</button>
-  <button class="tb" data-tab="5" onclick="sw(5)">📅 Línea Temporal</button>
-  <button class="tb" data-tab="6" onclick="sw(6)">🔮 Simulaciones</button>
-  <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analíticas</button>
-  <button class="tb" data-tab="8" onclick="sw(8)">📈 Operaciones Cerradas</button>
-  <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Histórico Anual</button>
-  <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle de Activo</button>
+  <button class="tb on" data-tab="0" onclick="sw(0)">📊 Mando</button>
+  <button class="tb" data-tab="1" onclick="sw(1)">💼 Flota</button>
+  <button class="tb" data-tab="2" onclick="sw(2)">🎯 Trampas</button>
+  <button class="tb" data-tab="3" onclick="sw(3)">💰 Dividendos</button>
+  <button class="tb" data-tab="4" onclick="sw(4)">🏦 Intereses</button>
+  <button class="tb" data-tab="5" onclick="sw(5)">📅 Temporal</button>
+  <button class="tb" data-tab="6" onclick="sw(6)">🔮 Simular</button>
+  <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analítica</button>
+  <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
+  <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Anual</button>
+  <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -313,6 +317,10 @@ html.light .badge-orden.venta{color:#B33A3A}
       <div class="ch"><h3>📅 Entradas en el radar</h3></div>
       <div id="dash-proximos"></div>
     </div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--rd)" id="plan-panico-card">
+    <div class="ch"><h3>🚨 Plan de Pánico — caída general de mercado</h3><span class="mt2" style="font-size:8px">30.000€ en 3 tramos de 10.000€, decidido de antemano</span></div>
+    <div style="padding:14px 16px" id="plan-panico-container"></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>✅ Verificación con Trade Republic</h3><span class="mt2" style="font-size:8px">comprueba que no hay errores</span></div>
@@ -532,7 +540,10 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg8"></div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📈 Historial de compras y ventas cerradas</h3><span class="mt2" style="font-size:9px">Ganancia/pérdida real por operación (FIFO)</span></div>
-    <div style="padding:10px 16px 0"><select class="sim-input" id="filtro-operaciones-select" style="width:100%;max-width:320px" onchange="renderOperaciones()"><option value="">Todas las operaciones</option></select></div>
+    <div style="padding:10px 16px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="sim-input" id="filtro-operaciones-select" style="width:auto;min-width:200px" onchange="renderOperaciones()"><option value="">Todas las operaciones</option></select>
+      <div id="filtro-anio-operaciones" style="display:flex;gap:6px;flex-wrap:wrap">—</div>
+    </div>
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha venta</th><th>Acciones</th><th>P.Compra</th><th>P.Venta</th><th>Coste</th><th>Ingreso</th><th>G/P €</th><th>G/P %</th></tr></thead><tbody id="tb-operaciones"></tbody></table></div>
   </div>
 </div>
@@ -847,12 +858,24 @@ let DIVIDENDOS_GS = null,
     INTERESES_GS = null,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
+let PLAN_PANICO_GS = [];
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
 let ULTIMA_FECHA_CSV_GS = null;
 let ANIO_DIVIDENDOS_TAB = null; // null = año actual por defecto; también puede ser 'todos' o un año concreto
+let ANIO_OPERACIONES_TAB = 'todos';
+
+function seleccionarAnioOperaciones(anio) {
+    ANIO_OPERACIONES_TAB = anio;
+    renderOperaciones();
+}
+
+function seleccionarAnioDetalleActivo(anio) {
+    window.ANIO_DETALLE_ACTIVO_TAB = anio;
+    renderDetalleActivo();
+}
 let EFECTIVO_PROPIO_TR = 0;
 const trampasAvisadas = new Set();
 
@@ -1078,7 +1101,19 @@ function renderOperaciones() {
         if (nombresUnicos.includes(seleccionPrevia)) selFiltro.value = seleccionPrevia;
     }
     const filtroActivo = selFiltro ? selFiltro.value : '';
-    const ops = filtroActivo ? OPERACIONES_CERRADAS.filter(o => o.n === filtroActivo) : OPERACIONES_CERRADAS;
+
+    // Selector de año, basado en el año de la fecha de venta (o.fecha es "yyyy-MM-dd")
+    const contAnio = document.getElementById('filtro-anio-operaciones');
+    if (contAnio) {
+        const aniosOps = [...new Set(OPERACIONES_CERRADAS.map(o => o.fecha.split('-')[0]))].sort();
+        const botonAnioOp = (valor, label) => '<button class="btn' + (ANIO_OPERACIONES_TAB === valor ? ' ac' :
+            '') + '" style="font-size:10px" onclick="seleccionarAnioOperaciones(\'' + valor + '\')">' + label +
+            '</button>';
+        contAnio.innerHTML = botonAnioOp('todos', 'Todos') + aniosOps.map(a => botonAnioOp(a, a)).join('');
+    }
+    const opsPorAnio = ANIO_OPERACIONES_TAB === 'todos' ? OPERACIONES_CERRADAS : OPERACIONES_CERRADAS.filter(o =>
+        o.fecha.startsWith(ANIO_OPERACIONES_TAB));
+    const ops = filtroActivo ? opsPorAnio.filter(o => o.n === filtroActivo) : opsPorAnio;
 
     const totalGP = ops.reduce((s, o) => s + o.gp, 0);
     const ganadoras = ops.filter(o => o.gp > 0).length;
@@ -1308,17 +1343,40 @@ function renderDetalleActivo() {
     const retornoTotalPct = p.ct ? (retornoTotal / p.ct * 100) : 0;
 
     // Movimientos: dividendos + ventas cerradas, todo junto y ordenado por fecha
-    const movimientos = [
-        ...divsActivo.map(d => ({ fecha: d.f, tipo: 'Dividendo', detalle: 'Cobro neto', monto: d.neto_real,
-            color: 'var(--gn)' })),
-        ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta', detalle: o
-                .acciones.toFixed(4) + ' acc. a ' + f2(o.pVenta) + '€', monto: o.gp, color: o.gp >= 0 ?
-                'var(--gn)' : 'var(--rd)' }))
+    const anioActualDetMov = new Date().getFullYear();
+    if (!window.ANIO_DETALLE_ACTIVO_TAB) window.ANIO_DETALLE_ACTIVO_TAB = 'todos';
+    const todosLosMovimientos = [
+        ...divsActivo.map(d => {
+            const porAccion = d.sh ? (d.bruto / d.sh) : 0;
+            const rentPagoActual = pa ? (porAccion / pa * 100) : 0;
+            const detalleDivHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:4px 10px;margin-top:4px">' +
+                '<div><span class="mt2">Acciones</span><br>' + fe(d.sh, 4) + '</div>' +
+                '<div><span class="mt2">€/acción</span><br>' + fe(porAccion, 4) + '€</div>' +
+                '<div><span class="mt2">Bruto</span><br>' + fe(d.bruto) + '€</div>' +
+                (d.ret_origen > 0 ? '<div><span class="mt2">Ret. origen</span><br><span style="color:var(--rd)">-' +
+                    fe(d.ret_origen) + '€</span></div>' : '') +
+                '<div><span class="mt2">IRPF</span><br><span style="color:var(--rd)">-' + fe(d.tax_es) +
+                '€</span></div>' +
+                '<div><span class="mt2">Neto</span><br>' + fe(d.neto_final) + '€</div>' +
+                (d.devolucion > 0 ? '<div><span class="mt2">+Dev. Hacienda</span><br><span style="color:var(--gn)">+' +
+                    fe(d.devolucion) + '€</span></div>' : '') +
+                '<div><span class="mt2">Rent. s/precio hoy</span><br>' + rentPagoActual.toFixed(2) + '%</div>' +
+                '</div>';
+            return { fecha: d.f, tipo: 'Dividendo', detalleHTML: detalleDivHTML, monto: d.neto_real,
+                color: 'var(--gn)' };
+        }),
+        ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta',
+            detalleHTML: '<div class="mt2" style="margin-top:2px">' + fe(o.acciones, 4) + ' acc. a ' + fe(o.pVenta) +
+                '€</div>', monto: o.gp, color: o.gp >= 0 ? 'var(--gn)' : 'var(--rd)' }))
     ].sort((a, b) => {
         const [da, ma, ya] = a.fecha.split('/');
         const [db, mb, yb] = b.fecha.split('/');
         return (yb + mb + db).localeCompare(ya + ma + da);
-    }).slice(0, 15);
+    });
+    const aniosMovimientos = [...new Set(todosLosMovimientos.map(m => m.fecha.split('/')[2]))].sort();
+    const movimientos = (window.ANIO_DETALLE_ACTIVO_TAB === 'todos' ? todosLosMovimientos :
+        todosLosMovimientos.filter(m => m.fecha.endsWith('/' + window.ANIO_DETALLE_ACTIVO_TAB))).slice(0,
+        window.ANIO_DETALLE_ACTIVO_TAB === 'todos' ? 15 : 999);
 
     cont.innerHTML = `
         <div class="card" style="margin-top:12px">
@@ -1356,12 +1414,16 @@ function renderDetalleActivo() {
             <div class="mt2" style="font-size:9px;padding:0 16px 12px">Yield sobre coste (todo el histórico): ${yieldSobreCoste.toFixed(2)}%</div>
         </div>
         <div class="card" style="margin-top:12px">
-            <div class="ch"><h3>📋 Últimos movimientos</h3></div>
-            <div class="sc" style="max-height:300px">
+            <div class="ch"><h3>📋 Movimientos</h3><span class="mt2" style="font-size:8px">${window.ANIO_DETALLE_ACTIVO_TAB==='todos'?'últimos 15':'todos los del año elegido'}</span></div>
+            <div style="padding:10px 16px 0;display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn${window.ANIO_DETALLE_ACTIVO_TAB==='todos'?' ac':''}" style="font-size:10px" onclick="seleccionarAnioDetalleActivo('todos')">Todos (últimos 15)</button>
+                ${aniosMovimientos.map(a=>`<button class="btn${window.ANIO_DETALLE_ACTIVO_TAB===a?' ac':''}" style="font-size:10px" onclick="seleccionarAnioDetalleActivo('${a}')">${a}</button>`).join('')}
+            </div>
+            <div class="sc" style="max-height:400px">
                 ${movimientos.length ? movimientos.map(mv => `
-                    <div style="display:flex;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--bd);font-size:11px">
-                        <div><span class="mt2" style="font-size:9px">${mv.fecha}</span> · <b>${mv.tipo}</b><div class="mt2" style="font-size:9px">${mv.detalle}</div></div>
-                        <div style="font-family:monospace;font-weight:700;color:${mv.color}">${(mv.monto>=0?'+':'')+fe(mv.monto)}</div>
+                    <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:11px;min-width:0">
+                        <div style="flex:1;min-width:0"><span class="mt2" style="font-size:9px">${mv.fecha}</span> · <b>${mv.tipo}</b>${mv.detalleHTML}</div>
+                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">${(mv.monto>=0?'+':'')+fe(mv.monto)}€</div>
                     </div>`).join('') : '<div class="mt2" style="padding:14px;font-size:10px">Sin movimientos registrados.</div>'}
             </div>
         </div>
@@ -1958,6 +2020,9 @@ async function recargar() {
         if (data.evolucion) {
             EVOLUCION_GS = data.evolucion;
         }
+        if (data.planPanico) {
+            PLAN_PANICO_GS = data.planPanico;
+        }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
         }
@@ -2091,6 +2156,7 @@ function proximoCobroReal(p) {
 function renderDashboard() {
     renderFiltroPeriodo();
     renderSaludCartera();
+    renderPlanPanico();
 
     // Rango de fechas del Centro de Mando: inicio = primera compra real, fin = última fecha real del CSV
     const rangoEl = document.getElementById('rango');
@@ -2705,6 +2771,67 @@ function tieneResultadosEsteMes(nombre) {
 }
 
 // ── SALUD DE LA CARTERA — puntuación 0-100 de un vistazo ──
+// ── PLAN DE PÁNICO: 30.000€ en 3 tramos, decidido de antemano — cero pensar el día que toque ──
+function renderPlanPanico() {
+    const cont = document.getElementById('plan-panico-container');
+    if (!cont) return;
+    if (!PLAN_PANICO_GS.length) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Aún no has creado la hoja PANICO — en cuanto la rellenes, aquí aparecerá el plan listo para ejecutar.</div>';
+        return;
+    }
+    const CAPITAL_POR_TRAMO = 10000;
+
+    // Para cada tramo, qué activos ya han disparado (precio actual <= precio del tramo)
+    const disparadosPorTramo = { 1: [], 2: [], 3: [] };
+    PLAN_PANICO_GS.forEach(p => {
+        if (p.precioActual && p.tramo1 && p.precioActual <= p.tramo1) disparadosPorTramo[1].push(p);
+        if (p.precioActual && p.tramo2 && p.precioActual <= p.tramo2) disparadosPorTramo[2].push(p);
+        if (p.precioActual && p.tramo3 && p.precioActual <= p.tramo3) disparadosPorTramo[3].push(p);
+    });
+
+    const resumenTramos = [1, 2, 3].map(t => {
+        const disparados = disparadosPorTramo[t];
+        const importePorActivo = disparados.length ? CAPITAL_POR_TRAMO / disparados.length : 0;
+        const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
+        return '<div style="background:' + (disparados.length ? 'rgba(232,90,90,0.1)' : 'var(--s2)') +
+            ';border:1px solid ' + (disparados.length ? 'var(--rd)' : 'var(--bd)') +
+            ';border-radius:8px;padding:10px;margin-bottom:8px">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<b style="font-size:11px">Tramo ' + t + ' (' + caidaPct + ') — ' + fe(CAPITAL_POR_TRAMO, 0) +
+            '</b>' +
+            (disparados.length ? '<span style="color:var(--rd);font-weight:800;font-size:11px">🚨 ' +
+                disparados.length + ' activo' + (disparados.length === 1 ? '' : 's') + ' a tiro</span>' :
+                '<span class="mt2" style="font-size:10px">Esperando</span>') +
+            '</div>' +
+            (disparados.length ? '<div class="mt2" style="font-size:10px;margin-top:6px">Repartir ' + fe(
+                    importePorActivo, 0) + ' entre: ' + disparados.map(d => d.nombre).join(', ') + '</div>' :
+                '') +
+            '</div>';
+    }).join('');
+
+    const totalActivosPlan = PLAN_PANICO_GS.length;
+    const tablaActivos = '<div class="mt2" style="font-size:8px;padding:0 0 8px">El importe en gris (con ~) es una referencia si se repartiera entre las 10, antes de disparar. En rojo/verde es el importe real a invertir ahora mismo, repartido solo entre las que ya han disparado ese tramo.</div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Precio hoy</th><th>Tramo 1</th><th>Tramo 2</th><th>Tramo 3</th></tr></thead><tbody>' +
+        PLAN_PANICO_GS.map(p => {
+            const celda = (nivel, num) => {
+                const disparado = p.precioActual && p[nivel] && p.precioActual <= p[nivel];
+                const distPct = p[nivel] ? ((p.precioActual - p[nivel]) / p[nivel] * 100) : 0;
+                const nDisparadosEsteTramo = disparadosPorTramo[num].length;
+                const importeVivo = disparado ? (CAPITAL_POR_TRAMO / nDisparadosEsteTramo) : (CAPITAL_POR_TRAMO /
+                    totalActivosPlan); // si aún no ha disparado nadie, referencia aproximada (reparto entre todos)
+                return '<td style="' + (disparado ? 'color:var(--rd);font-weight:800' : 'color:var(--mt)') +
+                    '">' + fe(p[nivel], 0) + (disparado ? ' 🚨<div style="font-size:10px;font-weight:800;color:var(--gn)">' +
+                        fe(importeVivo, 0) + '</div>' : '<div class="mt2" style="font-size:8px">' + (distPct >=
+                        0 ? '+' : '') + distPct.toFixed(0) + '% · ~' + fe(importeVivo, 0) + '</div>') + '</td>';
+            };
+            return '<tr><td style="font-weight:700;font-size:11px">' + p.nombre + '</td>' +
+                '<td style="font-family:monospace">' + fe(p.precioActual, 0) + '</td>' +
+                celda('tramo1', 1) + celda('tramo2', 2) + celda('tramo3', 3) +
+                '</tr>';
+        }).join('') + '</tbody></table></div>';
+
+    cont.innerHTML = resumenTramos + tablaActivos;
+}
+
 function renderSaludCartera() {
     const cont = document.getElementById('salud-cartera-container');
     if (!cont) return;
