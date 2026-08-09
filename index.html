@@ -2604,13 +2604,23 @@ function renderDashboard() {
         const maxT = Math.max(1, ...totales, ...previstos);
         heatmap.innerHTML = meses.map((m, idx) => {
             const esMesActual = esAnioActualReal && idx === mesActual;
-            // El mes actual: si ya hay algo cobrado este mes, lo mostramos como "cobrado";
-            // si todavía no ha llegado nada, mostramos la previsión (antes se quedaba en blanco).
-            const usarPrevision = esAnioPrevision || (esAnioActualReal && idx > mesActual) ||
-                (esMesActual && totales[idx] <= 0);
-            const esFuturo = usarPrevision;
-            const valor = esFuturo ? previstos[idx] : totales[idx];
-            const detalle = agregarPorEmpresa(esFuturo ? previstosDetalle[idx] : historicoDetalle[idx]);
+            let valor, detalle, esFuturo;
+            if (esMesActual) {
+                // Mes en curso: sumamos lo YA cobrado + lo que aún falta por cobrar de empresas que
+                // este mes todavía no han pagado (antes se perdía esto en cuanto entraba el primer
+                // cobro del mes, mostrando solo esa empresa y dejando fuera al resto).
+                const empresasYaCobradasEsteMes = new Set(historicoDetalle[idx].map(h => h.n));
+                const previstoRestante = previstosDetalle[idx].filter(p => !empresasYaCobradasEsteMes.has(p.n));
+                valor = totales[idx] + previstoRestante.reduce((s, p) => s + p.monto, 0);
+                detalle = agregarPorEmpresa([...historicoDetalle[idx], ...previstoRestante.map(p => ({ n: p.n +
+                    ' (previsto)', monto: p.monto }))]);
+                esFuturo = previstoRestante.length > 0; // naranja si aún queda algo pendiente ese mes, verde si ya está todo cobrado
+            } else {
+                const usarPrevision = esAnioPrevision || (esAnioActualReal && idx > mesActual);
+                esFuturo = usarPrevision;
+                valor = esFuturo ? previstos[idx] : totales[idx];
+                detalle = agregarPorEmpresa(esFuturo ? previstosDetalle[idx] : historicoDetalle[idx]);
+            }
             // Verde = ya cobrado (mes pasado o actual con importe), Naranja = por cobrar (futuro), Gris = sin dato
             const color = valor <= 0 ? 'var(--bd)' : esFuturo ? 'var(--am)' : 'var(--gn)';
             const alturaPct = valor > 0 ? Math.max(10, valor / maxT * 100) : 4;
