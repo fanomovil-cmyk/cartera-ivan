@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -3063,8 +3062,7 @@ function renderCartera() {
     });
 
     document.getElementById('tb-cartera').innerHTML = pos.map((p, i) => {
-        const gs = MAP[p.n] || p.n;
-        const pa = PA[gs] || 0;
+        const pa = precioDe(p);
         const val = pa ? pa * p.sh : 0;
         const gp = pa ? val - p.ct : 0;
         const rp = p.ct && pa ? (gp / p.ct * 100) : 0;
