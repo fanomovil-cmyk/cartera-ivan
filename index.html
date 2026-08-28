@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -424,6 +425,14 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="card">
     <div class="ch"><h3>💰 Detalle cobros — Fiscalidad completa</h3></div>
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:130px">Activo</th><th>País</th><th>Fecha</th><th>Acc.</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES 19%</th><th>Neto cobrado</th><th>Dev.Hacienda</th><th>Neto real</th></tr></thead><tbody id="tb-divs"></tbody><tfoot><tr id="tf-divs"><td colspan="11">—</td></tr></tfoot></table></div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
+    <div class="ch"><h3>💊 Salud del dividendo — € por acción y año</h3><span class="mt2" style="font-size:8px">esto SÍ es puro: no se contamina si compras más acciones ese año</span></div>
+    <div style="padding:14px 16px" id="dividendo-por-accion-container"></div>
+  </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
+    <div class="ch"><h3>🚦 Tendencia de rentabilidad por empresa y año</h3><span class="mt2" style="font-size:8px">verde = creciendo · naranja = plano · rojo = cayendo — pista para rotar una "Forever"</span></div>
+    <div style="padding:14px 16px" id="tendencia-empresas-container"></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
     <div class="ch"><h3>📊 Acumulado anual por activo — Devolución Hacienda</h3></div>
@@ -1091,14 +1100,19 @@ function renderOperaciones() {
     if (!tb) return;
 
     // Poblar el desplegable con los activos que tienen alguna operación cerrada, conservando
-    // la selección actual del usuario (se repuebla cada vez por si aún no habían llegado los datos)
+    // la selección actual del usuario (se repuebla cada vez por si aún no habían llegado los datos).
+    // El VALOR es el ISIN (estable aunque cambies el nombre); la ETIQUETA es el nombre más reciente.
     const selFiltro = document.getElementById('filtro-operaciones-select');
     if (selFiltro) {
         const seleccionPrevia = selFiltro.value;
-        const nombresUnicos = [...new Set(OPERACIONES_CERRADAS.map(o => o.n))].sort();
+        const nombrePorIsinFiltro = {};
+        OPERACIONES_CERRADAS.forEach(o => { nombrePorIsinFiltro[o.isin || o.n] = o.n; });
+        const clavesUnicas = Object.keys(nombrePorIsinFiltro).sort((a, b) => nombrePorIsinFiltro[a].localeCompare(
+            nombrePorIsinFiltro[b]));
         selFiltro.innerHTML = '<option value="">Todas las operaciones</option>' +
-            nombresUnicos.map(n => '<option value="' + n + '">' + n + '</option>').join('');
-        if (nombresUnicos.includes(seleccionPrevia)) selFiltro.value = seleccionPrevia;
+            clavesUnicas.map(clave => '<option value="' + clave + '">' + nombrePorIsinFiltro[clave] +
+                '</option>').join('');
+        if (clavesUnicas.includes(seleccionPrevia)) selFiltro.value = seleccionPrevia;
     }
     const filtroActivo = selFiltro ? selFiltro.value : '';
 
@@ -1113,7 +1127,7 @@ function renderOperaciones() {
     }
     const opsPorAnio = ANIO_OPERACIONES_TAB === 'todos' ? OPERACIONES_CERRADAS : OPERACIONES_CERRADAS.filter(o =>
         o.fecha.startsWith(ANIO_OPERACIONES_TAB));
-    const ops = filtroActivo ? opsPorAnio.filter(o => o.n === filtroActivo) : opsPorAnio;
+    const ops = filtroActivo ? opsPorAnio.filter(o => (o.isin || o.n) === filtroActivo) : opsPorAnio;
 
     const totalGP = ops.reduce((s, o) => s + o.gp, 0);
     const ganadoras = ops.filter(o => o.gp > 0).length;
@@ -1315,10 +1329,12 @@ function renderDetalleActivo() {
     const gananciaPrecio = pa ? (val - p.ct) : 0;
     const rentPrecioPct = p.ct && pa ? (gananciaPrecio / p.ct * 100) : 0;
 
-    // Ganancia realizada: ventas parciales ya cerradas de este mismo activo (cruce por primera palabra del nombre)
+    // Ganancia realizada: ventas parciales ya cerradas de este mismo activo (cruce por ISIN — si
+    // cambia el nombre en CARTERA, el cruce sigue funcionando bien; el nombre solo era un respaldo)
     const normalizar = s => (s || '').split(' ')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const nPrimera = normalizar(p.n);
-    const ventasCerradas = (OPERACIONES_CERRADAS || []).filter(o => normalizar(o.n) === nPrimera);
+    const ventasCerradas = (OPERACIONES_CERRADAS || []).filter(o => p.isin && o.isin ? o.isin === p.isin :
+        normalizar(o.n) === nPrimera);
     const gananciaRealizada = ventasCerradas.reduce((s, o) => s + o.gp, 0);
 
     // Dividendos: total histórico + desglose por mes del año en curso (cruce exacto por ISIN)
@@ -3294,6 +3310,132 @@ function renderTrampas() {
 }
 
 // ── DIVIDENDOS (COMPLETO PERO RESUMIDO PARA AHORRAR ESPACIO) ──
+// ── Tendencia de rentabilidad por empresa y año: verde/naranja/rojo según crece, se estanca o cae ──
+// Aviso importante: se basa en el TOTAL cobrado cada año (no en el dividendo por acción), así que
+// si ese año compraste más acciones de la empresa, también subirá por eso — no es solo un reflejo
+// de si la empresa en sí ha subido o bajado su dividendo.
+// ── Dividendo POR ACCIÓN y año: la métrica pura de salud del dividendo, sin contaminar por si
+// compraste más acciones ese año. Para cada pago se calcula bruto/acciones-en-ese-momento, y se
+// suman esos importes por acción dentro de cada año — así representa lo que habría cobrado UNA
+// sola acción mantenida todo el año, sin importar cuántas tenías tú realmente.
+function renderDividendoPorAccion() {
+    const cont = document.getElementById('dividendo-por-accion-container');
+    if (!cont) return;
+    const divs = divsEnVivo() || [];
+    if (!divs.length) { cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos todavía.</div>';
+        return; }
+
+    const porEmpresaAnio = {}; // { clave(ISIN): { año: divPorAccion } }
+    const nombrePorClaveAcc = {};
+    divs.forEach(d => {
+        if (!d.sh || d.sh <= 0) return; // sin acciones en ese momento no podemos calcular el € por acción
+        const anio = d.f.split('/')[2];
+        const porAccionEstePago = d.bruto / d.sh;
+        const clave = d.isin || d.n;
+        if (!porEmpresaAnio[clave]) porEmpresaAnio[clave] = {};
+        porEmpresaAnio[clave][anio] = (porEmpresaAnio[clave][anio] || 0) + porAccionEstePago;
+        nombrePorClaveAcc[clave] = d.n;
+    });
+
+    const anios = [...new Set(divs.map(d => d.f.split('/')[2]))].sort();
+    if (anios.length < 2) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía solo hay datos de ' + anios.length +
+            ' año' + (anios.length === 1 ? '' : 's') +
+            ' — en cuanto tengamos 2 años completos por empresa, aquí se verá si el dividendo por acción sube, se estanca o cae de verdad.</div>';
+        return;
+    }
+
+    const filas = Object.keys(porEmpresaAnio).sort((a, b) => (nombrePorClaveAcc[a] || a).localeCompare(
+        nombrePorClaveAcc[b] || b)).map(clave => {
+        const nombre = nombrePorClaveAcc[clave] || clave;
+        const porAnio = porEmpresaAnio[clave];
+        let celdas = '';
+        let anioAnterior = null;
+        anios.forEach(a => {
+            const valor = porAnio[a];
+            if (valor === undefined) { celdas += '<td class="mt2">—</td>';
+                return; }
+            let color = 'var(--mt)',
+                flecha = '';
+            if (anioAnterior !== null && porAnio[anioAnterior] !== undefined) {
+                const variacion = ((valor - porAnio[anioAnterior]) / porAnio[anioAnterior]) * 100;
+                if (variacion > 3) { color = 'var(--gn)';
+                    flecha = '▲'; } else if (variacion < -3) { color = 'var(--rd)';
+                    flecha = '▼'; } else { color = 'var(--am)';
+                    flecha = '▬'; }
+                celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(valor,
+                        4) + ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (variacion >= 0 ? '+' :
+                        '') + variacion.toFixed(1) + '%</div></td>';
+            } else {
+                celdas += '<td style="font-family:monospace">' + fe(valor, 4) + '</td>';
+            }
+            anioAnterior = a;
+        });
+        return '<tr><td style="font-weight:700;font-size:11px">' + nombre + '</td>' + celdas + '</tr>';
+    }).join('');
+
+    cont.innerHTML = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Empresa</th>' +
+        anios.map(a => '<th>' + a + '</th>').join('') + '</tr></thead><tbody>' + filas + '</tbody></table></div>' +
+        '<div class="mt2" style="font-size:8px;margin-top:8px">💡 Si una posición "Forever" lleva 2-3 años seguidos en rojo aquí (dividendo por acción cayendo de verdad), es la señal más objetiva que tenemos para plantearse rotarla a otra empresa.</div>';
+}
+
+function renderTendenciaEmpresas() {
+    const cont = document.getElementById('tendencia-empresas-container');
+    if (!cont) return;
+    const res = resumenDivsEnVivo() || [];
+    if (!res.length) { cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos suficientes todavía.</div>';
+        return; }
+
+    const porEmpresa = {}; // clave: ISIN
+    const nombrePorClaveTend = {};
+    res.forEach(r => {
+        const clave = r.isin || r.n;
+        (porEmpresa[clave] = porEmpresa[clave] || []).push(r);
+        nombrePorClaveTend[clave] = r.n; // se queda con el nombre más reciente visto
+    });
+
+    const anios = [...new Set(res.map(r => r.año))].sort();
+    if (anios.length < 2) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía solo hay datos de ' + anios.length +
+            ' año' + (anios.length === 1 ? '' : 's') +
+            ' — en cuanto pase a 2027 y tengamos un segundo año completo de cada empresa, aquí empezará a verse la tendencia real.</div>';
+        return;
+    }
+
+    const filas = Object.keys(porEmpresa).sort((a, b) => (nombrePorClaveTend[a] || a).localeCompare(
+        nombrePorClaveTend[b] || b)).map(clave => {
+        const nombre = nombrePorClaveTend[clave] || clave;
+        const porAnio = {};
+        porEmpresa[clave].forEach(r => { porAnio[r.año] = r.neto_real; });
+        let celdas = '';
+        let anioAnterior = null;
+        anios.forEach(a => {
+            const valor = porAnio[a];
+            if (valor === undefined) { celdas += '<td class="mt2">—</td>';
+                return; }
+            let color = 'var(--mt)',
+                flecha = '';
+            if (anioAnterior !== null && porAnio[anioAnterior] !== undefined) {
+                const variacion = ((valor - porAnio[anioAnterior]) / porAnio[anioAnterior]) * 100;
+                if (variacion > 5) { color = 'var(--gn)';
+                    flecha = '▲'; } else if (variacion < -5) { color = 'var(--rd)';
+                    flecha = '▼'; } else { color = 'var(--am)';
+                    flecha = '▬'; }
+                celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(valor) +
+                    ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (variacion >= 0 ? '+' : '') +
+                    variacion.toFixed(0) + '%</div></td>';
+            } else {
+                celdas += '<td style="font-family:monospace">' + fe(valor) + '</td>';
+            }
+            anioAnterior = a;
+        });
+        return '<tr><td style="font-weight:700;font-size:11px">' + nombre + '</td>' + celdas + '</tr>';
+    }).join('');
+
+    cont.innerHTML = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Empresa</th>' +
+        anios.map(a => '<th>' + a + '</th>').join('') + '</tr></thead><tbody>' + filas + '</tbody></table></div>';
+}
+
 function renderDividendos() {
     const divsTodo = divsEnVivo();
 
@@ -3331,13 +3473,18 @@ function renderDividendos() {
     const devolucionTotalHist = divs.reduce((s, d) => s + d.devolucion, 0);
     const netoRealTotal = divs.reduce((s, d) => s + d.neto_real, 0);
 
-    const topActivo = {};
-    divs2026.forEach(d => { if (!topActivo[d.n]) topActivo[d.n] = 0;
-        topActivo[d.n] += d.neto_real; });
+    const topActivo = {}; // clave: ISIN (o nombre si por lo que sea faltara el ISIN en algún registro)
+    const nombrePorClave = {};
+    divs2026.forEach(d => {
+        const clave = d.isin || d.n;
+        if (!topActivo[clave]) topActivo[clave] = 0;
+        topActivo[clave] += d.neto_real;
+        nombrePorClave[clave] = d.n; // se queda con el nombre más reciente visto para esa clave
+    });
     let topNombre = '—',
         topValor = 0;
-    Object.entries(topActivo).forEach(([n, v]) => { if (v > topValor) { topValor = v;
-            topNombre = n; } });
+    Object.entries(topActivo).forEach(([clave, v]) => { if (v > topValor) { topValor = v;
+            topNombre = nombrePorClave[clave]; } });
 
     document.getElementById('resumen-div-ejecutivo').innerHTML = [
         { l: 'Total neto real 2026', v: fe(total2026), s: pagos2026 + ' pagos', c: '#34C77B' },
@@ -3352,9 +3499,11 @@ function renderDividendos() {
 
     const acumMap = {};
     divs.forEach(d => {
-        if (!acumMap[d.n]) acumMap[d.n] = { n: d.n, pais: d.pais, ret: d.ret || 0, pagos: 0, bruto: 0,
+        const clave = d.isin || d.n;
+        if (!acumMap[clave]) acumMap[clave] = { n: d.n, pais: d.pais, ret: d.ret || 0, pagos: 0, bruto: 0,
             ret_o: 0, neto_tr: 0, tax_es: 0, neto_f: 0, dev: 0, real: 0 };
-        const a = acumMap[d.n];
+        const a = acumMap[clave];
+        a.n = d.n; // se queda con el nombre más reciente
         a.pagos++;
         a.bruto = round2(a.bruto + d.bruto);
         a.ret_o = round2(a.ret_o + d.ret_origen);
@@ -3533,7 +3682,8 @@ function renderDividendos() {
         }).join('');
     };
 
-    const rankingActual = Object.entries(topActivo).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const rankingActual = Object.entries(topActivo).map(([clave, v]) => [nombrePorClave[clave] || clave, v])
+        .sort((a, b) => b[1] - a[1]).slice(0, 10);
     pintarRanking('ranking-dividendos', rankingActual);
     const totalActualEl = document.getElementById('ranking-total-actual');
     if (totalActualEl) totalActualEl.textContent = fe(Object.values(topActivo).reduce((s, v) => s + v, 0));
@@ -3635,6 +3785,9 @@ function renderDividendos() {
         '<span style="font-size:10px;color:var(--mt)">' + l + '</span>' +
         (v ? '<span class="' + c + '" style="font-size:11px">' + v + '</span>' : '') +
         '</div>').join('');
+
+    renderDividendoPorAccion();
+    renderTendenciaEmpresas();
 }
 
 // ── INTERESES ──
