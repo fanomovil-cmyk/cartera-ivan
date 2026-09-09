@@ -274,6 +274,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
   <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Anual</button>
   <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle</button>
+  <button class="tb" data-tab="11" onclick="sw(11)">💧 Goteo</button>
 </div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -596,6 +597,14 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div id="detalle-activo-container"></div>
 </div>
 
+<!-- ═══ ESTRATEGIA DE GOTEO ═══ -->
+<div class="tp" id="t11">
+  <div class="card">
+    <div class="ch"><h3>💧 Estrategia de Goteo</h3><span class="mt2" style="font-size:8px">aportaciones mensuales con reglas de reducción, cruzadas con Forever/trampas/peso</span></div>
+    <div style="padding:14px 16px" id="goteo-container"></div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
 </script>
 <script>
@@ -631,8 +640,8 @@ function diasDesde(fechaStr) {
 
 function sw(i) {
     document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'].forEach((id, j) => document.getElementById(id)
-        .classList.toggle('on', i === j));
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11'].forEach((id, j) => document
+        .getElementById(id).classList.toggle('on', i === j));
 }
 
 function pcsv(text) {
@@ -874,6 +883,7 @@ let DIVIDENDOS_GS = null,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
+let GOTEO_GS = [];
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
@@ -1400,6 +1410,22 @@ function renderDetalleActivo() {
         todosLosMovimientos.filter(m => m.fecha.endsWith('/' + window.ANIO_DETALLE_ACTIVO_TAB))).slice(0,
         window.ANIO_DETALLE_ACTIVO_TAB === 'todos' ? 15 : 999);
 
+    const trampaRango52 = p.isin ? TRAMPAS_GS.find(r => r[15] === p.isin) : null;
+    const min52 = trampaRango52 ? cn(trampaRango52[16]) : 0;
+    const max52 = trampaRango52 ? cn(trampaRango52[17]) : 0;
+    const rango52HTML = (min52 && max52 && pa) ? (() => {
+        const pct52 = Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100));
+        return `<div style="margin-top:6px">
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt)">
+                <span>52sem. mín: ${fe(min52)}</span><span>máx: ${fe(max52)}</span>
+            </div>
+            <div style="background:var(--bd);border-radius:3px;height:6px;margin-top:2px;position:relative">
+                <div style="position:absolute;left:${pct52}%;top:-2px;width:2px;height:10px;background:var(--ac);border-radius:1px"></div>
+            </div>
+            <div class="mt2" style="font-size:8px;margin-top:2px">Hoy está al ${pct52.toFixed(0)}% de su rango anual</div>
+        </div>`;
+    })() : '';
+
     cont.innerHTML = `
         <div class="card" style="margin-top:12px">
             <div class="ch"><h3>${p.n}</h3><span class="mt2" style="font-size:8px">${p.isin} · ${p.pais} · ${p.sector}</span></div>
@@ -1407,6 +1433,7 @@ function renderDetalleActivo() {
                 <div style="font-size:28px;font-weight:800;font-family:monospace">${pa ? f2(pa) + ' €' : '—'}</div>
                 <div style="font-size:12px;color:var(--mt)">Compra: ${f2(p.pm)} € · <span style="color:${rentPrecioPct>=0?'var(--gn)':'var(--rd)'};font-weight:700">${pa?(rentPrecioPct>=0?'+':'')+f2(pa-p.pm)+' € ('+(rentPrecioPct>=0?'+':'')+f1(rentPrecioPct)+'%)':'—'}</span></div>
             </div>
+            <div style="padding:0 16px 12px">${rango52HTML}</div>
             <div class="mt2" style="font-size:9px;padding:0 16px 12px">Precio actual (GS)</div>
         </div>
         <div class="card" style="margin-top:12px">
@@ -2007,7 +2034,10 @@ async function recargar() {
                 t.ordenPuesta,   // r[11] — ¿tienes la orden límite puesta en Trade Republic?
                 t.precioAlAnadir, // r[12] — precio cuando se empezó a vigilar
                 t.fechaAlAnadir,  // r[13] — fecha en que se empezó a vigilar
-                t.nota           // r[14] — nota libre
+                t.nota,          // r[14] — nota libre
+                t.isin,          // r[15] — ISIN, para cruzar sin depender del nombre
+                t.min52,         // r[16] — mínimo 52 semanas
+                t.max52          // r[17] — máximo 52 semanas
             ]);
         }
 
@@ -2047,6 +2077,9 @@ async function recargar() {
         }
         if (data.planPanico) {
             PLAN_PANICO_GS = data.planPanico;
+        }
+        if (data.goteo) {
+            GOTEO_GS = data.goteo;
         }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
@@ -2182,6 +2215,7 @@ function renderDashboard() {
     renderFiltroPeriodo();
     renderSaludCartera();
     renderPlanPanico();
+    renderGoteo();
 
     // Rango de fechas del Centro de Mando: inicio = primera compra real, fin = última fecha real del CSV
     const rangoEl = document.getElementById('rango');
@@ -2794,7 +2828,7 @@ function renderDashboard() {
             const disparados = PLAN_PANICO_GS.filter(p => p.precioActual && p[nivel] && p.precioActual <= p[
                 nivel]).sort((a, b) => a.orden - b.orden).slice(0, 3);
             if (disparados.length) {
-                const importeCada = CAPITAL_POR_TRAMO_ALERTA / disparados.length;
+                const importeCada = Math.min(CAPITAL_POR_TRAMO_ALERTA / disparados.length, 5000);
                 alertas.push({ tipo: 'success', icon: '🚨', msg: 'PANICO: Tramo ' + t + ' (' + caidaPct +
                         ') activado — concentrar en ' + disparados.map(d => d.nombre).join(', ') + '. Invertir ' +
                         fe(importeCada, 0) + ' en cada una' });
@@ -2826,6 +2860,127 @@ function tieneResultadosEsteMes(nombre) {
 
 // ── SALUD DE LA CARTERA — puntuación 0-100 de un vistazo ──
 // ── PLAN DE PÁNICO: 30.000€ en 3 tramos, decidido de antemano — cero pensar el día que toque ──
+// ── ESTRATEGIA DE GOTEO: aportación mensual con reglas de reducción, cruzada con Forever/trampas/peso ──
+function evaluarReglaGoteo(regla, precioActual) {
+    if (!regla || !precioActual) return false;
+    const m = String(regla).trim().match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
+    if (!m) return false;
+    const operador = m[1];
+    const umbral = parseFloat(m[2].replace(',', '.'));
+    if (operador === '>') return precioActual > umbral;
+    if (operador === '>=') return precioActual >= umbral;
+    if (operador === '<') return precioActual < umbral;
+    if (operador === '<=') return precioActual <= umbral;
+    return false;
+}
+
+function renderGoteo() {
+    const cont = document.getElementById('goteo-container');
+    if (!cont) return;
+    if (!GOTEO_GS.length) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Aún no has creado la hoja GOTEO — en cuanto la rellenes, aquí aparecerá el análisis de cada plan.</div>';
+        return;
+    }
+
+    const pos = posicionesVivas();
+    const totCostGoteo = pos.reduce((s, p) => s + p.ct, 0);
+    let totValGoteo = 0;
+    pos.forEach(p => { const pa = precioDe(p);
+        if (pa) totValGoteo += pa * p.sh; });
+
+    // Para el reparto entre "hermanos" de un grupo de rotación: variación de precio desde que
+    // empezó cada uno, para saber cuál está relativamente más barato ahora mismo.
+    const grupos = {};
+    GOTEO_GS.forEach(g => {
+        if (!g.grupoRotacion) return;
+        const posG = pos.find(p => p.isin === g.isin);
+        const paG = posG ? precioDe(posG) : 0;
+        const variacion = (paG && g.precioInicio) ? ((paG - g.precioInicio) / g.precioInicio * 100) : null;
+        (grupos[g.grupoRotacion] = grupos[g.grupoRotacion] || []).push({ nombre: g.nombre, variacion });
+    });
+
+    cont.innerHTML = GOTEO_GS.map(g => {
+        const posEnc = pos.find(p => p.isin === g.isin);
+        const pa = posEnc ? precioDe(posEnc) : 0;
+        const esAutomatico = g.tipo === 'Saveback' || g.tipo === 'Redondeo';
+        let importeAplicar, notaFrecuencia, cumpleRegla = false;
+        if (esAutomatico) {
+            // Aportación variable: no hay "importe fijo", calculamos la media real de los últimos
+            // pagos de saveback/redondeo asociados a este ISIN concreto.
+            const savebacksDelActivo = (savebacksEnVivo() || []).filter(s => s.isin === g.isin);
+            const mediaAutomatica = savebacksDelActivo.length ? savebacksDelActivo.reduce((s, x) => s + x.i, 0) /
+                savebacksDelActivo.length : 0;
+            importeAplicar = mediaAutomatica;
+            notaFrecuencia = g.tipo + ' · media real de ' + savebacksDelActivo.length + ' pago' + (
+                savebacksDelActivo.length === 1 ? '' : 's') + ' registrados';
+        } else {
+            cumpleRegla = evaluarReglaGoteo(g.reglaReduccion, pa);
+            importeAplicar = cumpleRegla ? g.importeReducido : g.importeBase;
+            notaFrecuencia = g.tipo || 'Mensual';
+        }
+
+        const trampaCerca = g.isin ? TRAMPAS_GS.find(r => r[15] === g.isin) : null;
+        const trampaCercaRespaldo = trampaCerca || TRAMPAS_GS.find(r => (r[0] || '').toLowerCase().includes(g
+                .nombre.toLowerCase()) ||
+            g.nombre.toLowerCase().includes((r[0] || '').toLowerCase()));
+        const distTrampa = trampaCercaRespaldo ? (trampaCercaRespaldo[5] || 0) : null; // ya viene en %
+
+        const pesoActual = (posEnc && pa && totValGoteo) ? (pa * posEnc.sh / totValGoteo * 100) : null;
+
+        const avisos = [];
+        if (posEnc && (posEnc.tipo || '').toLowerCase().startsWith('especulativ')) {
+            avisos.push({ tipo: 'am', msg: '⚠️ Marcada como Especulativa — el goteo mensual está pensado para posiciones Forever, revisa si sigue teniendo sentido aquí' });
+        }
+        if (distTrampa !== null && Math.abs(distTrampa) <= 5) {
+            avisos.push({ tipo: 'ac', msg: '🎯 Su trampa está a solo ' + Math.abs(distTrampa).toFixed(1) +
+                '% de distancia — valora pausar el goteo este mes y reservar ese capital para cuando ejecute la trampa de golpe' });
+        }
+        if (pesoActual !== null && pesoActual >= 15) {
+            avisos.push({ tipo: 'rd', msg: '⚖️ Ya pesa el ' + pesoActual.toFixed(1) +
+                '% de tu cartera — revisa si conviene pausar el goteo aquí y redirigirlo a otro activo menos concentrado' });
+        }
+
+        const colorAviso = t => t === 'rd' ? 'var(--rd)' : t === 'ac' ? 'var(--ac)' : 'var(--am)';
+
+        // Sugerencia de reparto si pertenece a un grupo de rotación con más de un miembro
+        let sugerenciaGrupo = '';
+        if (g.grupoRotacion && grupos[g.grupoRotacion] && grupos[g.grupoRotacion].length > 1) {
+            const hermanos = grupos[g.grupoRotacion];
+            const masBarato = hermanos.filter(h => h.variacion !== null).sort((a, b) => a.variacion - b
+                .variacion)[0];
+            if (masBarato && masBarato.nombre !== g.nombre) {
+                sugerenciaGrupo = '<div class="mt2" style="font-size:9px;margin-top:4px">👥 Grupo "' + g
+                    .grupoRotacion + '": ' + masBarato.nombre + ' está relativamente más barato (' + (masBarato
+                        .variacion >= 0 ? '+' : '') + masBarato.variacion.toFixed(1) +
+                    '% desde su inicio) — valora desviar parte del importe hacia ahí este mes</div>';
+            }
+        }
+
+        return '<div class="card" style="margin-bottom:10px;border:1px solid ' + (avisos.length ? colorAviso(
+                avisos[0].tipo) : 'var(--bd)') + '">' +
+            '<div style="padding:12px 16px">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+            '<b style="font-size:13px">' + g.nombre + '</b>' +
+            '<div style="text-align:right"><span style="font-size:9px;color:var(--mt)">' + (esAutomatico ?
+                'Media/mes' : 'Este mes') + '</span><br>' +
+            '<span style="font-size:18px;font-weight:800;color:' + (esAutomatico ? 'var(--ac)' : (cumpleRegla ?
+                'var(--am)' : 'var(--gn)')) + '">' + fe(importeAplicar, 0) + '</span>' + (cumpleRegla ?
+                ' <span class="mt2" style="font-size:9px">(reducido)</span>' : '') + '</div></div>' +
+            '<div class="mt2" style="font-size:9px;margin-top:6px">' + notaFrecuencia +
+            (pa ? ' · Precio hoy: ' + fe(pa) : '') +
+            (esAutomatico ? '' : ' · Precio inicio: ' + fe(g.precioInicio) + ' · Desde ' + g.fechaInicio +
+                ' · Regla: ' + (g.reglaReduccion || '—') + ' → ' + fe(g.importeReducido, 0)) +
+            (pesoActual !== null ? ' · Peso actual: ' + pesoActual.toFixed(1) + '%' : '') + '</div>' +
+            (g.nota ? '<div style="font-size:9px;color:var(--ac);font-style:italic;margin-top:4px">📝 ' + g.nota +
+                '</div>' : '') +
+            sugerenciaGrupo +
+            avisos.map(a => '<div style="margin-top:6px;padding:6px 10px;background:' + colorAviso(a.tipo) +
+                '15;border:1px solid ' + colorAviso(a.tipo) + ';border-radius:6px;font-size:10px;color:' +
+                colorAviso(a.tipo) + '">' + a.msg + '</div>').join('') +
+            '</div></div>';
+    }).join('');
+}
+
 function renderPlanPanico() {
     const cont = document.getElementById('plan-panico-container');
     if (!cont) return;
@@ -2850,9 +3005,14 @@ function renderPlanPanico() {
             MAX_ACTIVOS_POR_TRAMO);
     });
 
+    const TOPE_MAXIMO_POR_ACTIVO = 5000; // aunque solo dispare 1, no meter más de esto en un único activo
+
     const resumenTramos = [1, 2, 3].map(t => {
         const disparados = disparadosPorTramo[t];
-        const importePorActivo = disparados.length ? CAPITAL_POR_TRAMO / disparados.length : 0;
+        const importeSinTope = disparados.length ? CAPITAL_POR_TRAMO / disparados.length : 0;
+        const importePorActivo = Math.min(importeSinTope, TOPE_MAXIMO_POR_ACTIVO);
+        const capitalUsado = importePorActivo * disparados.length;
+        const capitalReservado = CAPITAL_POR_TRAMO - capitalUsado;
         const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
         return '<div style="background:' + (disparados.length ? 'rgba(52,199,123,0.12)' : 'var(--s2)') +
             ';border:1px solid ' + (disparados.length ? 'var(--gn)' : 'var(--bd)') +
@@ -2865,8 +3025,11 @@ function renderPlanPanico() {
                 '<span class="mt2" style="font-size:10px">Esperando</span>') +
             '</div>' +
             (disparados.length ? '<div class="mt2" style="font-size:10px;margin-top:6px">Concentrado en los ' +
-                disparados.length + ' mejores — repartir ' + fe(importePorActivo, 0) + ' entre: ' + disparados
-                .map(d => d.nombre).join(', ') + '</div>' : '') +
+                disparados.length + ' mejores — invertir ' + fe(importePorActivo, 0) + ' en cada uno de: ' +
+                disparados.map(d => d.nombre).join(', ') +
+                (capitalReservado > 0.5 ? '<br><span style="color:var(--am)">⏳ ' + fe(capitalReservado, 0) +
+                    ' reservados por si dispara otro poco después (tope de ' + fe(TOPE_MAXIMO_POR_ACTIVO, 0) +
+                    '€ por activo)</span>' : '') + '</div>' : '') +
             '</div>';
     }).join('');
 
@@ -2893,8 +3056,8 @@ function renderPlanPanico() {
                 const elegido = disparadosPorTramo[num].includes(p); // está entre los 3 mejores de este tramo
                 const distPct = p[nivel] ? ((p.precioActual - p[nivel]) / p[nivel] * 100) : 0;
                 const nDisparadosEsteTramo = disparadosPorTramo[num].length;
-                const importeVivo = elegido ? (CAPITAL_POR_TRAMO / nDisparadosEsteTramo) : (CAPITAL_POR_TRAMO /
-                    totalActivosPlan); // si aún no ha disparado nadie, referencia aproximada (reparto entre todos)
+                const importeVivo = elegido ? Math.min(CAPITAL_POR_TRAMO / nDisparadosEsteTramo,
+                    TOPE_MAXIMO_POR_ACTIVO) : (CAPITAL_POR_TRAMO / totalActivosPlan); // si aún no ha disparado nadie, referencia aproximada (reparto entre todos)
                 if (elegido) {
                     return '<td style="color:var(--gn);font-weight:800;background:rgba(52,199,123,0.1)">' + fe(p[
                             nivel], 0) + ' 🟢<div style="font-size:10px;font-weight:800;color:var(--gn)">' + fe(
