@@ -2412,7 +2412,8 @@ function renderDashboard() {
     const filaTrampa = (t, destacada, grande) => {
         const d = t.d;
         const ad = Math.abs(d);
-        const enZona = ad <= 1.5;
+        const yaDisparada = d >= 0; // positivo = el precio ya está en o por debajo de la trampa: pendiente de ejecutar
+        const enZona = yaDisparada || ad <= 1.5;
         const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
         const cls = ad <= 5 ? 'c' : ad <= 10 ? 'm' : 'f';
         const pc = t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
@@ -3475,7 +3476,8 @@ function renderTrampas() {
         const bg = i % 2 ? 'background:var(--s2)' : '';
         const dv = d1;
         const op = r[11] === true;
-        const enZonaTabla = ad <= 1.5;
+        const yaDisparadaTabla = d1 >= 0; // positivo = precio ya en o por debajo de la trampa
+        const enZonaTabla = yaDisparadaTabla || ad <= 1.5;
         const celdaOrden = op ?
             '<span style="color:var(--gn);font-weight:700;font-size:11px">✅ Sí</span>' :
             (enZonaTabla ?
