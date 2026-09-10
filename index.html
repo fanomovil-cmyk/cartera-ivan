@@ -1415,14 +1415,22 @@ function renderDetalleActivo() {
     const max52 = trampaRango52 ? cn(trampaRango52[17]) : 0;
     const rango52HTML = (min52 && max52 && pa) ? (() => {
         const pct52 = Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100));
-        return `<div style="margin-top:6px">
-            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt)">
-                <span>52sem. mín: ${fe(min52)}</span><span>máx: ${fe(max52)}</span>
+        const distMin = ((pa - min52) / min52 * 100);
+        const distMax = ((max52 - pa) / pa * 100);
+        const colorZona = pct52 < 33 ? 'var(--gn)' : pct52 > 75 ? 'var(--rd)' : 'var(--am)';
+        return `<div style="margin-top:10px;padding:12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Rango de 52 semanas</span>
+                <span style="font-size:11px;font-weight:800;color:${colorZona}">${pct52.toFixed(0)}% del rango</span>
             </div>
-            <div style="background:var(--bd);border-radius:3px;height:6px;margin-top:2px;position:relative">
-                <div style="position:absolute;left:${pct52}%;top:-2px;width:2px;height:10px;background:var(--ac);border-radius:1px"></div>
+            <div style="position:relative;height:20px;margin:14px 0 4px">
+                <div style="position:absolute;top:7px;left:0;right:0;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>
+                <div style="position:absolute;top:-3px;left:calc(${pct52}% - 8px);width:16px;height:16px;background:var(--tx);border:3px solid ${colorZona};border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>
             </div>
-            <div class="mt2" style="font-size:8px;margin-top:2px">Hoy está al ${pct52.toFixed(0)}% de su rango anual</div>
+            <div style="display:flex;justify-content:space-between;font-size:9px">
+                <div><div style="color:var(--gn);font-weight:700">${fe(min52)}</div><div class="mt2" style="font-size:8px">mínimo · +${distMin.toFixed(0)}% desde ahí</div></div>
+                <div style="text-align:right"><div style="color:var(--rd);font-weight:700">${fe(max52)}</div><div class="mt2" style="font-size:8px">máximo · -${distMax.toFixed(0)}% hasta ahí</div></div>
+            </div>
         </div>`;
     })() : '';
 
@@ -2388,7 +2396,7 @@ function renderDashboard() {
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
             r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
-            '' }))
+            '', min52: cn(r[16]), max52: cn(r[17]) }))
         .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
@@ -2478,6 +2486,19 @@ function renderDashboard() {
                     .pAnadir) + (dias !== null ? ' hace ' + dias + ' día' + (dias === 1 ? '' : 's') : '') +
                     ' · <span style="color:' + (pctDesde <= 0 ? 'var(--gn)' : 'var(--am)') + '">' + (pctDesde >=
                         0 ? '+' : '') + pctDesde.toFixed(1) + '% desde entonces</span></div>';
+            })() : '') +
+            (t.min52 && t.max52 ? (() => {
+                const pct52 = Math.max(0, Math.min(100, (t.pa - t.min52) / (t.max52 - t.min52) * 100));
+                const colorZona = pct52 < 33 ? 'var(--gn)' : pct52 > 75 ? 'var(--rd)' : 'var(--am)';
+                return '<div style="margin-top:4px;padding:4px 2px">' +
+                    '<div style="position:relative;height:10px">' +
+                    '<div style="position:absolute;top:3px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
+                    '<div style="position:absolute;top:0;left:calc(' + pct52 +
+                    '% - 4px);width:8px;height:8px;background:var(--tx);border:2px solid ' + colorZona +
+                    ';border-radius:50%"></div></div>' +
+                    '<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt);margin-top:1px">' +
+                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona + ';font-weight:700">' +
+                    pct52.toFixed(0) + '% del rango</span><span>' + fe(t.max52, 0) + '</span></div></div>';
             })() : '') +
             (t.nota ? '<div style="font-size:' + fSub +
                 ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
