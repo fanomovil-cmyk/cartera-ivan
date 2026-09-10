@@ -2495,15 +2495,28 @@ function renderDashboard() {
             (t.min52 && t.max52 ? (() => {
                 const pct52 = Math.max(0, Math.min(100, (t.pa - t.min52) / (t.max52 - t.min52) * 100));
                 const colorZona = pct52 < 33 ? 'var(--gn)' : pct52 > 75 ? 'var(--rd)' : 'var(--am)';
-                return '<div style="margin-top:4px;padding:4px 2px">' +
-                    '<div style="position:relative;height:10px">' +
-                    '<div style="position:absolute;top:3px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
-                    '<div style="position:absolute;top:0;left:calc(' + pct52 +
-                    '% - 4px);width:8px;height:8px;background:var(--tx);border:2px solid ' + colorZona +
+                const distMin = t.pa - t.min52; // € que faltan por caer para tocar el mínimo de 52 semanas
+                const altoLinea = grande ? 8 : 4;
+                const altoZona = grande ? 18 : 10;
+                const diamPunto = grande ? 16 : 8;
+                const fEndpoints = grande ? '12px' : '8px';
+                const fCentro = grande ? '16px' : '8px';
+                return '<div style="margin-top:' + (grande ? '10px' : '4px') + ';padding:4px 2px">' +
+                    '<div style="position:relative;height:' + altoZona + 'px">' +
+                    '<div style="position:absolute;top:' + ((altoZona - altoLinea) / 2) +
+                    'px;left:0;right:0;height:' + altoLinea +
+                    'px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
+                    '<div style="position:absolute;top:' + ((altoZona - diamPunto) / 2) + 'px;left:calc(' + pct52 +
+                    '% - ' + (diamPunto / 2) + 'px);width:' + diamPunto + 'px;height:' + diamPunto +
+                    'px;background:var(--tx);border:2px solid ' + colorZona +
                     ';border-radius:50%"></div></div>' +
-                    '<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt);margin-top:1px">' +
-                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona + ';font-weight:700">' +
-                    pct52.toFixed(0) + '% del rango</span><span>' + fe(t.max52, 0) + '</span></div></div>';
+                    '<div style="display:flex;justify-content:space-between;align-items:center;font-size:' +
+                    fEndpoints + ';color:var(--mt);margin-top:' + (grande ? '4px' : '1px') + '">' +
+                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona +
+                    ';font-weight:700;font-size:' + fCentro + ';text-align:center">' + pct52.toFixed(0) +
+                    '% del rango<br><span style="font-weight:600;font-size:' + fEndpoints +
+                    '">+' + fe(distMin, 0) + ' hasta el mín.</span></span><span>' + fe(t.max52, 0) +
+                    '</span></div></div>';
             })() : '') +
             (t.nota ? '<div style="font-size:' + fSub +
                 ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
