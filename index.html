@@ -2397,7 +2397,11 @@ function renderDashboard() {
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
             r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
             '', min52: cn(r[16]), max52: cn(r[17]) }))
-        .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
+        .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => {
+            const trigA = a.d >= 0, trigB = b.d >= 0; // positivo = ya en o por debajo de la trampa
+            if (trigA !== trigB) return trigA ? -1 : 1; // las ya disparadas van primero
+            return Math.abs(a.d) - Math.abs(b.d); // dentro de cada grupo, por cercanía
+        });
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
     trampasOrdenadas.forEach(t => {
@@ -3455,8 +3459,12 @@ function renderTrampas() {
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
-    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => Math.abs(cn(a[5])) - Math
-        .abs(cn(b[5]))).map((r, i) => {
+    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => {
+        const da = cn(a[5]), db = cn(b[5]);
+        const trigA = da >= 0, trigB = db >= 0; // positivo = ya en o por debajo de la trampa
+        if (trigA !== trigB) return trigA ? -1 : 1; // las ya disparadas van primero
+        return Math.abs(da) - Math.abs(db); // dentro de cada grupo, por cercanía
+    }).map((r, i) => {
         const esE = (r[1] || '').toUpperCase().includes('ESPEC');
         const prio = r[2] || 'B';
         const pc = prio === 'A+' ? 'ap' : prio === 'A' ? 'a' : prio === 'A-' ? 'am2' : esE ? 'es' : 'b';
