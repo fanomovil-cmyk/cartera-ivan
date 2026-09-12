@@ -884,6 +884,7 @@ let DIVIDENDOS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
 let GOTEO_GS = [];
+let OBJETIVOS_GS = [];
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
@@ -2089,6 +2090,9 @@ async function recargar() {
         if (data.goteo) {
             GOTEO_GS = data.goteo;
         }
+        if (data.objetivos) {
+            OBJETIVOS_GS = data.objetivos;
+        }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
         }
@@ -2397,11 +2401,7 @@ function renderDashboard() {
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
             r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
             '', min52: cn(r[16]), max52: cn(r[17]) }))
-        .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => {
-            const trigA = a.d >= 0, trigB = b.d >= 0; // positivo = ya en o por debajo de la trampa
-            if (trigA !== trigB) return trigA ? -1 : 1; // las ya disparadas van primero
-            return Math.abs(a.d) - Math.abs(b.d); // dentro de cada grupo, por cercanía
-        });
+        .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
     trampasOrdenadas.forEach(t => {
@@ -2495,28 +2495,15 @@ function renderDashboard() {
             (t.min52 && t.max52 ? (() => {
                 const pct52 = Math.max(0, Math.min(100, (t.pa - t.min52) / (t.max52 - t.min52) * 100));
                 const colorZona = pct52 < 33 ? 'var(--gn)' : pct52 > 75 ? 'var(--rd)' : 'var(--am)';
-                const distMin = t.pa - t.min52; // € que faltan por caer para tocar el mínimo de 52 semanas
-                const altoLinea = grande ? 8 : 4;
-                const altoZona = grande ? 18 : 10;
-                const diamPunto = grande ? 16 : 8;
-                const fEndpoints = grande ? '12px' : '8px';
-                const fCentro = grande ? '16px' : '8px';
-                return '<div style="margin-top:' + (grande ? '10px' : '4px') + ';padding:4px 2px">' +
-                    '<div style="position:relative;height:' + altoZona + 'px">' +
-                    '<div style="position:absolute;top:' + ((altoZona - altoLinea) / 2) +
-                    'px;left:0;right:0;height:' + altoLinea +
-                    'px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
-                    '<div style="position:absolute;top:' + ((altoZona - diamPunto) / 2) + 'px;left:calc(' + pct52 +
-                    '% - ' + (diamPunto / 2) + 'px);width:' + diamPunto + 'px;height:' + diamPunto +
-                    'px;background:var(--tx);border:2px solid ' + colorZona +
+                return '<div style="margin-top:4px;padding:4px 2px">' +
+                    '<div style="position:relative;height:10px">' +
+                    '<div style="position:absolute;top:3px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
+                    '<div style="position:absolute;top:0;left:calc(' + pct52 +
+                    '% - 4px);width:8px;height:8px;background:var(--tx);border:2px solid ' + colorZona +
                     ';border-radius:50%"></div></div>' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;font-size:' +
-                    fEndpoints + ';color:var(--mt);margin-top:' + (grande ? '4px' : '1px') + '">' +
-                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona +
-                    ';font-weight:700;font-size:' + fCentro + ';text-align:center">' + pct52.toFixed(0) +
-                    '% del rango<br><span style="font-weight:600;font-size:' + fEndpoints +
-                    '">+' + fe(distMin, 0) + ' hasta el mín.</span></span><span>' + fe(t.max52, 0) +
-                    '</span></div></div>';
+                    '<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt);margin-top:1px">' +
+                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona + ';font-weight:700">' +
+                    pct52.toFixed(0) + '% del rango</span><span>' + fe(t.max52, 0) + '</span></div></div>';
             })() : '') +
             (t.nota ? '<div style="font-size:' + fSub +
                 ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
@@ -2913,6 +2900,93 @@ function evaluarReglaGoteo(regla, precioActual) {
     return false;
 }
 
+// ── ASESOR DE REASIGNACIÓN: cuando el destino "por defecto" de un goteo/redondeo no está barato,
+// analiza el resto de posiciones Forever y sugiere la mejor alternativa, con explicación completa.
+// Prioridad 1: objetivos estratégicos (hitos tipo "bloque de 10 antes de fecha X") — si aplica y
+// está cerca de completarse, gana automáticamente sobre cualquier puntuación.
+// Prioridad 2 (si no hay hito activo o hay empate): puntuación combinada de 5 factores.
+function sugerirDestinoFlexible(excluirIsin) {
+    const pos = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p.isin !==
+        excluirIsin);
+    const hoy = new Date();
+
+    // ── Paso 1: ¿hay algún objetivo estratégico activo y alcanzable? ──
+    for (const obj of OBJETIVOS_GS) {
+        if (!obj.multiplo || !obj.fechaLimite) continue;
+        const fechaLim = new Date(obj.fechaLimite);
+        if (fechaLim < hoy) continue; // objetivo caducado
+        const posObj = pos.find(p => p.isin === obj.isin);
+        if (!posObj) continue;
+        const siguienteMultiplo = Math.ceil((posObj.sh + 0.001) / obj.multiplo) * obj.multiplo;
+        const accionesQueFaltan = siguienteMultiplo - posObj.sh;
+        const mesesRestantes = (fechaLim - hoy) / (1000 * 60 * 60 * 24 * 30.44);
+        // "Cerca de completarlo": le faltan pocas acciones Y aún queda tiempo de sobra para lograrlo
+        if (accionesQueFaltan <= obj.multiplo * 0.3 && mesesRestantes >= 1) {
+            return {
+                nombre: posObj.n, isin: posObj.isin, esObjetivoEstrategico: true,
+                explicacion: '🎯 Objetivo estratégico: te faltan ' + accionesQueFaltan.toFixed(2) +
+                    ' acciones para completar el siguiente bloque de ' + obj.multiplo + ' antes de ' + obj
+                    .fechaLimite + ' (' + obj.beneficio + '). Prioridad absoluta sobre cualquier otra opción.'
+            };
+        }
+    }
+
+    // ── Paso 2: puntuación combinada de 5 factores ──
+    const calendarioPorISINAsesor = {};
+    (CALENDARIO_DIVIDENDOS_GS || []).forEach(c => { if (c.isin) calendarioPorISINAsesor[c.isin] = c.meses; });
+    const mesActualAsesor = hoy.getMonth() + 1; // 1-indexado
+
+    const candidatos = pos.map(p => {
+        const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
+        const pa = precioDe(p);
+        if (!trampaFila || !pa) return null;
+
+        const trampa = cn(trampaFila[3]);
+        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : 999;
+        const min52 = cn(trampaFila[16]),
+            max52 = cn(trampaFila[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
+            50;
+        const prioridad = (trampaFila[2] || 'B').trim();
+        const puntosPrioridad = prioridad === 'A+' ? 100 : prioridad === 'A' ? 80 : prioridad === 'A-' ? 65 : 45;
+        const yieldActual = pa ? (cn(trampaFila[8]) / pa * 100) : 0;
+
+        // Dividendos "en el camino": nº de pagos en los próximos 12 meses + bonus si el primero está cerca
+        const mesesPago = calendarioPorISINAsesor[p.isin] || [];
+        const numPagos12m = mesesPago.length;
+        let mesesHastaPrimerPago = 12;
+        if (mesesPago.length) {
+            const futuros = mesesPago.map(m => (m - mesActualAsesor + 12) % 12).sort((a, b) => a - b);
+            mesesHastaPrimerPago = futuros[0];
+        }
+        const puntosDividendoCamino = Math.max(0, Math.min(100, numPagos12m * 8 - mesesHastaPrimerPago * 3));
+
+        // Puntos por cercanía (invertido: 0% distancia = 100 puntos, cuanto más lejos, menos)
+        const puntosTrampa = Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
+        const puntosRango52 = 100 - pctRango52; // cuanto más bajo el %, más puntos
+
+        const puntuacionTotal = puntosTrampa * 0.25 + puntosRango52 * 0.20 + puntosPrioridad * 0.15 +
+            Math.min(100, yieldActual * 15) * 0.15 + puntosDividendoCamino * 0.25;
+
+        return {
+            nombre: p.n, isin: p.isin, puntuacionTotal, distTrampaPct, pctRango52, prioridad, yieldActual,
+            numPagos12m, mesesHastaPrimerPago
+        };
+    }).filter(Boolean).sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
+
+    if (!candidatos.length) return null;
+    const mejor = candidatos[0];
+    return {
+        nombre: mejor.nombre, isin: mejor.isin, esObjetivoEstrategico: false, top3: candidatos.slice(0, 3),
+        explicacion: mejor.nombre + ' elegido (puntuación ' + mejor.puntuacionTotal.toFixed(0) + '/100): ' +
+            'a ' + Math.abs(mejor.distTrampaPct).toFixed(1) + '% de su trampa, al ' + mejor.pctRango52.toFixed(0) +
+            '% de su rango de 52 semanas, prioridad ' + mejor.prioridad + ', yield ' + mejor.yieldActual.toFixed(
+                2) + '%, y ' + mejor.numPagos12m + ' pago' + (mejor.numPagos12m === 1 ? '' : 's') +
+            ' de dividendo en los próximos 12 meses' + (mejor.mesesHastaPrimerPago <= 2 ?
+                ' (el primero muy pronto)' : '') + '.'
+    };
+}
+
 function renderGoteo() {
     const cont = document.getElementById('goteo-container');
     if (!cont) return;
@@ -2995,6 +3069,24 @@ function renderGoteo() {
             }
         }
 
+        // ── Asesor de reasignación: si el destino por defecto NO está barato ahora mismo
+        // (lejos de su propia trampa), analiza el resto de Forever y sugiere una alternativa ──
+        let asesorHTML = '';
+        if (distTrampa !== null && distTrampa < -3) {
+            const sugerencia = sugerirDestinoFlexible(g.isin);
+            if (sugerencia) {
+                asesorHTML = '<div style="margin-top:8px;padding:10px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:8px">' +
+                    '<div style="font-size:10px;font-weight:800;color:var(--ac)">🧭 ' + g.nombre +
+                    ' está a ' + Math.abs(distTrampa).toFixed(1) +
+                    '% de su trampa (no es el mejor momento) — redirige hacia: ' + sugerencia.nombre + '</div>' +
+                    '<div class="mt2" style="font-size:9px;margin-top:4px">' + sugerencia.explicacion + '</div>' +
+                    (sugerencia.top3 ? '<div class="mt2" style="font-size:8px;margin-top:4px">Alternativas consideradas: ' +
+                        sugerencia.top3.map(c => c.nombre + ' (' + c.puntuacionTotal.toFixed(0) + 'pts)').join(
+                            ' · ') + '</div>' : '') +
+                    '</div>';
+            }
+        }
+
         return '<div class="card" style="margin-bottom:10px;border:1px solid ' + (avisos.length ? colorAviso(
                 avisos[0].tipo) : 'var(--bd)') + '">' +
             '<div style="padding:12px 16px">' +
@@ -3013,6 +3105,7 @@ function renderGoteo() {
             (g.nota ? '<div style="font-size:9px;color:var(--ac);font-style:italic;margin-top:4px">📝 ' + g.nota +
                 '</div>' : '') +
             sugerenciaGrupo +
+            asesorHTML +
             avisos.map(a => '<div style="margin-top:6px;padding:6px 10px;background:' + colorAviso(a.tipo) +
                 '15;border:1px solid ' + colorAviso(a.tipo) + ';border-radius:6px;font-size:10px;color:' +
                 colorAviso(a.tipo) + '">' + a.msg + '</div>').join('') +
@@ -3472,12 +3565,8 @@ function renderTrampas() {
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
-    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => {
-        const da = cn(a[5]), db = cn(b[5]);
-        const trigA = da >= 0, trigB = db >= 0; // positivo = ya en o por debajo de la trampa
-        if (trigA !== trigB) return trigA ? -1 : 1; // las ya disparadas van primero
-        return Math.abs(da) - Math.abs(db); // dentro de cada grupo, por cercanía
-    }).map((r, i) => {
+    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => Math.abs(cn(a[5])) - Math
+        .abs(cn(b[5]))).map((r, i) => {
         const esE = (r[1] || '').toUpperCase().includes('ESPEC');
         const prio = r[2] || 'B';
         const pc = prio === 'A+' ? 'ap' : prio === 'A' ? 'a' : prio === 'A-' ? 'am2' : esE ? 'es' : 'b';
