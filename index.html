@@ -1525,41 +1525,46 @@ function renderDetalleActivo() {
         </div>
         <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
             <div class="ch"><h3>💰 Dividendos cobrados</h3><span class="mt2" style="font-size:8px">${divsFiltrados.length} cobro${divsFiltrados.length===1?'':'s'}</span></div>
+            <div style="padding:10px 16px;background:rgba(52,199,123,0.1);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:9px;color:var(--gn);font-weight:800;text-transform:uppercase">Total del periodo</span>
+                <span style="font-size:18px;font-weight:800;color:var(--gn)">${fe(divsFiltrados.reduce((s,mv)=>s+mv.monto,0))}</span>
+            </div>
             <div class="sc" style="max-height:320px">
                 ${divsFiltrados.length ? divsFiltrados.map(mv => `
                     <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:11px;min-width:0">
                         <div style="flex:1;min-width:0"><span class="mt2" style="font-size:9px">${mv.fecha}</span>${mv.detalleHTML}</div>
-                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">+${fe(mv.monto)}€</div>
+                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">+${fe(mv.monto)}</div>
                     </div>`).join('') : '<div class="mt2" style="padding:14px;font-size:10px">Sin dividendos cobrados en este periodo.</div>'}
             </div>
         </div>
         <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
             <div class="ch"><h3>🛒 Compras realizadas</h3><span class="mt2" style="font-size:8px">${comprasFiltradas.length} compra${comprasFiltradas.length===1?'':'s'}</span></div>
             <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px">
-                    <div style="font-size:9px;color:var(--gn);font-weight:800">💧 GOTEO</div>
-                    <div style="font-size:15px;font-weight:800;margin-top:2px">${fe(resGoteo.total,0)}</div>
-                    <div class="mt2" style="font-size:8px">${resGoteo.n} compra${resGoteo.n===1?'':'s'}${resGoteo.rentMedia!==null?' · '+(resGoteo.rentMedia>=0?'+':'')+resGoteo.rentMedia.toFixed(1)+'% rent. media':''}</div>
-                </div>
                 <div style="padding:10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px">
                     <div style="font-size:9px;color:var(--am);font-weight:800">✋ MANUAL</div>
                     <div style="font-size:15px;font-weight:800;margin-top:2px">${fe(resManual.total,0)}</div>
                     <div class="mt2" style="font-size:8px">${resManual.n} compra${resManual.n===1?'':'s'}${resManual.rentMedia!==null?' · '+(resManual.rentMedia>=0?'+':'')+resManual.rentMedia.toFixed(1)+'% rent. media':''}</div>
                 </div>
+                <div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px">
+                    <div style="font-size:9px;color:var(--gn);font-weight:800">💧 GOTEO</div>
+                    <div style="font-size:15px;font-weight:800;margin-top:2px">${fe(resGoteo.total,0)}</div>
+                    <div class="mt2" style="font-size:8px">${resGoteo.n} compra${resGoteo.n===1?'':'s'}${resGoteo.rentMedia!==null?' · '+(resGoteo.rentMedia>=0?'+':'')+resGoteo.rentMedia.toFixed(1)+'% rent. media':''}</div>
+                </div>
             </div>
             ${(resGoteo.rentMedia!==null && resManual.rentMedia!==null) ? `<div class="mt2" style="font-size:9px;padding:0 16px 10px">${resGoteo.rentMedia>resManual.rentMedia?'💧 El goteo está ganando por '+(resGoteo.rentMedia-resManual.rentMedia).toFixed(1)+' puntos':'✋ Las compras manuales están ganando por '+(resManual.rentMedia-resGoteo.rentMedia).toFixed(1)+' puntos'}</div>` : ''}
-            <div class="sc" style="max-height:320px">
-                ${comprasFiltradas.length ? comprasFiltradas.map(mv => `
-                    <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:11px;min-width:0">
-                        <div style="flex:1;min-width:0">
-                            <span class="mt2" style="font-size:9px">${mv.fecha}</span>
-                            <span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:5px;font-size:8px;font-weight:800;background:${mv.esManual?'rgba(226,154,62,0.2)':'rgba(52,199,123,0.2)'};color:${mv.esManual?'var(--am)':'var(--gn)'}">${mv.esManual?'✋ MANUAL':'💧 GOTEO'}</span>
-                            ${mv.rentCompraPct!==null?`<span style="display:inline-block;margin-left:4px;font-size:9px;font-weight:800;color:${mv.rentCompraPct>=0?'var(--gn)':'var(--rd)'}">${mv.rentCompraPct>=0?'+':''}${mv.rentCompraPct.toFixed(1)}%</span>`:''}
-                            ${mv.detalleHTML}
-                        </div>
-                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">${fe(mv.monto)}€</div>
-                    </div>`).join('') : '<div class="mt2" style="padding:14px;font-size:10px">Sin compras en este periodo.</div>'}
-            </div>
+            ${[{ titulo: '✋ Manuales', color: 'var(--am)', lista: comprasManual }, { titulo: '💧 Goteo', color: 'var(--gn)', lista: comprasGoteo }].map(grupo => grupo.lista.length ? `
+                <div style="padding:8px 16px 2px;background:var(--s2)"><span style="font-size:9px;font-weight:800;color:${grupo.color}">${grupo.titulo} (${grupo.lista.length})</span></div>
+                <div class="sc" style="max-height:280px">
+                    ${grupo.lista.map(mv => `
+                        <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:11px;min-width:0">
+                            <div style="flex:1;min-width:0">
+                                <span class="mt2" style="font-size:9px">${mv.fecha}</span>
+                                ${mv.rentCompraPct!==null?`<span style="display:inline-block;margin-left:6px;font-size:15px;font-weight:800;color:${mv.rentCompraPct>=0?'var(--gn)':'var(--rd)'}">${mv.rentCompraPct>=0?'+':''}${mv.rentCompraPct.toFixed(1)}%</span>`:''}
+                                ${mv.detalleHTML}
+                            </div>
+                            <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">${fe(mv.monto)}</div>
+                        </div>`).join('')}
+                </div>` : '').join('') || '<div class="mt2" style="padding:14px;font-size:10px">Sin compras en este periodo.</div>'}
         </div>
         ${ventasFiltradas.length ? `
         <div class="card" style="margin-top:12px;border:1px solid var(--rd)">
