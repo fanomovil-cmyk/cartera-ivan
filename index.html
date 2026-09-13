@@ -3029,7 +3029,7 @@ function detectarOportunidadesExcepcionales() {
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
             null;
 
-        const yaDisparada = distPct >= 0;
+        const yaDisparada = distPct <= 0; // negativo = precio ya en o por debajo de la trampa
         const cercaYBarata = Math.abs(distPct) <= 5 && pctRango52 !== null && pctRango52 <= 20;
 
         if (yaDisparada || cercaYBarata) {
@@ -3149,8 +3149,17 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         return !t || t[18] !== false; // si no hay dato, se asume SÍ automatizable
     };
+    // Excluir también posiciones con trampa "escalonada" (siempre pegada al precio, tipo Realty
+    // Income) o con orden ya puesta en TR — ya están cubiertas por su propio mecanismo, no deben
+    // ganar aquí solo por tener una distancia a trampa artificialmente pequeña.
+    const tieneTrampaEspecial = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        if (!t) return false;
+        const notaLower = (t[14] || '').toLowerCase();
+        return notaLower.includes('escalonado') || t[11] === true;
+    };
     const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
-        .isin !== excluirIsin && (!universo || universo.includes(p.isin)));
+        .isin !== excluirIsin && (!universo || universo.includes(p.isin)) && !tieneTrampaEspecial(p.isin));
     const posNoAutomatizables = posTodas.filter(p => !esAutomatizable(p.isin));
     const pos = posTodas.filter(p => esAutomatizable(p.isin));
     const hoy = new Date();
