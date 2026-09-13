@@ -603,6 +603,10 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="ch"><h3>💧 Estrategia de Goteo</h3><span class="mt2" style="font-size:8px">aportaciones mensuales con reglas de reducción, cruzadas con Forever/trampas/peso</span></div>
     <div style="padding:14px 16px" id="goteo-container"></div>
   </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>📊 Control de lo ejecutado</h3><span class="mt2" style="font-size:8px">registra en la hoja HISTORICO_GOTEO cada vez que ejecutes una sugerencia</span></div>
+    <div style="padding:14px 16px" id="control-goteo-container"></div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
@@ -885,6 +889,7 @@ let DIVIDENDOS_GS = null,
 let PLAN_PANICO_GS = [];
 let GOTEO_GS = [];
 let OBJETIVOS_GS = [];
+let HISTORICO_GOTEO_GS = [];
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
@@ -2094,6 +2099,9 @@ async function recargar() {
         if (data.objetivos) {
             OBJETIVOS_GS = data.objetivos;
         }
+        if (data.historicoGoteo) {
+            HISTORICO_GOTEO_GS = data.historicoGoteo;
+        }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
         }
@@ -2229,6 +2237,7 @@ function renderDashboard() {
     renderSaludCartera();
     renderPlanPanico();
     renderGoteo();
+    renderControlGoteo();
 
     // Rango de fechas del Centro de Mando: inicio = primera compra real, fin = última fecha real del CSV
     const rangoEl = document.getElementById('rango');
@@ -2910,6 +2919,17 @@ function detectarOportunidadesExcepcionales() {
         const prioridad = (trampaFila[2] || '').trim();
         if (prioridad !== 'A+' && prioridad !== 'A') return; // filtro de calidad, sin excepción
 
+        // Si ya tiene su propio plan escalonado dedicado (ej. Realty Income: 52→43€, un nivel tras
+        // otro), su trampa está pensada para dispararse una y otra vez por diseño — no es una
+        // "oportunidad excepcional puntual" que deba robarle el dinero al goteo de los ETF, porque
+        // ya tiene su propio presupuesto aparte para eso.
+        const notaTrampaLower = (trampaFila[14] || '').toLowerCase();
+        if (notaTrampaLower.includes('escalonado')) return;
+        // Protección extra: si ya tiene una orden real puesta en Trade Republic, ese activo ya
+        // está siendo atendido por su propio mecanismo — no hace falta que el goteo le mande
+        // dinero extra también, evita que "robe" el protagonismo a los ETF sin necesidad.
+        if (trampaFila[11] === true) return;
+
         const pa = precioDe(p);
         const trampa = cn(trampaFila[3]);
         if (!pa || !trampa) return;
@@ -3238,6 +3258,68 @@ function renderGoteo() {
     }).join('');
 
     cont.innerHTML = cabecera + tarjetas;
+}
+
+// ── CONTROL DE GOTEO: cuánto se ha puesto de cada activo mes a mes, según el histórico registrado ──
+function renderControlGoteo() {
+    const cont = document.getElementById('control-goteo-container');
+    if (!cont) return;
+    if (!HISTORICO_GOTEO_GS.length) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin registros todavía — añade una fila en HISTORICO_GOTEO cada vez que ejecutes una sugerencia (Fecha | Tipo | Activo | ISIN | Importe) y aquí se irá construyendo el gráfico.</div>';
+        return;
+    }
+
+    const porMesActivo = {};
+    const totalPorActivo = {};
+    HISTORICO_GOTEO_GS.forEach(h => {
+        const mes = h.fecha.slice(0, 7);
+        if (!porMesActivo[mes]) porMesActivo[mes] = {};
+        porMesActivo[mes][h.activo] = (porMesActivo[mes][h.activo] || 0) + h.importe;
+        totalPorActivo[h.activo] = (totalPorActivo[h.activo] || 0) + h.importe;
+    });
+
+    const meses = Object.keys(porMesActivo).sort();
+    const activos = Object.keys(totalPorActivo).sort((a, b) => totalPorActivo[b] - totalPorActivo[a]);
+    const paleta = ['#E4C777', '#60A5FA', '#34C77B', '#E85A5A', '#E29A3E', '#A78BFA', '#F472B6', '#38BDF8'];
+
+    cont.innerHTML = '<div class="cw" style="height:260px;margin-bottom:14px"><canvas id="cControlGoteo"></canvas></div>' +
+        '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Total invertido</th><th>% del total</th></tr></thead><tbody>' +
+        activos.map(a => {
+            const totalGeneral = Object.values(totalPorActivo).reduce((s, v) => s + v, 0);
+            const pct = totalGeneral ? (totalPorActivo[a] / totalGeneral * 100) : 0;
+            return '<tr><td style="font-weight:700;font-size:11px">' + a + '</td><td style="font-family:monospace">' +
+                fe(totalPorActivo[a]) + '</td><td>' + pct.toFixed(1) + '%</td></tr>';
+        }).join('') + '</tbody></table></div>';
+
+    const canvas = document.getElementById('cControlGoteo');
+    if (!canvas) return;
+    const labels = meses.map(m => { const [y, mm] = m.split('-');
+        return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][+mm - 1] +
+            ' ' + y.slice(2); });
+    const datasets = activos.map((a, i) => ({
+        label: a,
+        data: meses.map(m => porMesActivo[m][a] || 0),
+        backgroundColor: paleta[i % paleta.length]
+    }));
+
+    if (window._chartControlGoteo) window._chartControlGoteo.destroy();
+    window._chartControlGoteo = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9CA3AF', boxWidth: 10, font: { size: 9 } } },
+                tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fe(ctx.parsed.y) } }
+            },
+            scales: {
+                x: { stacked: true, ticks: { color: '#9CA3AF', font: { size: 9 } }, grid: { display: false } },
+                y: { stacked: true, ticks: { color: '#9CA3AF', font: { size: 9 }, callback: v => fe(v, 0) },
+                    grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
 }
 
 function renderMiniProyeccion(proy) {
