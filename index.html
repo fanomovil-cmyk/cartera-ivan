@@ -3197,17 +3197,16 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         return !t || t[18] !== false; // si no hay dato, se asume SÍ automatizable
     };
-    // Excluir solo posiciones con trampa "escalonada" de verdad (siempre pegada al precio, tipo
-    // Realty Income) — tener una orden límite normal puesta NO es motivo para excluir, sigue
-    // siendo un candidato legítimo si está barata de verdad.
-    const tieneTrampaEspecial = isin => {
+    // Las posiciones con plan escalonado (ej. Realty Income) siguen siendo candidatas legítimas
+    // aquí — solo se neutraliza su factor de "cercanía a trampa" más abajo, porque esa cercanía es
+    // artificial (la trampa se recalibra sola cada vez), no un reflejo real de estar barata.
+    const tieneTrampaEscalonada = isin => {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         if (!t) return false;
-        const notaLower = (t[14] || '').toLowerCase();
-        return notaLower.includes('escalonado');
+        return ((t[14] || '').toLowerCase()).includes('escalonado');
     };
     const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
-        .isin !== excluirIsin && (!universo || universo.includes(p.isin)) && !tieneTrampaEspecial(p.isin));
+        .isin !== excluirIsin && (!universo || universo.includes(p.isin)));
     const posNoAutomatizables = posTodas.filter(p => !esAutomatizable(p.isin));
     const pos = posTodas.filter(p => esAutomatizable(p.isin));
     const hoy = new Date();
@@ -3263,7 +3262,7 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
             mesesHastaPrimerPago = futuros[0];
         }
         const puntosDividendoCamino = Math.max(0, Math.min(100, numPagos12m * 8 - mesesHastaPrimerPago * 3));
-        const puntosTrampa = Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
+        const puntosTrampa = tieneTrampaEscalonada(p.isin) ? 50 : Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
         const puntosRango52 = 100 - pctRango52;
 
         // Descuento respecto a TU propio precio medio de compra: la señal más directa de si de
