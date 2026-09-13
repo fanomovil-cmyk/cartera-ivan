@@ -3021,10 +3021,6 @@ function detectarOportunidadesExcepcionales() {
         // ya tiene su propio presupuesto aparte para eso.
         const notaTrampaLower = (trampaFila[14] || '').toLowerCase();
         if (notaTrampaLower.includes('escalonado')) return;
-        // Protección extra: si ya tiene una orden real puesta en Trade Republic, ese activo ya
-        // está siendo atendido por su propio mecanismo — no hace falta que el goteo le mande
-        // dinero extra también, evita que "robe" el protagonismo a los ETF sin necesidad.
-        if (trampaFila[11] === true) return;
 
         const pa = precioDe(p);
         const trampa = cn(trampaFila[3]);
@@ -3076,9 +3072,10 @@ function analizarGrupoRecurrente(importe, universoCSV) {
         }
         // La única disparada de verdad no es automatizable (ej. VICI) — aviso manual, ETF normales
         const avisoManual = automatizables[0] || disparadasDeVerdad[0];
+        const resultadoETF1 = calcularRepartoETF(importe, universo);
         return {
-            tipo: 'normal_con_aviso', avisoManual,
-            reparto: calcularRepartoETF(importe, universo),
+            tipo: 'normal_con_aviso', avisoManual, reparto: resultadoETF1.reparto,
+            liquidez: resultadoETF1.liquidez,
             motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
                 ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
         };
@@ -3087,15 +3084,17 @@ function analizarGrupoRecurrente(importe, universoCSV) {
     // Solo "cerca" (sin disparar de verdad): aviso de vigilancia, sin tocar el reparto de los ETF
     if (oportunidades.length) {
         const masCerca = oportunidades[0];
+        const resultadoETF2 = calcularRepartoETF(importe, universo);
         return {
-            tipo: 'normal_con_aviso', avisoManual: masCerca,
-            reparto: calcularRepartoETF(importe, universo),
+            tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
+            liquidez: resultadoETF2.liquidez,
             motivoAviso: '👀 A vigilar: ' + masCerca.nombre + ' ' + masCerca.motivo +
                 '. Aún no ha tocado la trampa de verdad, así que los ETF siguen su reparto normal — si la toca, se pausarán.'
         };
     }
 
-    return { tipo: 'normal', reparto: calcularRepartoETF(importe, universo) };
+    const resultadoETF3 = calcularRepartoETF(importe, universo);
+    return { tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez };
 }
 
 function calcularRepartoETF(importe, universoISINs) {
@@ -3119,19 +3118,49 @@ function calcularRepartoETF(importe, universoISINs) {
         return { nombre, isin, score, pctRango52, distTrampaPct };
     });
 
-    if (!candidatos.length) return [];
-    const FLOOR = 0.15,
-        CAP = 0.60;
-    const sumaScores = candidatos.reduce((s, c) => s + Math.max(1, c.score), 0);
-    let pesos = candidatos.map(c => Math.max(1, c.score) / sumaScores);
-    pesos = pesos.map(w => Math.min(CAP, Math.max(FLOOR, w)));
-    const sumaPesos = pesos.reduce((s, w) => s + w, 0);
-    pesos = pesos.map(w => w / sumaPesos); // renormalizar tras aplicar suelo/techo
+    if (!candidatos.length) return { reparto: [], liquidez: importe };
 
-    return candidatos.map((c, i) => ({
-        nombre: c.nombre, isin: c.isin, importe: importe * pesos[i], peso: pesos[i] * 100,
-        pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct
-    })).sort((a, b) => b.importe - a.importe);
+    // No forzamos a gastar todo el presupuesto: mantener el dinero en TR al ~2,5% es una
+    // alternativa real, no "no hacer nada". Solo los ETF con atractivo real (por debajo de su
+    // trampa o cerca de mínimos de 52 semanas) compiten por el capital de verdad; los demás
+    // reciben solo el mínimo para mantener el hábito, y el resto se queda en liquidez.
+    const UMBRAL_ATRACTIVO = 50; // score a partir del cual un ETF "merece" capital extra
+    const MINIMO_POR_ETF = 50; // lo justo para no romper el hábito, ni cuando no está barato
+
+    const atractivos = candidatos.filter(c => c.score >= UMBRAL_ATRACTIVO);
+    const pocoAtractivos = candidatos.filter(c => c.score < UMBRAL_ATRACTIVO);
+
+    // A los poco atractivos, el mínimo (o menos, si no llega el presupuesto)
+    const totalMinimos = Math.min(importe, pocoAtractivos.length * MINIMO_POR_ETF);
+    const importeMinimoReal = pocoAtractivos.length ? totalMinimos / pocoAtractivos.length : 0;
+    const reparteMinimos = pocoAtractivos.map(c => ({
+        nombre: c.nombre, isin: c.isin, importe: importeMinimoReal, peso: 0, pctRango52: c.pctRango52,
+        distTrampaPct: c.distTrampaPct, atractivo: false
+    }));
+
+    // El resto del presupuesto (tras los mínimos) se reparte SOLO entre los atractivos, a favor
+    // de quien esté objetivamente más barato — sin techo artificial: si uno destaca con claridad,
+    // se lleva la mayor parte.
+    const presupuestoAtractivos = Math.max(0, importe - totalMinimos);
+    let reparteAtractivos = [];
+    let liquidezSobrante = 0;
+    if (atractivos.length && presupuestoAtractivos > 0) {
+        const sumaScores = atractivos.reduce((s, c) => s + c.score, 0);
+        reparteAtractivos = atractivos.map(c => ({
+            nombre: c.nombre, isin: c.isin, importe: presupuestoAtractivos * (c.score / sumaScores),
+            peso: (c.score / sumaScores) * 100, pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct,
+            atractivo: true
+        }));
+    } else {
+        // Nadie está de verdad atractivo: ese capital se queda en liquidez, ganando el 2,5% en TR
+        liquidezSobrante = presupuestoAtractivos;
+    }
+
+    const repartoFinal = [...reparteAtractivos, ...reparteMinimos].sort((a, b) => b.importe - a.importe);
+    const totalDesplegado = repartoFinal.reduce((s, r) => s + r.importe, 0);
+    repartoFinal.forEach(r => { r.peso = totalDesplegado ? (r.importe / totalDesplegado * 100) : 0; });
+
+    return { reparto: repartoFinal, liquidez: liquidezSobrante };
 }
 
 function proyectarDividendos6Meses(isin, capital, precioActual) {
@@ -3168,14 +3197,14 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         return !t || t[18] !== false; // si no hay dato, se asume SÍ automatizable
     };
-    // Excluir también posiciones con trampa "escalonada" (siempre pegada al precio, tipo Realty
-    // Income) o con orden ya puesta en TR — ya están cubiertas por su propio mecanismo, no deben
-    // ganar aquí solo por tener una distancia a trampa artificialmente pequeña.
+    // Excluir solo posiciones con trampa "escalonada" de verdad (siempre pegada al precio, tipo
+    // Realty Income) — tener una orden límite normal puesta NO es motivo para excluir, sigue
+    // siendo un candidato legítimo si está barata de verdad.
     const tieneTrampaEspecial = isin => {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         if (!t) return false;
         const notaLower = (t[14] || '').toLowerCase();
-        return notaLower.includes('escalonado') || t[11] === true;
+        return notaLower.includes('escalonado');
     };
     const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
         .isin !== excluirIsin && (!universo || universo.includes(p.isin)) && !tieneTrampaEspecial(p.isin));
@@ -3237,12 +3266,20 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         const puntosTrampa = Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
         const puntosRango52 = 100 - pctRango52;
 
-        const puntuacionTotal = puntosTrampa * 0.25 + puntosRango52 * 0.20 + puntosPrioridad * 0.15 +
-            Math.min(100, yieldActual * 15) * 0.15 + puntosDividendoCamino * 0.25;
+        // Descuento respecto a TU propio precio medio de compra: la señal más directa de si de
+        // verdad estás comprando barato para ti, más allá de si ha tocado un nivel de trampa fijo
+        // o no. En pérdida = oportunidad real de promediar a la baja en un A+/A; en beneficio
+        // sólido = ya no es "barato" para ti, aunque esté cerca de su trampa técnica.
+        const rentActualPct = p.pm ? ((pa - p.pm) / p.pm * 100) : 0;
+        const puntosDescuentoCoste = rentActualPct < 0 ? Math.min(100, Math.abs(rentActualPct) * 5) :
+            Math.max(0, 25 - rentActualPct * 1.5);
+
+        const puntuacionTotal = puntosDescuentoCoste * 0.35 + puntosTrampa * 0.15 + puntosRango52 * 0.15 +
+            puntosPrioridad * 0.10 + Math.min(100, yieldActual * 15) * 0.10 + puntosDividendoCamino * 0.15;
 
         return {
             nombre: p.n, isin: p.isin, precioActual: pa, puntuacionTotal, distTrampaPct, pctRango52, prioridad,
-            yieldActual, numPagos12m, mesesHastaPrimerPago
+            yieldActual, numPagos12m, mesesHastaPrimerPago, rentActualPct
         };
     }).filter(Boolean).sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
 
@@ -3264,6 +3301,9 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
     }
 
     const explicacionNormal = ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' +
+        (ganador.rentActualPct < 0 ? 'está en ' + ganador.rentActualPct.toFixed(1) +
+            '% respecto a tu precio medio de compra (oportunidad real de promediar a la baja), ' :
+            'está en +' + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio, ') +
         'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
         '% de su rango de 52 semanas, prioridad ' + ganador.prioridad + ', yield ' + ganador.yieldActual.toFixed(
             2) + '%, y ' + ganador.numPagos12m + ' pago' + (ganador.numPagos12m === 1 ? '' : 's') +
@@ -3313,7 +3353,8 @@ function renderFocusGoteo() {
                 destinoTexto = '🚨 PAUSA — todo a ' + analisis.destino.nombre;
                 esPausa = true;
             } else {
-                destinoTexto = analisis.reparto.map(r => r.nombre + ' (' + fe(r.importe, 0) + ')').join(' · ');
+                destinoTexto = analisis.reparto.map(r => r.nombre + ' (' + fe(r.importe, 0) + ')').join(' · ') +
+                    (analisis.liquidez > 1 ? ' · 💶 ' + fe(analisis.liquidez, 0) + ' en liquidez (2,5%)' : '');
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
@@ -3377,7 +3418,11 @@ function renderGoteo() {
                     const proy = proyectarDividendos6Meses(r.isin, r.importe, precioDe(posicionesVivas().find(
                         p => p.isin === r.isin) || {}) || 0);
                     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
-                        '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b>' +
+                        '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b> ' +
+                        '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' + (r
+                            .atractivo ? 'rgba(52,199,123,0.2);color:var(--gn)' :
+                            'rgba(226,154,62,0.2);color:var(--am)') + '">' + (r.atractivo ? '🎯 barato' :
+                            '⏳ mínimo') + '</span>' +
                         '<div class="mt2" style="font-size:8px">' + (r.pctRango52 !== null ? 'al ' + r
                             .pctRango52.toFixed(0) + '% de su rango 52sem' : '') + (r.distTrampaPct !== null ?
                             ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div></div>' +
@@ -3387,7 +3432,12 @@ function renderGoteo() {
                             '<div class="mt2" style="font-size:8px;padding:2px 0 6px">+ ' + fe(proy.total) +
                             ' en dividendo estimado (6 meses)</div>' : '');
                 }).join('');
-                cuerpoHTML = avisoHTML + '<div style="margin-top:10px">' + filasReparto + '</div>';
+                const liquidezHTML = analisis.liquidez > 1 ?
+                    ('<div style="margin-top:8px;padding:10px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:8px;display:flex;justify-content:space-between;align-items:center">' +
+                        '<span style="font-size:10px;color:var(--ac)">💶 Se queda en liquidez (TR, ~2,5%) — nada barato de verdad este mes</span>' +
+                        '<span style="font-size:14px;font-weight:800;color:var(--ac)">' + fe(analisis.liquidez,
+                            0) + '</span></div>') : '';
+                cuerpoHTML = avisoHTML + '<div style="margin-top:10px">' + filasReparto + '</div>' + liquidezHTML;
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
