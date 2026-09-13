@@ -2046,7 +2046,8 @@ async function recargar() {
                 t.nota,          // r[14] — nota libre
                 t.isin,          // r[15] — ISIN, para cruzar sin depender del nombre
                 t.min52,         // r[16] — mínimo 52 semanas
-                t.max52          // r[17] — máximo 52 semanas
+                t.max52,         // r[17] — máximo 52 semanas
+                t.automatizable  // r[18] — false = solo compra directa, nunca planes automáticos (ej. VICI)
             ]);
         }
 
@@ -2893,36 +2894,184 @@ function tieneResultadosEsteMes(nombre) {
 // Prioridad 1: objetivos estratégicos (hitos tipo "bloque de 10 antes de fecha X") — si aplica y
 // está cerca de completarse, gana automáticamente sobre cualquier puntuación.
 // Prioridad 2 (si no hay hito activo o hay empate): puntuación combinada de 5 factores.
-function sugerirDestinoFlexible(excluirIsin) {
-    const pos = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p.isin !==
-        excluirIsin);
+// ── DETECTOR DE OPORTUNIDADES EXCEPCIONALES ──
+// Filtro de calidad ESTRICTO: solo A+ o A pueden activar la pausa de los ETF recurrentes. Un B o
+// A- barato NO cuenta nunca, por muy tentador que parezca — comprar barato un mal activo es una
+// pérdida a largo plazo disfrazada de chollo.
+// Se considera "excepcional" si YA ha tocado su propia trampa (el precio que decidiste con calma,
+// no en caliente), o si está cerca (≤5%) Y ADEMÁS en el 20% más bajo de su rango de 52 semanas —
+// dos señales independientes confirmándose la una a la otra, no una casualidad aislada.
+function detectarOportunidadesExcepcionales() {
+    const pos = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever'));
+    const oportunidades = [];
+    pos.forEach(p => {
+        const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
+        if (!trampaFila) return;
+        const prioridad = (trampaFila[2] || '').trim();
+        if (prioridad !== 'A+' && prioridad !== 'A') return; // filtro de calidad, sin excepción
+
+        const pa = precioDe(p);
+        const trampa = cn(trampaFila[3]);
+        if (!pa || !trampa) return;
+        const distPct = (pa - trampa) / trampa * 100;
+        const min52 = cn(trampaFila[16]),
+            max52 = cn(trampaFila[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
+            null;
+
+        const yaDisparada = distPct >= 0;
+        const cercaYBarata = Math.abs(distPct) <= 5 && pctRango52 !== null && pctRango52 <= 20;
+
+        if (yaDisparada || cercaYBarata) {
+            oportunidades.push({
+                nombre: p.n, isin: p.isin, precioActual: pa, prioridad, distPct, pctRango52,
+                automatizable: trampaFila[18] !== false, yaDisparada,
+                motivo: yaDisparada ?
+                    'ya ha tocado su propia trampa (' + fe(trampa) + '), el precio que decidiste con calma' :
+                    'está a solo ' + Math.abs(distPct).toFixed(1) + '% de su trampa Y en el ' + pctRango52
+                    .toFixed(0) + '% más bajo de su rango de 52 semanas — dos señales confirmándose a la vez'
+            });
+        }
+    });
+    // Ya disparadas primero; entre las no disparadas, la que esté más profunda en su rango de 52 sem.
+    oportunidades.sort((a, b) => (b.yaDisparada - a.yaDisparada) || (a.pctRango52 - b.pctRango52));
+    return oportunidades;
+}
+
+// ── ANÁLISIS DE GRUPO RECURRENTE (los 3 ETF): pausa si hay oportunidad excepcional, si no,
+// reparto proporcional entre los 3 según lo barato que esté cada uno (nunca todo-o-nada) ──
+function analizarGrupoRecurrente(importe, universoCSV) {
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+    const oportunidades = detectarOportunidadesExcepcionales();
+
+    if (oportunidades.length) {
+        const automatizables = oportunidades.filter(o => o.automatizable);
+        if (automatizables.length) {
+            const elegido = automatizables[0];
+            return {
+                tipo: 'pausa', destino: elegido, importe,
+                motivo: '🚨 PAUSA LOS ETF ESTE MES: ' + elegido.nombre + ' (' + elegido.prioridad +
+                    ') ' + elegido.motivo + '. Dejar pasar esto para seguir el plan automático sería un error — redirige los ' +
+                    fe(importe, 0) + ' completos aquí.'
+            };
+        }
+        // La(s) única(s) oportunidad(es) excepcional(es) no se pueden automatizar (ej. VICI) — aviso
+        // manual aparte, pero los ETF siguen su reparto normal este mes.
+        const avisoManual = oportunidades[0];
+        return {
+            tipo: 'normal_con_aviso', avisoManual,
+            reparto: calcularRepartoETF(importe, universo),
+            motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
+                ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
+        };
+    }
+
+    return { tipo: 'normal', reparto: calcularRepartoETF(importe, universo) };
+}
+
+function calcularRepartoETF(importe, universoISINs) {
+    const pos = posicionesVivas();
+    const candidatos = universoISINs.map(isin => {
+        const p = pos.find(x => x.isin === isin);
+        const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
+        const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
+        const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
+        if (!trampaFila || !pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
+
+        const trampa = cn(trampaFila[3]);
+        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
+        const min52 = cn(trampaFila[16]),
+            max52 = cn(trampaFila[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
+            50;
+        const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.abs(distTrampaPct) * 4) : 50;
+        const puntosRango = 100 - pctRango52;
+        const score = (puntosTrampa + puntosRango) / 2;
+        return { nombre, isin, score, pctRango52, distTrampaPct };
+    });
+
+    if (!candidatos.length) return [];
+    const FLOOR = 0.15,
+        CAP = 0.60;
+    const sumaScores = candidatos.reduce((s, c) => s + Math.max(1, c.score), 0);
+    let pesos = candidatos.map(c => Math.max(1, c.score) / sumaScores);
+    pesos = pesos.map(w => Math.min(CAP, Math.max(FLOOR, w)));
+    const sumaPesos = pesos.reduce((s, w) => s + w, 0);
+    pesos = pesos.map(w => w / sumaPesos); // renormalizar tras aplicar suelo/techo
+
+    return candidatos.map((c, i) => ({
+        nombre: c.nombre, isin: c.isin, importe: importe * pesos[i], peso: pesos[i] * 100,
+        pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct
+    })).sort((a, b) => b.importe - a.importe);
+}
+
+function proyectarDividendos6Meses(isin, capital, precioActual) {
+    if (!isin || !capital || !precioActual) return null;
+    const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
+    const divAcc = trampaFila ? cn(trampaFila[8]) : 0;
+    const calItem = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin === isin);
+    if (!divAcc || !calItem || !calItem.meses.length) return null;
+
+    const nuevasAcciones = capital / precioActual;
+    const numPagosAlAnio = calItem.meses.length;
+    const porPago = (divAcc / numPagosAlAnio) * nuevasAcciones;
+
+    const nombresMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const hoy = new Date();
+    const mesActual = hoy.getMonth() + 1;
+    const anioActualP = hoy.getFullYear();
+
+    const pagosEn6Meses = [];
+    for (let i = 0; i < 6; i++) {
+        const mesRevisar = ((mesActual - 1 + i) % 12) + 1;
+        if (calItem.meses.includes(mesRevisar)) {
+            const anioPago = mesRevisar >= mesActual ? anioActualP : anioActualP + 1;
+            pagosEn6Meses.push({ mes: nombresMes[mesRevisar - 1], anio: anioPago, importe: porPago });
+        }
+    }
+    if (!pagosEn6Meses.length) return { nuevasAcciones, pagos: [], total: 0 };
+    return { nuevasAcciones, pagos: pagosEn6Meses, total: pagosEn6Meses.reduce((s, p) => s + p.importe, 0) };
+}
+
+function sugerirDestinoFlexible(excluirIsin, universoCSV) {
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
+    const esAutomatizable = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return !t || t[18] !== false; // si no hay dato, se asume SÍ automatizable
+    };
+    const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
+        .isin !== excluirIsin && (!universo || universo.includes(p.isin)));
+    const posNoAutomatizables = posTodas.filter(p => !esAutomatizable(p.isin));
+    const pos = posTodas.filter(p => esAutomatizable(p.isin));
     const hoy = new Date();
 
-    // ── Paso 1: ¿hay algún objetivo estratégico activo y alcanzable? ──
+    // ── Objetivo estratégico activo y alcanzable, si lo hay (solo si su ISIN cabe en el universo) ──
+    let ganadorEstrategico = null;
     for (const obj of OBJETIVOS_GS) {
         if (!obj.multiplo || !obj.fechaLimite) continue;
+        if (universo && !universo.includes(obj.isin)) continue;
         const fechaLim = new Date(obj.fechaLimite);
-        if (fechaLim < hoy) continue; // objetivo caducado
+        if (fechaLim < hoy) continue;
         const posObj = pos.find(p => p.isin === obj.isin);
         if (!posObj) continue;
         const siguienteMultiplo = Math.ceil((posObj.sh + 0.001) / obj.multiplo) * obj.multiplo;
         const accionesQueFaltan = siguienteMultiplo - posObj.sh;
         const mesesRestantes = (fechaLim - hoy) / (1000 * 60 * 60 * 24 * 30.44);
-        // "Cerca de completarlo": le faltan pocas acciones Y aún queda tiempo de sobra para lograrlo
         if (accionesQueFaltan <= obj.multiplo * 0.3 && mesesRestantes >= 1) {
-            return {
-                nombre: posObj.n, isin: posObj.isin, esObjetivoEstrategico: true,
-                explicacion: '🎯 Objetivo estratégico: te faltan ' + accionesQueFaltan.toFixed(2) +
+            ganadorEstrategico = {
+                isin: posObj.isin,
+                explicacionObjetivo: '🎯 Objetivo estratégico: te faltan ' + accionesQueFaltan.toFixed(2) +
                     ' acciones para completar el siguiente bloque de ' + obj.multiplo + ' antes de ' + obj
-                    .fechaLimite + ' (' + obj.beneficio + '). Prioridad absoluta sobre cualquier otra opción.'
+                    .fechaLimite + ' (' + obj.beneficio + ').'
             };
+            break;
         }
     }
 
-    // ── Paso 2: puntuación combinada de 5 factores ──
+    // ── Puntuación combinada de 5 factores (siempre se calcula, para tener top3 completo) ──
     const calendarioPorISINAsesor = {};
     (CALENDARIO_DIVIDENDOS_GS || []).forEach(c => { if (c.isin) calendarioPorISINAsesor[c.isin] = c.meses; });
-    const mesActualAsesor = hoy.getMonth() + 1; // 1-indexado
+    const mesActualAsesor = hoy.getMonth() + 1;
 
     const candidatos = pos.map(p => {
         const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
@@ -2939,7 +3088,6 @@ function sugerirDestinoFlexible(excluirIsin) {
         const puntosPrioridad = prioridad === 'A+' ? 100 : prioridad === 'A' ? 80 : prioridad === 'A-' ? 65 : 45;
         const yieldActual = pa ? (cn(trampaFila[8]) / pa * 100) : 0;
 
-        // Dividendos "en el camino": nº de pagos en los próximos 12 meses + bonus si el primero está cerca
         const mesesPago = calendarioPorISINAsesor[p.isin] || [];
         const numPagos12m = mesesPago.length;
         let mesesHastaPrimerPago = 12;
@@ -2948,30 +3096,56 @@ function sugerirDestinoFlexible(excluirIsin) {
             mesesHastaPrimerPago = futuros[0];
         }
         const puntosDividendoCamino = Math.max(0, Math.min(100, numPagos12m * 8 - mesesHastaPrimerPago * 3));
-
-        // Puntos por cercanía (invertido: 0% distancia = 100 puntos, cuanto más lejos, menos)
         const puntosTrampa = Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
-        const puntosRango52 = 100 - pctRango52; // cuanto más bajo el %, más puntos
+        const puntosRango52 = 100 - pctRango52;
 
         const puntuacionTotal = puntosTrampa * 0.25 + puntosRango52 * 0.20 + puntosPrioridad * 0.15 +
             Math.min(100, yieldActual * 15) * 0.15 + puntosDividendoCamino * 0.25;
 
         return {
-            nombre: p.n, isin: p.isin, puntuacionTotal, distTrampaPct, pctRango52, prioridad, yieldActual,
-            numPagos12m, mesesHastaPrimerPago
+            nombre: p.n, isin: p.isin, precioActual: pa, puntuacionTotal, distTrampaPct, pctRango52, prioridad,
+            yieldActual, numPagos12m, mesesHastaPrimerPago
         };
     }).filter(Boolean).sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
 
     if (!candidatos.length) return null;
-    const mejor = candidatos[0];
+
+    // Si hay un objetivo estratégico activo, lo promocionamos al puesto 1 (si no lo era ya),
+    // pero el top3 sigue mostrando las demás opciones reales que había en juego.
+    let top3 = candidatos.slice(0, 3);
+    let ganador = top3[0];
+    let explicacionExtra = '';
+    if (ganadorEstrategico) {
+        const yaEraElMejor = top3[0].isin === ganadorEstrategico.isin;
+        const candidatoEstrategico = candidatos.find(c => c.isin === ganadorEstrategico.isin);
+        if (candidatoEstrategico && !yaEraElMejor) {
+            top3 = [candidatoEstrategico, ...top3.filter(c => c.isin !== ganadorEstrategico.isin)].slice(0, 3);
+        }
+        ganador = candidatoEstrategico || top3[0];
+        explicacionExtra = ganadorEstrategico.explicacionObjetivo + ' Prioridad absoluta sobre las demás opciones. ';
+    }
+
+    const explicacionNormal = ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' +
+        'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
+        '% de su rango de 52 semanas, prioridad ' + ganador.prioridad + ', yield ' + ganador.yieldActual.toFixed(
+            2) + '%, y ' + ganador.numPagos12m + ' pago' + (ganador.numPagos12m === 1 ? '' : 's') +
+        ' de dividendo en los próximos 12 meses' + (ganador.mesesHastaPrimerPago <= 2 ? ' (el primero muy pronto)' :
+            '') + '.';
+
+    let avisoNoAutomatizable = '';
+    if (posNoAutomatizables.length) {
+        const oportunidadesManuales = detectarOportunidadesExcepcionales().filter(o => posNoAutomatizables.some(
+            p => p.isin === o.isin));
+        if (oportunidadesManuales.length) {
+            avisoNoAutomatizable = ' ⚠️ Aparte: ' + oportunidadesManuales[0].nombre + ' ' +
+                oportunidadesManuales[0].motivo + ', pero no admite planes automáticos — cómprala tú a mano.';
+        }
+    }
+
     return {
-        nombre: mejor.nombre, isin: mejor.isin, esObjetivoEstrategico: false, top3: candidatos.slice(0, 3),
-        explicacion: mejor.nombre + ' elegido (puntuación ' + mejor.puntuacionTotal.toFixed(0) + '/100): ' +
-            'a ' + Math.abs(mejor.distTrampaPct).toFixed(1) + '% de su trampa, al ' + mejor.pctRango52.toFixed(0) +
-            '% de su rango de 52 semanas, prioridad ' + mejor.prioridad + ', yield ' + mejor.yieldActual.toFixed(
-                2) + '%, y ' + mejor.numPagos12m + ' pago' + (mejor.numPagos12m === 1 ? '' : 's') +
-            ' de dividendo en los próximos 12 meses' + (mejor.mesesHastaPrimerPago <= 2 ?
-                ' (el primero muy pronto)' : '') + '.'
+        nombre: ganador.nombre, isin: ganador.isin, precioActual: ganador.precioActual,
+        esObjetivoEstrategico: !!ganadorEstrategico, top3: top3,
+        explicacion: explicacionExtra + explicacionNormal + avisoNoAutomatizable
     };
 }
 
@@ -2979,46 +3153,102 @@ function renderGoteo() {
     const cont = document.getElementById('goteo-container');
     if (!cont) return;
     if (!GOTEO_GS.length) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Aún no has creado la hoja GOTEO — solo necesitas 2 columnas: Tipo (Mensual/Semanal/Redondeo) e Importe. El sistema decide el destino solo, buscando en tu CARTERA y TRAMPAS.</div>';
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Aún no has creado la hoja GOTEO — solo necesitas 2 columnas: Tipo (Mensual/Semanal/Redondeo) e Importe, y opcionalmente una tercera "Universo" con ISIN separados por comas para restringir a un grupo (ej. tus ETF). El sistema decide el destino solo, buscando en tu CARTERA y TRAMPAS.</div>';
         return;
     }
 
-    // Media real de saveback/redondeos de TODA la cartera (no por activo), por si la fila
-    // "Redondeo" de la hoja se deja en 0 y se prefiere calcular sola a partir del histórico real.
     const todosSavebacks = savebacksEnVivo() || [];
     const mediaRedondeoReal = todosSavebacks.length ? todosSavebacks.reduce((s, x) => s + x.i, 0) /
         todosSavebacks.length : 0;
-
     const iconoPorTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
 
-    cont.innerHTML = GOTEO_GS.map(g => {
+    const totalDesplegado = GOTEO_GS.reduce((s, g) => s + (g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ?
+        mediaRedondeoReal : 0)), 0);
+
+    const cabecera = '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--s2);border-radius:10px;margin-bottom:14px">' +
+        '<span style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Total desplegado al mes</span>' +
+        '<span style="font-size:20px;font-weight:800;color:var(--gn)">' + fe(totalDesplegado, 0) + '</span></div>';
+
+    const tarjetas = GOTEO_GS.map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
-        const sugerencia = sugerirDestinoFlexible(null);
+        const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
 
-        const explicacionHTML = sugerencia ?
-            ('<div style="margin-top:10px;padding:10px;background:' + (sugerencia.esObjetivoEstrategico ?
-                    'rgba(226,154,62,0.12)' : 'rgba(96,165,250,0.1)') + ';border:1px solid ' + (sugerencia
-                    .esObjetivoEstrategico ? 'var(--am)' : 'var(--ac)') + ';border-radius:8px">' +
-                '<div style="font-size:12px;font-weight:800;color:' + (sugerencia.esObjetivoEstrategico ?
-                    'var(--am)' : 'var(--ac)') + '">➜ ' + sugerencia.nombre + '</div>' +
-                '<div class="mt2" style="font-size:9px;margin-top:4px">' + sugerencia.explicacion + '</div>' +
-                (sugerencia.top3 ? '<div class="mt2" style="font-size:8px;margin-top:4px">Otras opciones consideradas: ' +
-                    sugerencia.top3.slice(1).map(c => c.nombre + ' (' + c.puntuacionTotal.toFixed(0) + 'pts)')
-                    .join(' · ') + '</div>' : '') +
-                '</div>') :
-            '<div class="mt2" style="font-size:10px;margin-top:8px">Sin datos suficientes en CARTERA/TRAMPAS para decidir todavía.</div>';
+        let cuerpoHTML;
+        if (esGrupo) {
+            const analisis = analizarGrupoRecurrente(importeReal, g.universo);
+            if (analisis.tipo === 'pausa') {
+                const d = analisis.destino;
+                const proy = proyectarDividendos6Meses(d.isin, importeReal, d.precioActual);
+                cuerpoHTML = '<div style="margin-top:10px;padding:12px;background:rgba(232,90,90,0.1);border:2px solid var(--rd);border-radius:10px">' +
+                    '<div style="font-size:13px;font-weight:800;color:var(--rd)">⏸️ PAUSA ESTE MES → ' + d
+                    .nombre + '</div>' +
+                    '<div class="mt2" style="font-size:10px;margin-top:6px">' + analisis.motivo + '</div>' +
+                    (proy && proy.pagos.length ? renderMiniProyeccion(proy) : '') + '</div>';
+            } else {
+                const avisoHTML = analisis.motivoAviso ?
+                    ('<div style="margin-top:8px;padding:8px 10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:9px;color:var(--am)">' +
+                        analisis.motivoAviso + '</div>') : '';
+                const filasReparto = analisis.reparto.map(r => {
+                    const proy = proyectarDividendos6Meses(r.isin, r.importe, precioDe(posicionesVivas().find(
+                        p => p.isin === r.isin) || {}) || 0);
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
+                        '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b>' +
+                        '<div class="mt2" style="font-size:8px">' + (r.pctRango52 !== null ? 'al ' + r
+                            .pctRango52.toFixed(0) + '% de su rango 52sem' : '') + (r.distTrampaPct !== null ?
+                            ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div></div>' +
+                        '<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--gn)">' +
+                        fe(r.importe, 0) + '</div><div class="mt2" style="font-size:8px">' + r.peso.toFixed(0) +
+                        '%</div></div></div>' + (proy && proy.total > 0 ?
+                            '<div class="mt2" style="font-size:8px;padding:2px 0 6px">+ ' + fe(proy.total) +
+                            ' en dividendo estimado (6 meses)</div>' : '');
+                }).join('');
+                cuerpoHTML = avisoHTML + '<div style="margin-top:10px">' + filasReparto + '</div>';
+            }
+        } else {
+            const sugerencia = sugerirDestinoFlexible(null, g.universo);
+            const proyeccion = sugerencia ? proyectarDividendos6Meses(sugerencia.isin, importeReal, sugerencia
+                .precioActual) : null;
+            cuerpoHTML = sugerencia ?
+                ('<div style="margin-top:10px;padding:12px;background:' + (sugerencia.esObjetivoEstrategico ?
+                        'rgba(226,154,62,0.12)' : 'rgba(96,165,250,0.1)') + ';border:1px solid ' + (sugerencia
+                        .esObjetivoEstrategico ? 'var(--am)' : 'var(--ac)') + ';border-radius:10px">' +
+                    '<div style="font-size:14px;font-weight:800;color:' + (sugerencia.esObjetivoEstrategico ?
+                        'var(--am)' : 'var(--ac)') + '">➜ ' + sugerencia.nombre + '</div>' +
+                    '<div class="mt2" style="font-size:9px;margin-top:5px;line-height:1.5">' + sugerencia
+                    .explicacion + '</div>' +
+                    (sugerencia.top3 && sugerencia.top3.length > 1 ? '<div class="mt2" style="font-size:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">Siguientes opciones: ' +
+                        sugerencia.top3.slice(1).map(c => c.nombre + ' (' + c.puntuacionTotal.toFixed(0) +
+                            'pts)').join(' · ') + '</div>' : '') +
+                    (proyeccion ? renderMiniProyeccion(proyeccion) : '') + '</div>') :
+                '<div class="mt2" style="font-size:10px;margin-top:8px">Sin datos suficientes en CARTERA/TRAMPAS para decidir todavía.</div>';
+        }
 
-        return '<div class="card" style="margin-bottom:12px">' +
-            '<div style="padding:12px 16px">' +
+        return '<div class="card" style="margin-bottom:14px;overflow:hidden">' +
+            '<div style="padding:14px 16px;background:linear-gradient(135deg,var(--s2),transparent)">' +
             '<div style="display:flex;justify-content:space-between;align-items:center">' +
-            '<b style="font-size:13px">' + (iconoPorTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<span style="font-size:18px;font-weight:800;color:var(--gn)">' + fe(importeReal, 0) + '</span>' +
+            '<b style="font-size:14px">' + (iconoPorTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
+            '<span style="font-size:20px;font-weight:800;color:var(--gn)">' + fe(importeReal, 0) + '</span>' +
             '</div>' +
-            (g.tipo === 'Redondeo' && !g.importe ? '<div class="mt2" style="font-size:8px;margin-top:2px">Media real calculada de ' +
-                todosSavebacks.length + ' pagos históricos (no hay importe fijo puesto en la hoja)</div>' : '') +
-            explicacionHTML +
+            (g.tipo === 'Redondeo' && !g.importe ? '<div class="mt2" style="font-size:8px;margin-top:2px">Media real de ' +
+                todosSavebacks.length + ' pagos históricos</div>' : '') +
+            (esGrupo ? '<div class="mt2" style="font-size:8px;margin-top:2px">Grupo de ' + g.universo.split(',')
+                .length + ' ETF en rotación</div>' : '') +
+            cuerpoHTML +
             '</div></div>';
     }).join('');
+
+    cont.innerHTML = cabecera + tarjetas;
+}
+
+function renderMiniProyeccion(proy) {
+    if (!proy.pagos || !proy.pagos.length) return '';
+    return '<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,0.15);border-radius:8px">' +
+        '<div style="font-size:8px;color:var(--mt);font-weight:700;text-transform:uppercase">💰 Dividendo estimado · próximos 6 meses</div>' +
+        proy.pagos.map(p => '<div style="display:flex;justify-content:space-between;font-size:9px;margin-top:3px"><span>' +
+            p.mes + ' ' + p.anio + '</span><span style="font-weight:700">' + fe(p.importe) + '</span></div>')
+        .join('') +
+        '<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.15);font-weight:800;color:var(--gn)"><span>Total</span><span>' +
+        fe(proy.total) + '</span></div></div>';
 }
 
 function renderPlanPanico() {
