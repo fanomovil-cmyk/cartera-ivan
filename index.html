@@ -890,6 +890,7 @@ let PLAN_PANICO_GS = [];
 let GOTEO_GS = [];
 let OBJETIVOS_GS = [];
 let HISTORICO_GOTEO_GS = [];
+let COMPRAS_DETALLE_GS = [];
 let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
@@ -1405,7 +1406,12 @@ function renderDetalleActivo() {
         }),
         ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta',
             detalleHTML: '<div class="mt2" style="margin-top:2px">' + fe(o.acciones, 4) + ' acc. a ' + fe(o.pVenta) +
-                '€</div>', monto: o.gp, color: o.gp >= 0 ? 'var(--gn)' : 'var(--rd)' }))
+                '€</div>', monto: o.gp, color: o.gp >= 0 ? 'var(--gn)' : 'var(--rd)' })),
+        ...(COMPRAS_DETALLE_GS || []).filter(c => p.isin && c.isin === p.isin).map(c => ({
+            fecha: c.fecha.split('-').reverse().join('/'), tipo: 'Compra' + (c.manual ? ' (manual)' : ' (goteo)'),
+            detalleHTML: '<div class="mt2" style="margin-top:2px">' + fe(c.acciones, 4) + ' acc. a ' + fe(c
+                .precio) + '€</div>', monto: -c.importe, color: 'var(--ac)'
+        }))
     ].sort((a, b) => {
         const [da, ma, ya] = a.fecha.split('/');
         const [db, mb, yb] = b.fecha.split('/');
@@ -2101,6 +2107,9 @@ async function recargar() {
         }
         if (data.historicoGoteo) {
             HISTORICO_GOTEO_GS = data.historicoGoteo;
+        }
+        if (data.comprasDetalle) {
+            COMPRAS_DETALLE_GS = data.comprasDetalle;
         }
         if (data.flujosCaja) {
             FLUJOS_CAJA_GS = data.flujosCaja;
