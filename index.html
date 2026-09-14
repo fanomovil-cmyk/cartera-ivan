@@ -3120,19 +3120,25 @@ function calcularRepartoETF(importe, universoISINs) {
         if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
 
         const trampa = trampaFila ? cn(trampaFila[3]) : 0;
-        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null; // solo informativo, no puntúa
+        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
         const min52 = trampaFila ? cn(trampaFila[16]) : 0,
             max52 = trampaFila ? cn(trampaFila[17]) : 0;
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
             50;
         const puntosRango = 100 - pctRango52;
 
-        // Descuento respecto a tu propio precio medio, igual que en el motor de Semanal/Redondeo
+        // Trampa: factor PRINCIPAL — es la referencia que ya definimos con criterio para cada ETF,
+        // no recalibrada tras la compra (a diferencia de acciones individuales tipo LVMH/BlackRock,
+        // donde sí bajamos la trampa después de comprar y por eso ahí no se usa). 0% distancia =
+        // 100 puntos; cuanto más lejos por encima, menos puntos.
+        const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.max(0, distTrampaPct) * 3) : 50;
+
+        // Descuento respecto a tu propio precio medio — matiz menor, no el que manda
         const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
         const puntosDescuento = rentActualPct < 0 ? Math.min(100, Math.abs(rentActualPct) * 5) : Math.max(0,
             25 - rentActualPct * 1.5);
 
-        const score = puntosRango * 0.6 + puntosDescuento * 0.4;
+        const score = puntosTrampa * 0.55 + puntosRango * 0.225 + puntosDescuento * 0.225;
         return { nombre, isin, score, pctRango52, distTrampaPct };
     });
 
