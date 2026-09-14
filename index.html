@@ -4282,6 +4282,15 @@ function renderMesEnCurso() {
     const pos = posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0);
     const divsHist = divsEnVivo() || [];
 
+    // Un mes ya PASADO (antes del mes real de hoy) nunca puede mostrarse como "pendiente estimado"
+    // — eso proyectaría hacia atrás las acciones que tienes HOY sobre una fecha donde puede que ni
+    // siquiera hubieras comprado esa posición todavía. Solo el mes actual real (o futuro) admite
+    // estimación; un mes pasado sin cobro real registrado simplemente no tenía ese activo entonces.
+    const mesRealHoyNum = hoyMEC.getMonth() + 1;
+    const anioRealHoyNum = hoyMEC.getFullYear();
+    const esMesPasado = (Number(anioActualMEC) < anioRealHoyNum) || (Number(anioActualMEC) === anioRealHoyNum &&
+        mesActualNum < mesRealHoyNum);
+
     const filas = pos.map(p => {
         const calItem = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin === p.isin);
         const pagaEsteMes = calItem && calItem.meses.includes(mesActualNum);
@@ -4297,6 +4306,8 @@ function renderMesEnCurso() {
                 devolucion: yaCobrado.devolucion, netoReal: yaCobrado.neto_real
             };
         }
+        if (esMesPasado) return null; // mes pasado sin cobro real: no se estima, no se muestra
+
         // Estimado: mismo cálculo fiscal que usa el sistema para los cobros reales
         const numPagosAlAnio = calItem.meses.length;
         const bruto = (p.divAcc * p.sh) / numPagosAlAnio;
@@ -4313,7 +4324,8 @@ function renderMesEnCurso() {
     }).filter(Boolean).sort((a, b) => (b.cobrado - a.cobrado) || (b.netoReal - a.netoReal));
 
     if (!filas.length) {
-        cont.innerHTML = selectorHTML + '<div class="mt2" style="font-size:11px">Ningún activo tiene pago previsto este mes según el calendario.</div>';
+        cont.innerHTML = selectorHTML + (esMesPasado ? '<div class="mt2" style="font-size:9px;margin-bottom:10px;padding:6px 10px;background:var(--s2);border-radius:6px">📖 Mes pasado: solo se muestran cobros reales ya registrados.</div>' :
+            '') + '<div class="mt2" style="font-size:11px">Ningún activo tiene pago previsto este mes según el calendario, o no tenías esta posición entonces.</div>';
         return;
     }
 
@@ -4321,7 +4333,9 @@ function renderMesEnCurso() {
     const cobradas = filas.filter(f => f.cobrado);
     const pendientes = filas.filter(f => !f.cobrado);
 
-    cont.innerHTML = selectorHTML + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
+    const notaMesPasadoHTML = esMesPasado ? '<div class="mt2" style="font-size:9px;margin-bottom:10px;padding:6px 10px;background:var(--s2);border-radius:6px">📖 Mes pasado: solo se muestran cobros reales ya registrados, sin estimar posiciones que quizá aún no tenías entonces.</div>' :
+        '';
+    cont.innerHTML = selectorHTML + notaMesPasadoHTML + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
         '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO (neto disponible)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
         fe(sumar(cobradas, 'netoFinal')) + '</div>' + (sumar(cobradas, 'devolucion') > 0.005 ?
             '<div class="mt2" style="font-size:8px;color:var(--gn)">+' + fe(sumar(cobradas, 'devolucion')) +
