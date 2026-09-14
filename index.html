@@ -3148,7 +3148,7 @@ function calcularRepartoETF(importe, universoISINs) {
     // de verdad), no seguimos el reparto continuo normal — nos limitamos a los 50€ mínimos del mes
     // (el hábito de aportación) y avisamos con claridad para guardar el resto en liquidez.
     const MINIMO_MES_TOTAL = 50;
-    const UMBRAL_NADA_ATRACTIVO = 35;
+    const UMBRAL_NADA_ATRACTIVO = 36; // derivado: en el peor caso (rango=0, descuento=0), se dispara a partir de ~12% de distancia media a la trampa
     const scoreMedia = candidatos.reduce((s, c) => s + c.score, 0) / candidatos.length;
 
     if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
