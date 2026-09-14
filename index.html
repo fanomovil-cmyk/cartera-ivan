@@ -3104,61 +3104,49 @@ function calcularRepartoETF(importe, universoISINs) {
         const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
         const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
         const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
-        if (!trampaFila || !pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
+        if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
 
-        const trampa = cn(trampaFila[3]);
-        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
-        const min52 = cn(trampaFila[16]),
-            max52 = cn(trampaFila[17]);
+        const trampa = trampaFila ? cn(trampaFila[3]) : 0;
+        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null; // solo informativo, no puntúa
+        const min52 = trampaFila ? cn(trampaFila[16]) : 0,
+            max52 = trampaFila ? cn(trampaFila[17]) : 0;
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
             50;
-        const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.abs(distTrampaPct) * 4) : 50;
         const puntosRango = 100 - pctRango52;
-        const score = (puntosTrampa + puntosRango) / 2;
+
+        // Descuento respecto a tu propio precio medio, igual que en el motor de Semanal/Redondeo
+        const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
+        const puntosDescuento = rentActualPct < 0 ? Math.min(100, Math.abs(rentActualPct) * 5) : Math.max(0,
+            25 - rentActualPct * 1.5);
+
+        const score = puntosRango * 0.6 + puntosDescuento * 0.4;
         return { nombre, isin, score, pctRango52, distTrampaPct };
     });
 
     if (!candidatos.length) return { reparto: [], liquidez: importe };
 
-    // No forzamos a gastar todo el presupuesto: mantener el dinero en TR al ~2,5% es una
-    // alternativa real, no "no hacer nada". Solo los ETF con atractivo real (por debajo de su
-    // trampa o cerca de mínimos de 52 semanas) compiten por el capital de verdad; los demás
-    // reciben solo el mínimo para mantener el hábito, y el resto se queda en liquidez.
-    const UMBRAL_ATRACTIVO = 50; // score a partir del cual un ETF "merece" capital extra
-    const MINIMO_POR_ETF = 50; // lo justo para no romper el hábito, ni cuando no está barato
+    // Reparto CONTINUO, no por escalones: cada ETF sube o baja de forma gradual según su propio
+    // score, tomando como referencia el reparto igualitario (importe/n) como punto neutro (score
+    // 50 = se queda igual; por encima sube, por debajo baja). No forzamos gastar todo el
+    // presupuesto — si en conjunto nadie está especialmente atractivo, el sobrante se queda en
+    // liquidez (TR, ~2,5%) en vez de comprar por comprar.
+    const n = candidatos.length;
+    const baseline = importe / n;
+    const importesBrutos = candidatos.map(c => baseline * (c.score / 50));
+    const sumaBruta = importesBrutos.reduce((s, x) => s + x, 0);
 
-    const atractivos = candidatos.filter(c => c.score >= UMBRAL_ATRACTIVO);
-    const pocoAtractivos = candidatos.filter(c => c.score < UMBRAL_ATRACTIVO);
+    // Si la suma se pasa del presupuesto (varios por encima de la media a la vez), se escala todo
+    // hacia abajo a partes iguales para no gastar más de lo que hay disponible.
+    const factorAjuste = sumaBruta > importe ? importe / sumaBruta : 1;
+    const importesFinales = importesBrutos.map(x => x * factorAjuste);
+    const totalDesplegado = importesFinales.reduce((s, x) => s + x, 0);
+    const liquidezSobrante = Math.max(0, importe - totalDesplegado);
 
-    // A los poco atractivos, el mínimo (o menos, si no llega el presupuesto)
-    const totalMinimos = Math.min(importe, pocoAtractivos.length * MINIMO_POR_ETF);
-    const importeMinimoReal = pocoAtractivos.length ? totalMinimos / pocoAtractivos.length : 0;
-    const reparteMinimos = pocoAtractivos.map(c => ({
-        nombre: c.nombre, isin: c.isin, importe: importeMinimoReal, peso: 0, pctRango52: c.pctRango52,
-        distTrampaPct: c.distTrampaPct, atractivo: false
-    }));
-
-    // El resto del presupuesto (tras los mínimos) se reparte SOLO entre los atractivos, a favor
-    // de quien esté objetivamente más barato — sin techo artificial: si uno destaca con claridad,
-    // se lleva la mayor parte.
-    const presupuestoAtractivos = Math.max(0, importe - totalMinimos);
-    let reparteAtractivos = [];
-    let liquidezSobrante = 0;
-    if (atractivos.length && presupuestoAtractivos > 0) {
-        const sumaScores = atractivos.reduce((s, c) => s + c.score, 0);
-        reparteAtractivos = atractivos.map(c => ({
-            nombre: c.nombre, isin: c.isin, importe: presupuestoAtractivos * (c.score / sumaScores),
-            peso: (c.score / sumaScores) * 100, pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct,
-            atractivo: true
-        }));
-    } else {
-        // Nadie está de verdad atractivo: ese capital se queda en liquidez, ganando el 2,5% en TR
-        liquidezSobrante = presupuestoAtractivos;
-    }
-
-    const repartoFinal = [...reparteAtractivos, ...reparteMinimos].sort((a, b) => b.importe - a.importe);
-    const totalDesplegado = repartoFinal.reduce((s, r) => s + r.importe, 0);
-    repartoFinal.forEach(r => { r.peso = totalDesplegado ? (r.importe / totalDesplegado * 100) : 0; });
+    const repartoFinal = candidatos.map((c, i) => ({
+        nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
+        peso: totalDesplegado ? (importesFinales[i] / totalDesplegado * 100) : 0, pctRango52: c.pctRango52,
+        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50
+    })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
 
     return { reparto: repartoFinal, liquidez: liquidezSobrante };
 }
