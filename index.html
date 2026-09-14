@@ -3075,7 +3075,7 @@ function analizarGrupoRecurrente(importe, universoCSV) {
         const resultadoETF1 = calcularRepartoETF(importe, universo);
         return {
             tipo: 'normal_con_aviso', avisoManual, reparto: resultadoETF1.reparto,
-            liquidez: resultadoETF1.liquidez,
+            liquidez: resultadoETF1.liquidez, avisoNadaAtractivo: resultadoETF1.avisoNadaAtractivo,
             motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
                 ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
         };
@@ -3087,14 +3087,17 @@ function analizarGrupoRecurrente(importe, universoCSV) {
         const resultadoETF2 = calcularRepartoETF(importe, universo);
         return {
             tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
-            liquidez: resultadoETF2.liquidez,
+            liquidez: resultadoETF2.liquidez, avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo,
             motivoAviso: '👀 A vigilar: ' + masCerca.nombre + ' ' + masCerca.motivo +
                 '. Aún no ha tocado la trampa de verdad, así que los ETF siguen su reparto normal — si la toca, se pausarán.'
         };
     }
 
     const resultadoETF3 = calcularRepartoETF(importe, universo);
-    return { tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez };
+    return {
+        tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez,
+        avisoNadaAtractivo: resultadoETF3.avisoNadaAtractivo
+    };
 }
 
 function calcularRepartoETF(importe, universoISINs) {
@@ -3124,6 +3127,28 @@ function calcularRepartoETF(importe, universoISINs) {
     });
 
     if (!candidatos.length) return { reparto: [], liquidez: importe };
+
+    // Límite de seguridad: si NINGÚN candidato está de verdad atractivo (media de puntuación baja
+    // de verdad), no seguimos el reparto continuo normal — nos limitamos a los 50€ mínimos del mes
+    // (el hábito de aportación) y avisamos con claridad para guardar el resto en liquidez.
+    const MINIMO_MES_TOTAL = 50;
+    const UMBRAL_NADA_ATRACTIVO = 35;
+    const scoreMedia = candidatos.reduce((s, c) => s + c.score, 0) / candidatos.length;
+
+    if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
+        const sumaScoresBajos = candidatos.reduce((s, c) => s + Math.max(1, c.score), 0);
+        const repartoMinimo = candidatos.map(c => ({
+            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
+                sumaScoresBajos), peso: (Math.max(1, c.score) / sumaScoresBajos) * 100, pctRango52: c.pctRango52,
+            distTrampaPct: c.distTrampaPct, atractivo: false
+        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
+        return {
+            reparto: repartoMinimo, liquidez: Math.max(0, importe - MINIMO_MES_TOTAL),
+            avisoNadaAtractivo: '🔒 Nada realmente atractivo este mes (puntuación media ' + scoreMedia.toFixed(0) +
+                '/100) — nos limitamos a los ' + fe(MINIMO_MES_TOTAL, 0) +
+                ' mínimos del hábito. Guarda el resto en liquidez, sigue ganando el 2,5% en TR.'
+        };
+    }
 
     // Reparto CONTINUO, no por escalones: cada ETF sube o baja de forma gradual según su propio
     // score, tomando como referencia el reparto igualitario (importe/n) como punto neutro (score
@@ -3432,7 +3457,11 @@ function renderGoteo() {
                         '<span style="font-size:10px;color:var(--ac)">💶 Se queda en liquidez (TR, ~2,5%) — nada barato de verdad este mes</span>' +
                         '<span style="font-size:14px;font-weight:800;color:var(--ac)">' + fe(analisis.liquidez,
                             0) + '</span></div>') : '';
-                cuerpoHTML = avisoHTML + '<div style="margin-top:10px">' + filasReparto + '</div>' + liquidezHTML;
+                const avisoNadaHTML = analisis.avisoNadaAtractivo ?
+                    ('<div style="margin-top:8px;padding:12px;background:rgba(226,154,62,0.12);border:2px solid var(--am);border-radius:10px;font-size:11px;font-weight:700;color:var(--am)">' +
+                        analisis.avisoNadaAtractivo + '</div>') : '';
+                cuerpoHTML = avisoHTML + avisoNadaHTML + '<div style="margin-top:10px">' + filasReparto +
+                    '</div>' + liquidezHTML;
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
