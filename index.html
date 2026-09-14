@@ -4241,6 +4241,16 @@ function renderTendenciaEmpresas() {
 }
 
 // ── MES EN CURSO: qué se ha cobrado ya y qué falta, según el calendario real de pagos ──
+function seleccionarMesEnCurso(mes) {
+    window.MES_SELECCIONADO_MEC = mes;
+    renderMesEnCurso();
+}
+
+function seleccionarAnioMesEnCurso(anio) {
+    window.ANIO_SELECCIONADO_MEC = anio;
+    renderMesEnCurso();
+}
+
 function renderMesEnCurso() {
     const cont = document.getElementById('mes-en-curso-container');
     const tituloEl = document.getElementById('titulo-mes-en-curso');
@@ -4249,9 +4259,25 @@ function renderMesEnCurso() {
     const nombresMesesMEC = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto',
         'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const hoyMEC = new Date();
-    const mesActualNum = hoyMEC.getMonth() + 1; // 1-indexado
-    const anioActualMEC = hoyMEC.getFullYear();
-    if (tituloEl) tituloEl.textContent = '📆 ' + nombresMesesMEC[hoyMEC.getMonth()] + ' ' + anioActualMEC;
+    if (typeof window.MES_SELECCIONADO_MEC === 'undefined') window.MES_SELECCIONADO_MEC = hoyMEC.getMonth() + 1;
+    if (typeof window.ANIO_SELECCIONADO_MEC === 'undefined') window.ANIO_SELECCIONADO_MEC = hoyMEC.getFullYear();
+    const mesActualNum = window.MES_SELECCIONADO_MEC; // 1-indexado
+    const anioActualMEC = window.ANIO_SELECCIONADO_MEC;
+    if (tituloEl) tituloEl.textContent = '📆 ' + nombresMesesMEC[mesActualNum - 1] + ' ' + anioActualMEC;
+
+    const divsHistParaAnios = divsEnVivo() || [];
+    const aniosDisponiblesMEC = [...new Set(divsHistParaAnios.map(d => d.f.split('/')[2]))].sort();
+    if (!aniosDisponiblesMEC.includes(String(hoyMEC.getFullYear()))) aniosDisponiblesMEC.push(String(hoyMEC
+        .getFullYear()));
+
+    const selectorHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
+        aniosDisponiblesMEC.map(a => '<button class="btn' + (String(anioActualMEC) === a ? ' ac' : '') +
+            '" style="font-size:10px" onclick="seleccionarAnioMesEnCurso(\'' + a + '\')">' + a +
+            '</button>').join('') + '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px">' +
+        nombresMesesMEC.map((nm, i) => '<button class="btn' + (mesActualNum === i + 1 ? ' ac' : '') +
+            '" style="font-size:9px;padding:4px 8px" onclick="seleccionarMesEnCurso(' + (i + 1) + ')">' + nm
+            .slice(0, 3) + '</button>').join('') + '</div>';
 
     const pos = posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0);
     const divsHist = divsEnVivo() || [];
@@ -4287,7 +4313,7 @@ function renderMesEnCurso() {
     }).filter(Boolean).sort((a, b) => (b.cobrado - a.cobrado) || (b.netoReal - a.netoReal));
 
     if (!filas.length) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Ningún activo tiene pago previsto este mes según el calendario.</div>';
+        cont.innerHTML = selectorHTML + '<div class="mt2" style="font-size:11px">Ningún activo tiene pago previsto este mes según el calendario.</div>';
         return;
     }
 
@@ -4295,7 +4321,7 @@ function renderMesEnCurso() {
     const cobradas = filas.filter(f => f.cobrado);
     const pendientes = filas.filter(f => !f.cobrado);
 
-    cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
+    cont.innerHTML = selectorHTML + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
         '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO (neto disponible)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
         fe(sumar(cobradas, 'netoFinal')) + '</div>' + (sumar(cobradas, 'devolucion') > 0.005 ?
             '<div class="mt2" style="font-size:8px;color:var(--gn)">+' + fe(sumar(cobradas, 'devolucion')) +
