@@ -1383,6 +1383,8 @@ function renderDetalleActivo() {
         return (yb + mb + db) - (ya + ma + da) < 0 ? 1 : -1; // más reciente primero
     });
     const divsTotal = divsActivo.reduce((s, d) => s + d.neto_real, 0);
+    const divsNetoFinalTotal = divsActivo.reduce((s, d) => s + d.neto_final, 0);
+    const divsDevolucionTotal = divsActivo.reduce((s, d) => s + d.devolucion, 0);
     const yieldSobreCoste = p.ct ? (divsTotal / p.ct * 100) : 0;
 
     const anioActualDet = new Date().getFullYear();
@@ -1513,7 +1515,7 @@ function renderDetalleActivo() {
                 <div><div class="mt2" style="font-size:9px">Valor actual</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:var(--ac)">${pa?fe(val):'—'}</div></div>
                 <div><div class="mt2" style="font-size:9px">Ganancia de precio</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:${gananciaPrecio>=0?'var(--gn)':'var(--rd)'}">${pa?(gananciaPrecio>=0?'+':'')+fe(gananciaPrecio)+' ('+(rentPrecioPct>=0?'+':'')+f1(rentPrecioPct)+'%)':'—'}</div></div>
                 <div><div class="mt2" style="font-size:9px">Ganancia realizada</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:${gananciaRealizada>=0?'var(--gn)':'var(--rd)'}">${ventasCerradas.length?(gananciaRealizada>=0?'+':'')+fe(gananciaRealizada):'—'}</div></div>
-                <div><div class="mt2" style="font-size:9px">Dividendos cobrados</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:var(--gn)">${divsTotal?fe(divsTotal):'—'}</div></div>
+                <div><div class="mt2" style="font-size:9px">Dividendos cobrados</div><div style="font-size:15px;font-weight:700;font-family:monospace;color:var(--gn)">${divsTotal?fe(divsTotal):'—'}</div>${divsDevolucionTotal>0.005?`<div class="mt2" style="font-size:8px">neto ya: ${fe(divsNetoFinalTotal)} · +${fe(divsDevolucionTotal)} Hacienda</div>`:''}</div>
                 <div><div class="mt2" style="font-size:9px">Retorno total</div><div style="font-size:16px;font-weight:800;font-family:monospace;color:${retornoTotal>=0?'var(--gn)':'var(--rd)'}">${(retornoTotal>=0?'+':'')+fe(retornoTotal)+' ('+(retornoTotalPct>=0?'+':'')+f1(retornoTotalPct)+'%)'}</div></div>
             </div>
         </div>
@@ -4288,16 +4290,18 @@ function renderMesEnCurso() {
     const pendientes = filas.filter(f => !f.cobrado);
 
     cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
-        '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO (neto real)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
-        fe(sumar(cobradas, 'netoReal')) + '</div></div>' +
-        '<div style="padding:10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px"><div style="font-size:9px;color:var(--am);font-weight:800">⏳ PENDIENTE (estimado)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
-        fe(sumar(pendientes, 'netoReal')) + '</div></div></div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px">' +
-        '<div><span class="mt2" style="font-size:8px">Bruto total</span><br><span style="font-size:12px;font-weight:700">' +
-        fe(sumar(filas, 'bruto')) + '</span></div>' +
-        '<div><span class="mt2" style="font-size:8px">Neto ya en el bolsillo</span><br><span style="font-size:12px;font-weight:700">' +
+        '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO (neto disponible)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
+        fe(sumar(cobradas, 'netoFinal')) + '</div>' + (sumar(cobradas, 'devolucion') > 0.005 ?
+            '<div class="mt2" style="font-size:8px;color:var(--gn)">+' + fe(sumar(cobradas, 'devolucion')) +
+            ' a devolver por Hacienda</div>' : '') + '</div>' +
+        '<div style="padding:10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px"><div style="font-size:9px;color:var(--am);font-weight:800">⏳ PENDIENTE (neto estimado)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
+        fe(sumar(pendientes, 'netoFinal')) + '</div>' + (sumar(pendientes, 'devolucion') > 0.005 ?
+            '<div class="mt2" style="font-size:8px;color:var(--am)">+' + fe(sumar(pendientes, 'devolucion')) +
+            ' a devolver por Hacienda</div>' : '') + '</div></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px">' +
+        '<div><span class="mt2" style="font-size:8px">Neto disponible ya (mes completo)</span><br><span style="font-size:13px;font-weight:800">' +
         fe(sumar(filas, 'netoFinal')) + '</span></div>' +
-        '<div><span class="mt2" style="font-size:8px;color:var(--gn)">+Devolución Hacienda</span><br><span style="font-size:12px;font-weight:700;color:var(--gn)">+' +
+        '<div><span class="mt2" style="font-size:8px;color:var(--gn)">+Devolución Hacienda acumulada</span><br><span style="font-size:13px;font-weight:800;color:var(--gn)">+' +
         fe(sumar(filas, 'devolucion')) + '</span></div></div>' +
         filas.map(f => '<div style="padding:8px 0;border-bottom:1px solid var(--bd)">' +
             '<div style="display:flex;justify-content:space-between;align-items:center">' +
@@ -4305,10 +4309,12 @@ function renderMesEnCurso() {
             '</span>' + (f.fecha ? '<div class="mt2" style="font-size:8px">cobrado el ' + f.fecha + '</div>' :
                 '<div class="mt2" style="font-size:8px">estimado, aún sin cobrar</div>') + '</div>' +
             '<div style="font-family:monospace;font-weight:700;color:' + (f.cobrado ? 'var(--gn)' :
-                'var(--am)') + '">' + (f.cobrado ? '+' : '~') + fe(f.netoReal) + '</div></div>' +
+                'var(--am)') + '">' + (f.cobrado ? '+' : '~') + fe(f.netoFinal) + (f.devolucion > 0.005 ?
+                '<span class="mt2" style="font-size:8px;font-weight:400"> (+' + fe(f.devolucion) +
+                ' Hacienda)</span>' : '') + '</div></div>' +
             '<div class="mt2" style="font-size:8px;margin-top:2px">Bruto: ' + fe(f.bruto) + (f.retOrigen > 0.005 ?
-                ' · Ret.origen: -' + fe(f.retOrigen) : '') + ' · IRPF: -' + fe(f.irpf) + ' · Neto: ' + fe(f
-                .netoFinal) + (f.devolucion > 0.005 ? ' · +Dev: +' + fe(f.devolucion) : '') + '</div>' +
+                ' · Ret.origen: -' + fe(f.retOrigen) : '') + ' · IRPF: -' + fe(f.irpf) + ' · Neto disponible: ' +
+                fe(f.netoFinal) + '</div>' +
             '</div>').join('');
 }
 
@@ -4388,6 +4394,7 @@ function renderDividendos() {
     const bruto2026 = divs2026.reduce((s, d) => s + d.bruto, 0);
     const retOrigen2026 = divs2026.reduce((s, d) => s + d.ret_origen, 0);
     const taxEs2026 = divs2026.reduce((s, d) => s + d.tax_es, 0);
+    const netoFinal2026 = divs2026.reduce((s, d) => s + d.neto_final, 0);
     const pagos2026 = divs2026.length;
 
     // Totales históricos EN VIVO (todos los años), en vez del resumen guardado que se queda desactualizado
@@ -4411,11 +4418,12 @@ function renderDividendos() {
             topNombre = nombrePorClave[clave]; } });
 
     document.getElementById('resumen-div-ejecutivo').innerHTML = [
-        { l: 'Total neto real 2026', v: fe(total2026), s: pagos2026 + ' pagos', c: '#34C77B' },
-        { l: 'A devolver Hacienda', v: fe(dev2026), s: 'Doble imposición', c: '#8FE0B4' },
         { l: 'Bruto 2026', v: fe(bruto2026), s: 'Antes de retenciones', c: '#E4C777' },
         { l: 'Retención origen', v: '-' + fe(retOrigen2026), s: 'USA 15% / FR 12,8%', c: '#E29A3E' },
         { l: 'Retención Hacienda', v: '-' + fe(taxEs2026), s: '19% sobre neto TR', c: '#E85A5A' },
+        { l: '💶 Neto disponible YA', v: fe(netoFinal2026), s: 'Para reinvertir ahora mismo', c: '#60A5FA' },
+        { l: 'A devolver Hacienda', v: '+' + fe(dev2026), s: 'Doble imposición, tarda meses', c: '#8FE0B4' },
+        { l: 'Total neto real 2026', v: fe(total2026), s: pagos2026 + ' pagos · neto+devolución', c: '#34C77B' },
         { l: '🏆 Top activo', v: topNombre, s: fe(topValor) + ' neto real', c: '#B7A6E8' },
     ].map(k => '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)"><div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">' +
             k.l + '</div><div style="font-size:14px;font-weight:700;color:' + k.c + ';margin-top:3px">' + k.v +
