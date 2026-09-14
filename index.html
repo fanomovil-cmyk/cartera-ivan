@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -3372,7 +3373,8 @@ function renderFocusGoteo() {
     cont.innerHTML = GOTEO_GS.map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
-        let destinoTexto, esPausa = false;
+        let destinoTexto, esPausa = false,
+            importeMostrado = importeReal;
 
         if (esGrupo) {
             const analisis = analizarGrupoRecurrente(importeReal, g.universo);
@@ -3380,6 +3382,7 @@ function renderFocusGoteo() {
                 destinoTexto = '🚨 PAUSA — todo a ' + analisis.destino.nombre;
                 esPausa = true;
             } else {
+                importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
                 destinoTexto = analisis.reparto.map(r => r.nombre + ' (' + fe(r.importe, 0) + ')').join(' · ') +
                     (analisis.liquidez > 1 ? ' · 💶 ' + fe(analisis.liquidez, 0) + ' en liquidez (2,5%)' : '');
             }
@@ -3393,7 +3396,7 @@ function renderFocusGoteo() {
                 'background:rgba(232,90,90,0.08)' : '') + '">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
             '<b style="font-size:11px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<span style="font-size:13px;font-weight:800;color:var(--gn)">' + fe(importeReal, 0) + '</span>' +
+            '<span style="font-size:13px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
             '</div>' +
             '<div class="mt2" style="font-size:9px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
             '<div style="font-size:10px;font-weight:700;margin-top:3px;color:' + (esPausa ? 'var(--rd)' :
@@ -3441,11 +3444,13 @@ function renderGoteo() {
     const tarjetas = GOTEO_GS.map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
+        let importeMostrado = importeReal; // se recalcula abajo con lo que de verdad se va a desplegar
 
         let cuerpoHTML;
         if (esGrupo) {
             const analisis = analizarGrupoRecurrente(importeReal, g.universo);
             if (analisis.tipo === 'pausa') {
+                importeMostrado = importeReal; // pausa: se redirige el importe completo, sin cambios
                 const d = analisis.destino;
                 const proy = proyectarDividendos6Meses(d.isin, importeReal, d.precioActual);
                 cuerpoHTML = '<div style="margin-top:10px;padding:12px;background:rgba(232,90,90,0.1);border:2px solid var(--rd);border-radius:10px">' +
@@ -3454,6 +3459,9 @@ function renderGoteo() {
                     '<div class="mt2" style="font-size:10px;margin-top:6px">' + analisis.motivo + '</div>' +
                     (proy && proy.pagos.length ? renderMiniProyeccion(proy) : '') + '</div>';
             } else {
+                // El importe real desplegado es la suma de lo que de verdad se reparte (puede ser
+                // menos que el nominal, por el límite de seguridad o por quedarse en liquidez).
+                importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
                 const avisoHTML = analisis.motivoAviso ?
                     ('<div style="margin-top:8px;padding:8px 10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:9px;color:var(--am)">' +
                         analisis.motivoAviso + '</div>') : '';
@@ -3511,7 +3519,7 @@ function renderGoteo() {
             '<b style="font-size:14px">' + (iconoPorTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
             '<div style="text-align:right"><span style="font-size:8px;color:var(--ac);text-transform:uppercase">Previsión ' +
             mesSiguienteNombre + '</span><br><span style="font-size:20px;font-weight:800;color:var(--gn)">' +
-            fe(importeReal, 0) + '</span></div>' +
+            fe(importeMostrado, 0) + '</span></div>' +
             '</div>' +
             (g.tipo === 'Redondeo' && !g.importe ? '<div class="mt2" style="font-size:8px;margin-top:2px">Media real de ' +
                 todosSavebacks.length + ' pagos históricos</div>' : '') +
@@ -4249,32 +4257,59 @@ function renderMesEnCurso() {
             .split('/')[1] === String(mesActualNum).padStart(2, '0'));
 
         if (yaCobrado) {
-            return { nombre: p.n, cobrado: true, importe: yaCobrado.neto_real, fecha: yaCobrado.f };
+            return {
+                nombre: p.n, cobrado: true, fecha: yaCobrado.f, bruto: yaCobrado.bruto,
+                retOrigen: yaCobrado.ret_origen, irpf: yaCobrado.tax_es, netoFinal: yaCobrado.neto_final,
+                devolucion: yaCobrado.devolucion, netoReal: yaCobrado.neto_real
+            };
         }
+        // Estimado: mismo cálculo fiscal que usa el sistema para los cobros reales
         const numPagosAlAnio = calItem.meses.length;
-        const estimado = (p.divAcc * p.sh) / numPagosAlAnio;
-        return { nombre: p.n, cobrado: false, importe: estimado, fecha: null };
-    }).filter(Boolean).sort((a, b) => (b.cobrado - a.cobrado) || (b.importe - a.importe));
+        const bruto = (p.divAcc * p.sh) / numPagosAlAnio;
+        const origenRate = p.pais === 'FRA' ? 0.128 : p.pais === 'USA' ? 0.15 : 0;
+        const retOrigen = bruto * origenRate;
+        const subtotal = bruto - retOrigen;
+        const irpf = subtotal * 0.19;
+        const netoFinal = subtotal - irpf;
+        const devolucion = retOrigen;
+        const netoReal = netoFinal + devolucion;
+        return {
+            nombre: p.n, cobrado: false, fecha: null, bruto, retOrigen, irpf, netoFinal, devolucion, netoReal
+        };
+    }).filter(Boolean).sort((a, b) => (b.cobrado - a.cobrado) || (b.netoReal - a.netoReal));
 
     if (!filas.length) {
         cont.innerHTML = '<div class="mt2" style="font-size:11px">Ningún activo tiene pago previsto este mes según el calendario.</div>';
         return;
     }
 
-    const totalCobrado = filas.filter(f => f.cobrado).reduce((s, f) => s + f.importe, 0);
-    const totalPendiente = filas.filter(f => !f.cobrado).reduce((s, f) => s + f.importe, 0);
+    const sumar = (lista, campo) => lista.reduce((s, f) => s + f[campo], 0);
+    const cobradas = filas.filter(f => f.cobrado);
+    const pendientes = filas.filter(f => !f.cobrado);
 
-    cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
-        '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
-        fe(totalCobrado) + '</div></div>' +
+    cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">' +
+        '<div style="padding:10px;background:rgba(52,199,123,0.1);border:1px solid var(--gn);border-radius:8px"><div style="font-size:9px;color:var(--gn);font-weight:800">✅ COBRADO (neto real)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
+        fe(sumar(cobradas, 'netoReal')) + '</div></div>' +
         '<div style="padding:10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px"><div style="font-size:9px;color:var(--am);font-weight:800">⏳ PENDIENTE (estimado)</div><div style="font-size:18px;font-weight:800;margin-top:2px">' +
-        fe(totalPendiente) + '</div></div></div>' +
-        filas.map(f => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
+        fe(sumar(pendientes, 'netoReal')) + '</div></div></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px">' +
+        '<div><span class="mt2" style="font-size:8px">Bruto total</span><br><span style="font-size:12px;font-weight:700">' +
+        fe(sumar(filas, 'bruto')) + '</span></div>' +
+        '<div><span class="mt2" style="font-size:8px">Neto ya en el bolsillo</span><br><span style="font-size:12px;font-weight:700">' +
+        fe(sumar(filas, 'netoFinal')) + '</span></div>' +
+        '<div><span class="mt2" style="font-size:8px;color:var(--gn)">+Devolución Hacienda</span><br><span style="font-size:12px;font-weight:700;color:var(--gn)">+' +
+        fe(sumar(filas, 'devolucion')) + '</span></div></div>' +
+        filas.map(f => '<div style="padding:8px 0;border-bottom:1px solid var(--bd)">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center">' +
             '<div><span style="font-size:11px;font-weight:700">' + (f.cobrado ? '✅' : '⏳') + ' ' + f.nombre +
             '</span>' + (f.fecha ? '<div class="mt2" style="font-size:8px">cobrado el ' + f.fecha + '</div>' :
                 '<div class="mt2" style="font-size:8px">estimado, aún sin cobrar</div>') + '</div>' +
             '<div style="font-family:monospace;font-weight:700;color:' + (f.cobrado ? 'var(--gn)' :
-                'var(--am)') + '">' + (f.cobrado ? '+' : '~') + fe(f.importe) + '</div></div>').join('');
+                'var(--am)') + '">' + (f.cobrado ? '+' : '~') + fe(f.netoReal) + '</div></div>' +
+            '<div class="mt2" style="font-size:8px;margin-top:2px">Bruto: ' + fe(f.bruto) + (f.retOrigen > 0.005 ?
+                ' · Ret.origen: -' + fe(f.retOrigen) : '') + ' · IRPF: -' + fe(f.irpf) + ' · Neto: ' + fe(f
+                .netoFinal) + (f.devolucion > 0.005 ? ' · +Dev: +' + fe(f.devolucion) : '') + '</div>' +
+            '</div>').join('');
 }
 
 // ── EVOLUCIÓN MENSUAL POR AÑO: cuánto se cobró cada mes, comparando año contra año ──
