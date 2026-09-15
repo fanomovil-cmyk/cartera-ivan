@@ -2699,13 +2699,17 @@ function renderDashboard() {
     }
 
     if (heatmap) {
-        const totales = Array(12).fill(0);
+        const totalesNeto = Array(12).fill(0);
+        const totalesDevolucion = Array(12).fill(0);
         const historicoDetalle = Array.from({ length: 12 }, () => []);
         if (!esAnioPrevision) {
             (divsEnVivo() || []).filter(d => d.f.endsWith('/' + anioTermoNum)).forEach(d => {
                 const idx = (+d.f.split('/')[1]) - 1;
-                if (idx >= 0 && idx < 12) { totales[idx] += d.neto_real; historicoDetalle[idx].push({ n: d.n,
-                        monto: d.neto_real }); }
+                if (idx >= 0 && idx < 12) {
+                    totalesNeto[idx] += d.neto_final;
+                    totalesDevolucion[idx] += d.devolucion;
+                    historicoDetalle[idx].push({ n: d.n, monto: d.neto_final, devolucion: d.devolucion });
+                }
             });
         }
 
@@ -2732,6 +2736,18 @@ function renderDashboard() {
         const calendarioPorISIN = {};
         CALENDARIO_DIVIDENDOS_GS.forEach(c => { if (c.isin) calendarioPorISIN[c.isin] = c.meses; });
 
+        // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
+        // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
+        const brutoAneto = (bruto, pais) => {
+            const origenRate = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+            const retOrigen = bruto * origenRate;
+            const subtotal = bruto - retOrigen;
+            const irpf = subtotal * 0.19;
+            return { netoFinal: subtotal - irpf, devolucion: retOrigen };
+        };
+        const previstosNeto = Array(12).fill(0);
+        const previstosDevolucion = Array(12).fill(0);
+
         pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
             const anualTotal = p.divAcc * p.sh;
 
@@ -2739,10 +2755,13 @@ function renderDashboard() {
             const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
             if (mesesManual && mesesManual.length) {
                 const importePorPago = anualTotal / mesesManual.length;
+                const { netoFinal, devolucion } = brutoAneto(importePorPago, p.pais);
                 mesesManual.forEach(m => {
                     const mes = m - 1; // la hoja usa 1=enero..12=diciembre
                     previstos[mes] += importePorPago;
-                    previstosDetalle[mes].push({ n: p.n, monto: importePorPago });
+                    previstosNeto[mes] += netoFinal;
+                    previstosDevolucion[mes] += devolucion;
+                    previstosDetalle[mes].push({ n: p.n, monto: netoFinal, devolucion });
                 });
                 return; // ya resuelto, no hace falta adivinar nada más para esta posición
             }
@@ -2781,45 +2800,55 @@ function renderDashboard() {
                 }
                 const pasoMeses = 12 / numPagosAnio;
                 const importePorPago = anualTotal / numPagosAnio;
+                const { netoFinal: netoPago, devolucion: devPago } = brutoAneto(importePorPago, p.pais);
                 const mesInicio = fechas[0].mes;
                 for (let i = 0; i < numPagosAnio; i++) {
                     const mes = Math.round(mesInicio + i * pasoMeses) % 12;
                     previstos[mes] += importePorPago;
-                    previstosDetalle[mes].push({ n: p.n, monto: importePorPago });
+                    previstosNeto[mes] += netoPago;
+                    previstosDevolucion[mes] += devPago;
+                    previstosDetalle[mes].push({ n: p.n, monto: netoPago, devolucion: devPago });
                 }
             } else {
                 // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
                 // ni el mes exacto, así que asumimos trimestral (lo más habitual) repartido desde el mes
                 // que viene, en vez de amontonarlo todo de golpe en diciembre.
                 const importeTrimestral = anualTotal / 4;
+                const { netoFinal: netoTrim, devolucion: devTrim } = brutoAneto(importeTrimestral, p.pais);
                 const mesInicioEstimado = (mesActual + 1) % 12;
                 for (let i = 0; i < 4; i++) {
                     const mes = (mesInicioEstimado + i * 3) % 12;
                     previstos[mes] += importeTrimestral;
-                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', monto: importeTrimestral });
+                    previstosNeto[mes] += netoTrim;
+                    previstosDevolucion[mes] += devTrim;
+                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', monto: netoTrim,
+                        devolucion: devTrim });
                 }
             }
         });
 
         const esAnioActualReal = !esAnioPrevision && anioTermoNum === anioActual;
-        const maxT = Math.max(1, ...totales, ...previstos);
+        const maxT = Math.max(1, ...totalesNeto, ...previstosNeto);
         heatmap.innerHTML = meses.map((m, idx) => {
             const esMesActual = esAnioActualReal && idx === mesActual;
-            let valor, detalle, esFuturo;
+            let valor, valorDevolucion, detalle, esFuturo;
             if (esMesActual) {
                 // Mes en curso: sumamos lo YA cobrado + lo que aún falta por cobrar de empresas que
                 // este mes todavía no han pagado (antes se perdía esto en cuanto entraba el primer
                 // cobro del mes, mostrando solo esa empresa y dejando fuera al resto).
                 const empresasYaCobradasEsteMes = new Set(historicoDetalle[idx].map(h => h.n));
                 const previstoRestante = previstosDetalle[idx].filter(p => !empresasYaCobradasEsteMes.has(p.n));
-                valor = totales[idx] + previstoRestante.reduce((s, p) => s + p.monto, 0);
+                valor = totalesNeto[idx] + previstoRestante.reduce((s, p) => s + p.monto, 0);
+                valorDevolucion = totalesDevolucion[idx] + previstoRestante.reduce((s, p) => s + (p.devolucion ||
+                    0), 0);
                 detalle = agregarPorEmpresa([...historicoDetalle[idx], ...previstoRestante.map(p => ({ n: p.n +
                     ' (previsto)', monto: p.monto }))]);
                 esFuturo = previstoRestante.length > 0; // naranja si aún queda algo pendiente ese mes, verde si ya está todo cobrado
             } else {
                 const usarPrevision = esAnioPrevision || (esAnioActualReal && idx > mesActual);
                 esFuturo = usarPrevision;
-                valor = esFuturo ? previstos[idx] : totales[idx];
+                valor = esFuturo ? previstosNeto[idx] : totalesNeto[idx];
+                valorDevolucion = esFuturo ? previstosDevolucion[idx] : totalesDevolucion[idx];
                 detalle = agregarPorEmpresa(esFuturo ? previstosDetalle[idx] : historicoDetalle[idx]);
             }
             // Verde = ya cobrado (mes pasado o actual con importe), Naranja = por cobrar (futuro), Gris = sin dato
@@ -2829,12 +2858,16 @@ function renderDashboard() {
             const barCls = esFuturo && valor > 0 ? 'hm-bar forecast' : 'hm-bar';
             const barStyle = esFuturo && valor > 0 ? 'height:' + alturaPct + '%;color:' + color :
                 'height:' + alturaPct + '%;background:' + color;
-            let tip = m + ' ' + anioTermoNum + (esFuturo ? ' (previsto)' : '') + ': ' + (valor > 0 ? fe(valor) :
-                (esFuturo ? 'sin datos' : 'Sin cobros'));
-            if (detalle.length) tip += '\n' + detalle.map(x => '• ' + x.n + ': ' + fe(x.monto)).join('\n');
+            let tip = m + ' ' + anioTermoNum + (esFuturo ? ' (previsto)' : '') + ': ' + (valor > 0 ? fe(valor) +
+                ' neto' : (esFuturo ? 'sin datos' : 'Sin cobros')) + (valorDevolucion > 0.005 ? ' (+' + fe(
+                valorDevolucion) + ' Hacienda)' : '');
+            if (detalle.length) tip += '\n' + detalle.map(x => '• ' + x.n + ': ' + fe(x.monto) + ' neto').join(
+                '\n');
             return '<div class="hm-col' + esActual + '" title="' + tip + '">' +
-                '<div class="hm-val" style="color:' + (valor > 0 ? color : 'var(--mt)') + '">' + (valor > 0 ?
-                    (esFuturo ? '~' : '') + f1(valor) + '€' : '—') + '</div>' +
+                '<div class="hm-val" style="color:' + (valor > 0 ? color : 'var(--mt)') + ';font-size:13px;font-weight:800">' +
+                (valor > 0 ? (esFuturo ? '~' : '') + f1(valor) + '€' : '—') + '</div>' +
+                (valorDevolucion > 0.005 ? '<div style="font-size:8px;color:var(--mt)">+' + f1(valorDevolucion) +
+                    '€ Hac.</div>' : '') +
                 '<div class="' + barCls + '" style="' + barStyle + '"></div>' +
                 '<div class="hm-lbl">' + m + '</div>' +
                 '</div>';
@@ -2847,8 +2880,8 @@ function renderDashboard() {
             for (let idx = 0; idx < 12; idx++) {
                 const esMesActualIdx = esAnioActualReal && idx === mesActual;
                 const usarPrevisionIdx = esAnioPrevision || (esAnioActualReal && idx > mesActual) ||
-                    (esMesActualIdx && totales[idx] <= 0);
-                totalAnio += usarPrevisionIdx ? previstos[idx] : totales[idx];
+                    (esMesActualIdx && totalesNeto[idx] <= 0);
+                totalAnio += usarPrevisionIdx ? previstosNeto[idx] : totalesNeto[idx];
             }
             const mesesConDato = esAnioPrevision ? 12 : (esAnioActualReal ? mesActual + 1 : 12);
             const promedioMensual = mesesConDato ? totalAnio / 12 : 0; // sobre 12 meses, para comparar años enteros
