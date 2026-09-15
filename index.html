@@ -3062,6 +3062,105 @@ function detectarOportunidadesExcepcionales() {
 
 // ── ANÁLISIS DE GRUPO RECURRENTE (los 3 ETF): pausa si hay oportunidad excepcional, si no,
 // reparto proporcional entre los 3 según lo barato que esté cada uno (nunca todo-o-nada) ──
+// ── PLAN MENSUAL COMPLETO: los ETF siguen siendo la opción por defecto, pero cualquier acción
+// A/A+ con puntuación claramente mejor (margen ≥15 puntos) puede quitarle presupuesto a un ETF
+// concreto — plaza por plaza, no todo o nada. Si una acción destaca de forma extraordinaria
+// (score ≥80), el techo sube de 200€ a 400€ sin recortar lo que ya tuvieran los ETF que sigan bien.
+function calcularRepartoConAcciones(importe, universoISINs) {
+    const MARGEN_VENTAJA = 15; // puntos que una acción debe superar a un ETF concreto para robarle su plaza
+    const UMBRAL_TECHO = 80; // score a partir del cual se justifica doblar el presupuesto
+    const EXTRA_TECHO = 200; // cuánto se añade al presupuesto normal cuando se activa el techo
+
+    const candidatosETF = universoISINs.map(isin => calcularScoreActivo(isin));
+
+    // Mejor acción A/A+ candidata: Forever, no ya en el universo de ETF, automatizable, sin trampa
+    // escalonada (misma exclusión que en el resto del sistema), con posición real (para tener pm).
+    const tieneTrampaEscalonada = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return t ? ((t[14] || '').toLowerCase()).includes('escalonado') : false;
+    };
+    const esAutomatizable = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return !t || t[18] !== false;
+    };
+    const candidatosAccion = posicionesVivas()
+        .filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && !universoISINs.includes(p.isin) &&
+            esAutomatizable(p.isin) && !tieneTrampaEscalonada(p.isin))
+        .filter(p => {
+            const t = TRAMPAS_GS.find(r => r[15] === p.isin);
+            const prioridad = t ? (t[2] || '').trim() : '';
+            return prioridad === 'A+' || prioridad === 'A';
+        })
+        .map(p => calcularScoreActivo(p.isin))
+        .sort((a, b) => b.score - a.score);
+    const mejorAccion = candidatosAccion[0] || null;
+
+    // Comparación plaza por plaza: cada ETF se enfrenta individualmente a la mejor acción
+    let candidatosFinales = [];
+    let accionGanaAlgunaPlaza = false;
+    candidatosETF.forEach(etf => {
+        if (mejorAccion && (mejorAccion.score - etf.score) >= MARGEN_VENTAJA) {
+            accionGanaAlgunaPlaza = true; // esta plaza concreta se la lleva la acción, no el ETF
+        } else {
+            candidatosFinales.push(etf);
+        }
+    });
+
+    let importeTotal = importe;
+    let techoActivado = false;
+    if (mejorAccion && mejorAccion.score >= UMBRAL_TECHO) {
+        importeTotal += EXTRA_TECHO;
+        techoActivado = true;
+        accionGanaAlgunaPlaza = true;
+    }
+    if (accionGanaAlgunaPlaza && mejorAccion) candidatosFinales.push(mejorAccion);
+
+    if (!candidatosFinales.length) return { reparto: [], liquidez: importeTotal };
+
+    // Válvula de seguridad (umbral 36, ya validado) sobre los candidatos finales
+    const MINIMO_MES_TOTAL = 50;
+    const UMBRAL_NADA_ATRACTIVO = 36;
+    const scoreMedia = candidatosFinales.reduce((s, c) => s + c.score, 0) / candidatosFinales.length;
+
+    if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
+        const sumaScoresBajos = candidatosFinales.reduce((s, c) => s + Math.max(1, c.score), 0);
+        const repartoMinimo = candidatosFinales.map(c => ({
+            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
+                sumaScoresBajos), peso: (Math.max(1, c.score) / sumaScoresBajos) * 100, pctRango52: c.pctRango52,
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: c === mejorAccion
+        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
+        return {
+            reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
+            avisoNadaAtractivo: '🔒 Nada realmente atractivo este mes (puntuación media ' + scoreMedia.toFixed(0) +
+                '/100) — nos limitamos a los ' + fe(MINIMO_MES_TOTAL, 0) +
+                ' mínimos del hábito. Guarda el resto en liquidez, sigue ganando el 2,5% en TR.'
+        };
+    }
+
+    // Reparto continuo, igual que el motor original, pero ahora sobre la lista final mixta
+    const n = candidatosFinales.length;
+    const baseline = importeTotal / n;
+    const importesBrutos = candidatosFinales.map(c => baseline * (c.score / 50));
+    const sumaBruta = importesBrutos.reduce((s, x) => s + x, 0);
+    const factorAjuste = sumaBruta > importeTotal ? importeTotal / sumaBruta : 1;
+    const importesFinales = importesBrutos.map(x => x * factorAjuste);
+    const totalDesplegado = importesFinales.reduce((s, x) => s + x, 0);
+    const liquidezSobrante = Math.max(0, importeTotal - totalDesplegado);
+
+    const repartoFinal = candidatosFinales.map((c, i) => ({
+        nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
+        peso: totalDesplegado ? (importesFinales[i] / totalDesplegado * 100) : 0, pctRango52: c.pctRango52,
+        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: mejorAccion && c.isin === mejorAccion.isin
+    })).sort((a, b) => b.importe - a.importe);
+
+    return {
+        reparto: repartoFinal, liquidez: liquidezSobrante, techoActivado,
+        avisoAccion: (accionGanaAlgunaPlaza && mejorAccion) ? '🎯 ' + mejorAccion.nombre + ' (' + mejorAccion
+            .score.toFixed(0) + 'pts) destaca claramente sobre al menos un ETF' + (techoActivado ?
+                ' — techo especial activado, presupuesto ampliado a ' + fe(importeTotal, 0) : '') + '.' : ''
+    };
+}
+
 function analizarGrupoRecurrente(importe, universoCSV) {
     const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
     const oportunidades = detectarOportunidadesExcepcionales();
@@ -3082,10 +3181,11 @@ function analizarGrupoRecurrente(importe, universoCSV) {
         }
         // La única disparada de verdad no es automatizable (ej. VICI) — aviso manual, ETF normales
         const avisoManual = automatizables[0] || disparadasDeVerdad[0];
-        const resultadoETF1 = calcularRepartoETF(importe, universo);
+        const resultadoETF1 = calcularRepartoConAcciones(importe, universo);
         return {
             tipo: 'normal_con_aviso', avisoManual, reparto: resultadoETF1.reparto,
             liquidez: resultadoETF1.liquidez, avisoNadaAtractivo: resultadoETF1.avisoNadaAtractivo,
+            techoActivado: resultadoETF1.techoActivado, avisoAccion: resultadoETF1.avisoAccion,
             motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
                 ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
         };
@@ -3094,54 +3194,57 @@ function analizarGrupoRecurrente(importe, universoCSV) {
     // Solo "cerca" (sin disparar de verdad): aviso de vigilancia, sin tocar el reparto de los ETF
     if (oportunidades.length) {
         const masCerca = oportunidades[0];
-        const resultadoETF2 = calcularRepartoETF(importe, universo);
+        const resultadoETF2 = calcularRepartoConAcciones(importe, universo);
         return {
             tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
             liquidez: resultadoETF2.liquidez, avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo,
+            techoActivado: resultadoETF2.techoActivado, avisoAccion: resultadoETF2.avisoAccion,
             motivoAviso: '👀 A vigilar: ' + masCerca.nombre + ' ' + masCerca.motivo +
                 '. Aún no ha tocado la trampa de verdad, así que los ETF siguen su reparto normal — si la toca, se pausarán.'
         };
     }
 
-    const resultadoETF3 = calcularRepartoETF(importe, universo);
+    const resultadoETF3 = calcularRepartoConAcciones(importe, universo);
     return {
         tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez,
-        avisoNadaAtractivo: resultadoETF3.avisoNadaAtractivo
+        avisoNadaAtractivo: resultadoETF3.avisoNadaAtractivo, techoActivado: resultadoETF3.techoActivado,
+        avisoAccion: resultadoETF3.avisoAccion
     };
 }
 
-function calcularRepartoETF(importe, universoISINs) {
+// ── PUNTUACIÓN COMPARTIDA (trampa 55% / rango 22,5% / descuento 22,5%) — usada tanto para los 3
+// ETF del plan Mensual como para las acciones A/A+ que puedan competir por su presupuesto, para
+// que la comparación entre ambos tipos de activo sea con la misma vara de medir.
+function calcularScoreActivo(isin) {
     const pos = posicionesVivas();
-    const candidatos = universoISINs.map(isin => {
-        const p = pos.find(x => x.isin === isin);
-        const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
-        const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
-        const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
-        if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
+    const p = pos.find(x => x.isin === isin);
+    const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
+    const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
+    const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
+    if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
 
-        const trampa = trampaFila ? cn(trampaFila[3]) : 0;
-        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
-        const min52 = trampaFila ? cn(trampaFila[16]) : 0,
-            max52 = trampaFila ? cn(trampaFila[17]) : 0;
-        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
-            50;
-        const puntosRango = 100 - pctRango52;
+    const trampa = trampaFila ? cn(trampaFila[3]) : 0;
+    const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
+    const min52 = trampaFila ? cn(trampaFila[16]) : 0,
+        max52 = trampaFila ? cn(trampaFila[17]) : 0;
+    const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
+    const puntosRango = 100 - pctRango52;
 
-        // Trampa: factor PRINCIPAL — es la referencia que ya definimos con criterio para cada ETF,
-        // no recalibrada tras la compra (a diferencia de acciones individuales tipo LVMH/BlackRock,
-        // donde sí bajamos la trampa después de comprar y por eso ahí no se usa). 0% distancia =
-        // 100 puntos; cuanto más lejos por encima, menos puntos.
-        const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.max(0, distTrampaPct) * 3) : 50;
+    // Trampa: factor PRINCIPAL — referencia definida con criterio, no recalibrada tras la compra
+    // (a diferencia de otras acciones donde sí se bajó la trampa después de comprar).
+    const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.max(0, distTrampaPct) * 3) : 50;
 
-        // Descuento respecto a tu propio precio medio — matiz menor, no el que manda. Fórmula
-        // continua (sin tramos): 50 puntos exactos en el punto de equilibrio, sube en pérdida,
-        // baja en beneficio, sin salto en ningún punto de la curva.
-        const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
-        const puntosDescuento = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
+    // Descuento respecto a tu propio precio medio — matiz menor. Fórmula continua (sin tramos):
+    // 50 puntos exactos en el punto de equilibrio, sin salto en ningún punto de la curva.
+    const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
+    const puntosDescuento = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
 
-        const score = puntosTrampa * 0.55 + puntosRango * 0.225 + puntosDescuento * 0.225;
-        return { nombre, isin, score, pctRango52, distTrampaPct };
-    });
+    const score = puntosTrampa * 0.55 + puntosRango * 0.225 + puntosDescuento * 0.225;
+    return { nombre, isin, score, pctRango52, distTrampaPct, pa };
+}
+
+function calcularRepartoETF(importe, universoISINs) {
+    const candidatos = universoISINs.map(isin => calcularScoreActivo(isin));
 
     if (!candidatos.length) return { reparto: [], liquidez: importe };
 
@@ -3474,15 +3577,19 @@ function renderGoteo() {
                 const avisoHTML = analisis.motivoAviso ?
                     ('<div style="margin-top:8px;padding:8px 10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:9px;color:var(--am)">' +
                         analisis.motivoAviso + '</div>') : '';
+                const avisoAccionHTML = analisis.avisoAccion ?
+                    ('<div style="margin-top:8px;padding:10px;background:rgba(183,166,232,0.15);border:1px solid #B7A6E8;border-radius:8px;font-size:10px;font-weight:700;color:#B7A6E8">' +
+                        analisis.avisoAccion + '</div>') : '';
                 const filasReparto = analisis.reparto.map(r => {
                     const proy = proyectarDividendos6Meses(r.isin, r.importe, precioDe(posicionesVivas().find(
                         p => p.isin === r.isin) || {}) || 0);
                     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
                         '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b> ' +
-                        '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' + (r
-                            .atractivo ? 'rgba(52,199,123,0.2);color:var(--gn)' :
-                            'rgba(226,154,62,0.2);color:var(--am)') + '">' + (r.atractivo ? '🎯 barato' :
-                            '⏳ mínimo') + '</span>' +
+                        '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' + (r.esAccion ?
+                            'rgba(183,166,232,0.25);color:#B7A6E8' : r.atractivo ?
+                            'rgba(52,199,123,0.2);color:var(--gn)' : 'rgba(226,154,62,0.2);color:var(--am)') +
+                            '">' + (r.esAccion ? '🎯 ACCIÓN A/A+' : r.atractivo ? '🎯 barato' : '⏳ mínimo') +
+                            '</span>' +
                         '<div class="mt2" style="font-size:8px">' + (r.pctRango52 !== null ? 'al ' + r
                             .pctRango52.toFixed(0) + '% de su rango 52sem' : '') + (r.distTrampaPct !== null ?
                             ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div></div>' +
@@ -3500,7 +3607,8 @@ function renderGoteo() {
                 const avisoNadaHTML = analisis.avisoNadaAtractivo ?
                     ('<div style="margin-top:8px;padding:12px;background:rgba(226,154,62,0.12);border:2px solid var(--am);border-radius:10px;font-size:11px;font-weight:700;color:var(--am)">' +
                         analisis.avisoNadaAtractivo + '</div>') : '';
-                cuerpoHTML = avisoHTML + avisoNadaHTML + '<div style="margin-top:10px">' + filasReparto +
+                cuerpoHTML = avisoHTML + avisoAccionHTML + avisoNadaHTML + '<div style="margin-top:10px">' +
+                    filasReparto +
                     '</div>' + liquidezHTML;
             }
         } else {
