@@ -3555,34 +3555,43 @@ function renderFocusGoteo() {
     cont.innerHTML = GOTEO_GS.map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
-        let destinoTexto, esPausa = false,
+        let destinoFilasHTML, esPausa = false,
             importeMostrado = importeReal;
 
         if (esGrupo) {
             const analisis = analizarGrupoRecurrente(importeReal, g.universo);
             if (analisis.tipo === 'pausa') {
-                destinoTexto = '🚨 PAUSA — todo a ' + analisis.destino.nombre;
                 esPausa = true;
+                destinoFilasHTML = '<div style="padding:6px 8px;margin-top:4px;background:rgba(232,90,90,0.12);border-radius:6px">' +
+                    '<div style="font-size:10px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
+                    .destino.nombre + '</div></div>';
+                importeMostrado = importeReal;
             } else {
                 importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
-                destinoTexto = analisis.reparto.map(r => r.nombre + ' (' + fe(r.importe, 0) + ')').join(' · ') +
-                    (analisis.liquidez > 1 ? ' · 💶 ' + fe(analisis.liquidez, 0) + ' en liquidez (2,5%)' : '');
+                destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid var(--bd)">' +
+                        '<span style="font-size:10px">' + (r.esAccion ? '🎯 ' : '') + r.nombre + '</span>' +
+                        '<span style="font-size:10px;font-weight:700;color:var(--ac)">' + fe(r.importe, 0) +
+                        ' <span class="mt2" style="font-size:8px">(' + r.peso.toFixed(0) + '%)</span></span>' +
+                        '</div>').join('') +
+                    (analisis.liquidez > 1 ? '<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--bd)"><span style="font-size:10px">💶 En liquidez (2,5%)</span><span style="font-size:10px;font-weight:700;color:var(--mt)">' +
+                        fe(analisis.liquidez, 0) + '</span></div>' : '');
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
-            destinoTexto = sugerencia ? sugerencia.nombre + (sugerencia.esObjetivoEstrategico ? ' 🎯' : '') :
-                'sin datos suficientes';
+            destinoFilasHTML = '<div style="padding:6px 8px;margin-top:4px;background:rgba(96,165,250,0.1);border-radius:6px">' +
+                '<span style="font-size:10px;font-weight:700;color:var(--ac)">➜ ' + (sugerencia ? sugerencia
+                    .nombre + (sugerencia.esObjetivoEstrategico ? ' 🎯' : '') : 'sin datos suficientes') +
+                '</span></div>';
         }
 
         return '<div style="padding:10px 16px;border-bottom:1px solid var(--bd);' + (esPausa ?
                 'background:rgba(232,90,90,0.08)' : '') + '">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
-            '<b style="font-size:11px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<span style="font-size:13px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
+            '<b style="font-size:12px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
+            '<span style="font-size:14px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
             '</div>' +
             '<div class="mt2" style="font-size:9px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
-            '<div style="font-size:10px;font-weight:700;margin-top:3px;color:' + (esPausa ? 'var(--rd)' :
-                'var(--ac)') + '">➜ ' + destinoTexto + '</div>' +
+            destinoFilasHTML +
             '</div>';
     }).join('');
 }
