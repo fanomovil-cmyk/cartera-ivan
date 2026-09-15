@@ -3133,10 +3133,11 @@ function calcularRepartoETF(importe, universoISINs) {
         // 100 puntos; cuanto más lejos por encima, menos puntos.
         const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.max(0, distTrampaPct) * 3) : 50;
 
-        // Descuento respecto a tu propio precio medio — matiz menor, no el que manda
+        // Descuento respecto a tu propio precio medio — matiz menor, no el que manda. Fórmula
+        // continua (sin tramos): 50 puntos exactos en el punto de equilibrio, sube en pérdida,
+        // baja en beneficio, sin salto en ningún punto de la curva.
         const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
-        const puntosDescuento = rentActualPct < 0 ? Math.min(100, Math.abs(rentActualPct) * 5) : Math.max(0,
-            25 - rentActualPct * 1.5);
+        const puntosDescuento = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
 
         const score = puntosTrampa * 0.55 + puntosRango * 0.225 + puntosDescuento * 0.225;
         return { nombre, isin, score, pctRango52, distTrampaPct };
@@ -3305,10 +3306,10 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         // Descuento respecto a TU propio precio medio de compra: la señal más directa de si de
         // verdad estás comprando barato para ti, más allá de si ha tocado un nivel de trampa fijo
         // o no. En pérdida = oportunidad real de promediar a la baja en un A+/A; en beneficio
-        // sólido = ya no es "barato" para ti, aunque esté cerca de su trampa técnica.
+        // sólido = ya no es "barato" para ti, aunque esté cerca de su trampa técnica. Fórmula
+        // continua: 50 en el punto de equilibrio, sin salto en ningún punto.
         const rentActualPct = p.pm ? ((pa - p.pm) / p.pm * 100) : 0;
-        const puntosDescuentoCoste = rentActualPct < 0 ? Math.min(100, Math.abs(rentActualPct) * 5) :
-            Math.max(0, 25 - rentActualPct * 1.5);
+        const puntosDescuentoCoste = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
 
         const puntuacionTotal = puntosDescuentoCoste * 0.25 + puntosRango52 * 0.20 +
             Math.min(100, yieldActual * 15) * 0.25 + puntosDividendoCamino * 0.30;
