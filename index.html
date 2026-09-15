@@ -2511,11 +2511,21 @@ function renderDashboard() {
 
 
     // ── Trampas ordenadas por cercanía (compartido entre Dashboard y Modo Focus) ──
+    // Las YA DISPARADAS (d >= 0, precio ya en o por debajo de la trampa) siempre van primero,
+    // ordenadas por cuánto se han pasado — nunca mezcladas por valor absoluto con las que solo
+    // están "cerca" pero sin disparar todavía, que van después, ordenadas por cercanía a cero.
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
             r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
             '', min52: cn(r[16]), max52: cn(r[17]) }))
-        .filter(t => t.t > 0 && t.pa > 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
+        .filter(t => t.t > 0 && t.pa > 0)
+        .sort((a, b) => {
+            const aDisparada = a.d >= 0,
+                bDisparada = b.d >= 0;
+            if (aDisparada !== bDisparada) return aDisparada ? -1 : 1;
+            if (aDisparada) return b.d - a.d; // entre disparadas: la más profunda primero
+            return Math.abs(a.d) - Math.abs(b.d); // entre no disparadas: la más cerca primero
+        });
 
     // ── Aviso cuando una trampa está a ≤1% de distancia (solo una vez por sesión) ──
     trampasOrdenadas.forEach(t => {
@@ -2701,6 +2711,8 @@ function renderDashboard() {
     if (heatmap) {
         const totalesNeto = Array(12).fill(0);
         const totalesDevolucion = Array(12).fill(0);
+        const totalesBruto = Array(12).fill(0);
+        const totalesIRPF = Array(12).fill(0);
         const historicoDetalle = Array.from({ length: 12 }, () => []);
         if (!esAnioPrevision) {
             (divsEnVivo() || []).filter(d => d.f.endsWith('/' + anioTermoNum)).forEach(d => {
@@ -2708,6 +2720,8 @@ function renderDashboard() {
                 if (idx >= 0 && idx < 12) {
                     totalesNeto[idx] += d.neto_final;
                     totalesDevolucion[idx] += d.devolucion;
+                    totalesBruto[idx] += d.bruto;
+                    totalesIRPF[idx] += d.tax_es;
                     historicoDetalle[idx].push({ n: d.n, monto: d.neto_final, devolucion: d.devolucion });
                 }
             });
@@ -2743,10 +2757,11 @@ function renderDashboard() {
             const retOrigen = bruto * origenRate;
             const subtotal = bruto - retOrigen;
             const irpf = subtotal * 0.19;
-            return { netoFinal: subtotal - irpf, devolucion: retOrigen };
+            return { netoFinal: subtotal - irpf, devolucion: retOrigen, irpf };
         };
         const previstosNeto = Array(12).fill(0);
         const previstosDevolucion = Array(12).fill(0);
+        const previstosIRPF = Array(12).fill(0);
 
         pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
             const anualTotal = p.divAcc * p.sh;
@@ -2755,12 +2770,13 @@ function renderDashboard() {
             const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
             if (mesesManual && mesesManual.length) {
                 const importePorPago = anualTotal / mesesManual.length;
-                const { netoFinal, devolucion } = brutoAneto(importePorPago, p.pais);
+                const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais);
                 mesesManual.forEach(m => {
                     const mes = m - 1; // la hoja usa 1=enero..12=diciembre
                     previstos[mes] += importePorPago;
                     previstosNeto[mes] += netoFinal;
                     previstosDevolucion[mes] += devolucion;
+                    previstosIRPF[mes] += irpf;
                     previstosDetalle[mes].push({ n: p.n, monto: netoFinal, devolucion });
                 });
                 return; // ya resuelto, no hace falta adivinar nada más para esta posición
@@ -2800,13 +2816,15 @@ function renderDashboard() {
                 }
                 const pasoMeses = 12 / numPagosAnio;
                 const importePorPago = anualTotal / numPagosAnio;
-                const { netoFinal: netoPago, devolucion: devPago } = brutoAneto(importePorPago, p.pais);
+                const { netoFinal: netoPago, devolucion: devPago, irpf: irpfPago } = brutoAneto(importePorPago, p
+                    .pais);
                 const mesInicio = fechas[0].mes;
                 for (let i = 0; i < numPagosAnio; i++) {
                     const mes = Math.round(mesInicio + i * pasoMeses) % 12;
                     previstos[mes] += importePorPago;
                     previstosNeto[mes] += netoPago;
                     previstosDevolucion[mes] += devPago;
+                    previstosIRPF[mes] += irpfPago;
                     previstosDetalle[mes].push({ n: p.n, monto: netoPago, devolucion: devPago });
                 }
             } else {
@@ -2814,13 +2832,15 @@ function renderDashboard() {
                 // ni el mes exacto, así que asumimos trimestral (lo más habitual) repartido desde el mes
                 // que viene, en vez de amontonarlo todo de golpe en diciembre.
                 const importeTrimestral = anualTotal / 4;
-                const { netoFinal: netoTrim, devolucion: devTrim } = brutoAneto(importeTrimestral, p.pais);
+                const { netoFinal: netoTrim, devolucion: devTrim, irpf: irpfTrim } = brutoAneto(importeTrimestral,
+                    p.pais);
                 const mesInicioEstimado = (mesActual + 1) % 12;
                 for (let i = 0; i < 4; i++) {
                     const mes = (mesInicioEstimado + i * 3) % 12;
                     previstos[mes] += importeTrimestral;
                     previstosNeto[mes] += netoTrim;
                     previstosDevolucion[mes] += devTrim;
+                    previstosIRPF[mes] += irpfTrim;
                     previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', monto: netoTrim,
                         devolucion: devTrim });
                 }
@@ -2876,12 +2896,18 @@ function renderDashboard() {
         // ── Estadísticas: Ø promedio mensual, total del año, y rentabilidad media de las que sí reparten ──
         const statsTermo = document.getElementById('termo-stats');
         if (statsTermo) {
-            let totalAnio = 0;
+            let totalAnio = 0,
+                brutoAnio = 0,
+                irpfAnio = 0,
+                devolucionAnio = 0;
             for (let idx = 0; idx < 12; idx++) {
                 const esMesActualIdx = esAnioActualReal && idx === mesActual;
                 const usarPrevisionIdx = esAnioPrevision || (esAnioActualReal && idx > mesActual) ||
                     (esMesActualIdx && totalesNeto[idx] <= 0);
                 totalAnio += usarPrevisionIdx ? previstosNeto[idx] : totalesNeto[idx];
+                brutoAnio += usarPrevisionIdx ? previstos[idx] : totalesBruto[idx];
+                irpfAnio += usarPrevisionIdx ? previstosIRPF[idx] : totalesIRPF[idx];
+                devolucionAnio += usarPrevisionIdx ? previstosDevolucion[idx] : totalesDevolucion[idx];
             }
             const mesesConDato = esAnioPrevision ? 12 : (esAnioActualReal ? mesActual + 1 : 12);
             const promedioMensual = mesesConDato ? totalAnio / 12 : 0; // sobre 12 meses, para comparar años enteros
@@ -2898,13 +2924,19 @@ function renderDashboard() {
             const rentMediaPagan = sumaCoste ? (sumaDivAnual / sumaCoste * 100) : 0;
 
             statsTermo.innerHTML =
-                '<div><div class="mt2" style="font-size:8px">Ø PROMEDIO MENSUAL</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
+                '<div><div class="mt2" style="font-size:8px">Ø PROMEDIO MENSUAL (neto)</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
                 fe(promedioMensual) + '</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">' + (esAnioPrevision ? 'TOTAL PREVISTO ' :
-                    'TOTAL ') + anioTermoNum + '</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
+                    'TOTAL ') + anioTermoNum + ' (neto)</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
                 fe(totalAnio) + '</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">RENT. MEDIA (solo activos con dividendo)</div><div style="font-size:18px;font-weight:700;color:var(--gn);font-family:\'JetBrains Mono\',monospace">' +
-                rentMediaPagan.toFixed(2) + '%</div></div>';
+                rentMediaPagan.toFixed(2) + '%</div></div>' +
+                '<div><div class="mt2" style="font-size:8px">BRUTO TOTAL</div><div style="font-size:15px;font-weight:700;color:var(--mt);font-family:\'JetBrains Mono\',monospace">' +
+                fe(brutoAnio) + '</div></div>' +
+                '<div><div class="mt2" style="font-size:8px">SE LLEVA HACIENDA (IRPF)</div><div style="font-size:15px;font-weight:700;color:var(--rd);font-family:\'JetBrains Mono\',monospace">-' +
+                fe(irpfAnio) + '</div></div>' +
+                '<div><div class="mt2" style="font-size:8px">DEVOLVERÁ HACIENDA</div><div style="font-size:15px;font-weight:700;color:var(--gn);font-family:\'JetBrains Mono\',monospace">+' +
+                fe(devolucionAnio) + '</div></div>';
         }
     }
 
@@ -3103,11 +3135,12 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     const MARGEN_VENTAJA = 15; // puntos que una acción debe superar a un ETF concreto para robarle su plaza
     const UMBRAL_TECHO = 80; // score a partir del cual se justifica doblar el presupuesto
     const EXTRA_TECHO = 200; // cuánto se añade al presupuesto normal cuando se activa el techo
+    const MAX_ACCIONES_GANADORAS = 3; // tope de acciones distintas que pueden competir a la vez
 
     const candidatosETF = universoISINs.map(isin => calcularScoreActivo(isin));
 
-    // Mejor acción A/A+ candidata: Forever, no ya en el universo de ETF, automatizable, sin trampa
-    // escalonada (misma exclusión que en el resto del sistema), con posición real (para tener pm).
+    // Todas las acciones A/A+ candidatas (no solo la mejor): Forever, no ya en el universo de ETF,
+    // automatizable, sin trampa escalonada, con posición real (para tener pm).
     const tieneTrampaEscalonada = isin => {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         return t ? ((t[14] || '').toLowerCase()).includes('escalonado') : false;
@@ -3116,7 +3149,7 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         const t = TRAMPAS_GS.find(r => r[15] === isin);
         return !t || t[18] !== false;
     };
-    const candidatosAccion = posicionesVivas()
+    const todasLasAcciones = posicionesVivas()
         .filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && !universoISINs.includes(p.isin) &&
             esAutomatizable(p.isin) && !tieneTrampaEscalonada(p.isin))
         .filter(p => {
@@ -3126,17 +3159,21 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         })
         .map(p => calcularScoreActivo(p.isin))
         .sort((a, b) => b.score - a.score);
-    const mejorAccion = candidatosAccion[0] || null;
 
-    // Comparación plaza por plaza: cada ETF se enfrenta individualmente a la mejor acción
+    // Una acción "gana plaza" si supera a AL MENOS UNO de los ETF por el margen — así pueden
+    // clasificarse varias a la vez (hasta el tope), no solo la número uno.
+    const peorScoreETF = candidatosETF.length ? Math.min(...candidatosETF.map(e => e.score)) : 0;
+    const accionesGanadoras = todasLasAcciones
+        .filter(acc => (acc.score - peorScoreETF) >= MARGEN_VENTAJA)
+        .slice(0, MAX_ACCIONES_GANADORAS);
+    const mejorAccion = accionesGanadoras[0] || null; // la de mayor score, para el mensaje y el techo
+
+    // Cada ETF pierde su plaza solo si SU PROPIO score queda por debajo de alguna acción ganadora
+    // con el margen suficiente — un ETF fuerte puede sobrevivir aunque otro más flojo no lo haga.
     let candidatosFinales = [];
-    let accionGanaAlgunaPlaza = false;
     candidatosETF.forEach(etf => {
-        if (mejorAccion && (mejorAccion.score - etf.score) >= MARGEN_VENTAJA) {
-            accionGanaAlgunaPlaza = true; // esta plaza concreta se la lleva la acción, no el ETF
-        } else {
-            candidatosFinales.push(etf);
-        }
+        const leGanaAlguna = accionesGanadoras.some(acc => (acc.score - etf.score) >= MARGEN_VENTAJA);
+        if (!leGanaAlguna) candidatosFinales.push(etf);
     });
 
     let importeTotal = importe;
@@ -3144,9 +3181,8 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     if (mejorAccion && mejorAccion.score >= UMBRAL_TECHO) {
         importeTotal += EXTRA_TECHO;
         techoActivado = true;
-        accionGanaAlgunaPlaza = true;
     }
-    if (accionGanaAlgunaPlaza && mejorAccion) candidatosFinales.push(mejorAccion);
+    candidatosFinales.push(...accionesGanadoras);
 
     if (!candidatosFinales.length) return { reparto: [], liquidez: importeTotal };
 
@@ -3160,7 +3196,7 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         const repartoMinimo = candidatosFinales.map(c => ({
             nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
                 sumaScoresBajos), peso: (Math.max(1, c.score) / sumaScoresBajos) * 100, pctRango52: c.pctRango52,
-            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: c === mejorAccion
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c)
         })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
         return {
             reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
@@ -3183,14 +3219,15 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     const repartoFinal = candidatosFinales.map((c, i) => ({
         nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
         peso: totalDesplegado ? (importesFinales[i] / totalDesplegado * 100) : 0, pctRango52: c.pctRango52,
-        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: mejorAccion && c.isin === mejorAccion.isin
+        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: accionesGanadoras.includes(c)
     })).sort((a, b) => b.importe - a.importe);
 
     return {
         reparto: repartoFinal, liquidez: liquidezSobrante, techoActivado,
-        avisoAccion: (accionGanaAlgunaPlaza && mejorAccion) ? '🎯 ' + mejorAccion.nombre + ' (' + mejorAccion
-            .score.toFixed(0) + 'pts) destaca claramente sobre al menos un ETF' + (techoActivado ?
-                ' — techo especial activado, presupuesto ampliado a ' + fe(importeTotal, 0) : '') + '.' : ''
+        avisoAccion: accionesGanadoras.length ? '🎯 ' + accionesGanadoras.map(a => a.nombre + ' (' + a.score
+            .toFixed(0) + 'pts)').join(', ') + (accionesGanadoras.length > 1 ? ' destacan claramente sobre al menos un ETF' :
+            ' destaca claramente sobre al menos un ETF') + (techoActivado ?
+            ' — techo especial activado, presupuesto ampliado a ' + fe(importeTotal, 0) : '') + '.' : ''
     };
 }
 
@@ -4230,8 +4267,15 @@ function renderTrampas() {
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
-    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => Math.abs(cn(a[5])) - Math
-        .abs(cn(b[5]))).map((r, i) => {
+    document.getElementById('tb-trampas').innerHTML = [...TRAMPAS_GS].sort((a, b) => {
+        const da = cn(a[5]),
+            db = cn(b[5]);
+        const aDisparada = da >= 0,
+            bDisparada = db >= 0;
+        if (aDisparada !== bDisparada) return aDisparada ? -1 : 1;
+        if (aDisparada) return db - da; // entre disparadas: la más profunda primero
+        return Math.abs(da) - Math.abs(db); // entre no disparadas: la más cerca primero
+    }).map((r, i) => {
         const esE = (r[1] || '').toUpperCase().includes('ESPEC');
         const prio = r[2] || 'B';
         const pc = prio === 'A+' ? 'ap' : prio === 'A' ? 'a' : prio === 'A-' ? 'am2' : esE ? 'es' : 'b';
