@@ -1435,9 +1435,9 @@ function renderDetalleActivo() {
             const detalleCompraHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:4px 10px;margin-top:4px">' +
                 '<div><span class="mt2">Acciones</span><br>' + accionesTxt + '</div>' +
                 '<div><span class="mt2">Precio</span><br>' + fe(c.precio) + '</div>' +
-                '<div><span class="mt2">Importe</span><br>' + fe(c.importe) + '</div>' +
-                (c.comision > 0 ? '<div><span class="mt2">Comisión</span><br><span style="color:var(--rd)">-' +
-                    fe(c.comision) + '</span></div>' : '') +
+                '<div><span class="mt2">Importe</span><br>' + fe(c.importe) + (c.comision > 0 ?
+                    ' <span style="font-size:9px;color:var(--rd)">(-' + fe(c.comision) + ' com.)</span>' : '') +
+                    '</div>' +
                 '<div><span class="mt2">Coste total</span><br>' + fe(c.coste) + '</div>' +
                 '</div>';
             const rentCompraPct = (pa && c.precio) ? ((pa - c.precio) / c.precio * 100) : null;
