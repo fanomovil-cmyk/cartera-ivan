@@ -3531,7 +3531,7 @@ function renderGoteo() {
     const iconoPorTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
 
     const previsionProximo = GOTEO_GS.reduce((s, g) => s + (g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ?
-        mediaRedondeoReal : 0)), 0);
+        mediaRedondeoReal : 0)), 0); // valor nominal, solo para referencia; el real se calcula al final
 
     const nombresMesesCab = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
         'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -3541,17 +3541,6 @@ function renderGoteo() {
     const mesActualClave = hoyCab.getFullYear() + '-' + String(hoyCab.getMonth() + 1).padStart(2, '0');
     const gastadoEsteMes = (HISTORICO_GOTEO_GS || []).filter(h => h.fecha.slice(0, 7) === mesActualClave).reduce(
         (s, h) => s + h.importe, 0);
-
-    const cabecera = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
-        '<div style="padding:10px 14px;background:var(--s2);border-radius:10px">' +
-        '<span style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">✅ Gastado en ' +
-        mesActualNombre + '</span><br>' +
-        '<span style="font-size:20px;font-weight:800;color:var(--tx)">' + fe(gastadoEsteMes, 0) + '</span></div>' +
-        '<div style="padding:10px 14px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:10px">' +
-        '<span style="font-size:9px;color:var(--ac);text-transform:uppercase;letter-spacing:0.5px">📅 Previsión para ' +
-        mesSiguienteNombre + '</span><br>' +
-        '<span style="font-size:20px;font-weight:800;color:var(--ac)">' + fe(previsionProximo, 0) + '</span></div>' +
-        '</div>';
 
     const tarjetas = GOTEO_GS.map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
@@ -3583,6 +3572,23 @@ function renderGoteo() {
                 const filasReparto = analisis.reparto.map(r => {
                     const proy = proyectarDividendos6Meses(r.isin, r.importe, precioDe(posicionesVivas().find(
                         p => p.isin === r.isin) || {}) || 0);
+                    const adelantarHTML = r.esAccion ? (() => {
+                        const COMISION_ESTIMADA = 1; // € fijos, según tus operaciones directas reales
+                        const UMBRAL_MERECE_PENA = 150; // por debajo de esto, la comisión fija pesa demasiado
+                        const pctComision = (COMISION_ESTIMADA / r.importe * 100);
+                        const meritaLaPena = r.importe >= UMBRAL_MERECE_PENA;
+                        return '<div style="margin-top:6px;padding:8px 10px;background:' + (meritaLaPena ?
+                                'rgba(52,199,123,0.1);border:1px solid var(--gn)' :
+                                'rgba(226,154,62,0.1);border:1px solid var(--am)') + ';border-radius:6px;font-size:9px">' +
+                            (meritaLaPena ?
+                                '✅ Con ' + fe(r.importe, 0) + ', la comisión fija (~' + fe(COMISION_ESTIMADA, 0) +
+                                ') es solo el ' + pctComision.toFixed(1) +
+                                '% — probablemente compensa comprarlo ya (compra directa), en vez de esperar al día 2.' :
+                                '⚠️ Con solo ' + fe(r.importe, 0) + ', la comisión fija (~' + fe(
+                                    COMISION_ESTIMADA, 0) + ') es el ' + pctComision.toFixed(1) +
+                                '% del importe — probablemente mejor esperar al plan automático del día 2, salvo que veas la caída como excepcional de verdad.'
+                            ) + '</div>';
+                    })() : '';
                     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
                         '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b> ' +
                         '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' + (r.esAccion ?
@@ -3592,7 +3598,8 @@ function renderGoteo() {
                             '</span>' +
                         '<div class="mt2" style="font-size:8px">' + (r.pctRango52 !== null ? 'al ' + r
                             .pctRango52.toFixed(0) + '% de su rango 52sem' : '') + (r.distTrampaPct !== null ?
-                            ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div></div>' +
+                            ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div>' +
+                        adelantarHTML + '</div>' +
                         '<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--gn)">' +
                         fe(r.importe, 0) + '</div><div class="mt2" style="font-size:8px">' + r.peso.toFixed(0) +
                         '%</div></div></div>' + (proy && proy.total > 0 ?
@@ -3630,23 +3637,39 @@ function renderGoteo() {
                 '<div class="mt2" style="font-size:10px;margin-top:8px">Sin datos suficientes en CARTERA/TRAMPAS para decidir todavía.</div>';
         }
 
-        return '<div class="card" style="margin-bottom:14px;overflow:hidden">' +
-            '<div style="padding:14px 16px;background:linear-gradient(135deg,var(--s2),transparent)">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center">' +
-            '<b style="font-size:14px">' + (iconoPorTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<div style="text-align:right"><span style="font-size:8px;color:var(--ac);text-transform:uppercase">Previsión ' +
-            mesSiguienteNombre + '</span><br><span style="font-size:20px;font-weight:800;color:var(--gn)">' +
-            fe(importeMostrado, 0) + '</span></div>' +
-            '</div>' +
-            (g.tipo === 'Redondeo' && !g.importe ? '<div class="mt2" style="font-size:8px;margin-top:2px">Media real de ' +
-                todosSavebacks.length + ' pagos históricos</div>' : '') +
-            (esGrupo ? '<div class="mt2" style="font-size:8px;margin-top:2px">Grupo de ' + g.universo.split(',')
-                .length + ' ETF en rotación</div>' : '') +
-            cuerpoHTML +
-            '</div></div>';
-    }).join('');
+        return {
+            importeMostrado,
+            html: '<div class="card" style="margin-bottom:14px;overflow:hidden">' +
+                '<div style="padding:14px 16px;background:linear-gradient(135deg,var(--s2),transparent)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                '<b style="font-size:14px">' + (iconoPorTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
+                '<div style="text-align:right"><span style="font-size:8px;color:var(--ac);text-transform:uppercase">Previsión ' +
+                mesSiguienteNombre + '</span><br><span style="font-size:20px;font-weight:800;color:var(--gn)">' +
+                fe(importeMostrado, 0) + '</span></div>' +
+                '</div>' +
+                (g.tipo === 'Redondeo' && !g.importe ? '<div class="mt2" style="font-size:8px;margin-top:2px">Media real de ' +
+                    todosSavebacks.length + ' pagos históricos</div>' : '') +
+                (esGrupo ? '<div class="mt2" style="font-size:8px;margin-top:2px">Grupo de ' + g.universo
+                    .split(',').length + ' ETF en rotación</div>' : '') +
+                cuerpoHTML +
+                '</div></div>'
+        };
+    });
 
-    cont.innerHTML = cabecera + tarjetas;
+    const previsionProximoReal = tarjetas.reduce((s, t) => s + t.importeMostrado, 0);
+    const cabecera = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+        '<div style="padding:10px 14px;background:var(--s2);border-radius:10px">' +
+        '<span style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">✅ Gastado en ' +
+        mesActualNombre + '</span><br>' +
+        '<span style="font-size:20px;font-weight:800;color:var(--tx)">' + fe(gastadoEsteMes, 0) + '</span></div>' +
+        '<div style="padding:10px 14px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:10px">' +
+        '<span style="font-size:9px;color:var(--ac);text-transform:uppercase;letter-spacing:0.5px">📅 Previsión para ' +
+        mesSiguienteNombre + '</span><br>' +
+        '<span style="font-size:20px;font-weight:800;color:var(--ac)">' + fe(previsionProximoReal, 0) +
+        '</span></div>' +
+        '</div>';
+
+    cont.innerHTML = cabecera + tarjetas.map(t => t.html).join('');
 }
 
 // ── CONTROL DE GOTEO: cuánto se ha puesto de cada activo mes a mes, según el histórico registrado ──
