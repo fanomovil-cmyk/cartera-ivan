@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2116,12 +2115,14 @@ let _secundariasRenderizadas = false;
 function renderSecundariasSiHaceFalta() {
     if (_secundariasRenderizadas) return; // ya calculado con los datos actuales, no repetir
     _secundariasRenderizadas = true;
+    renderDividendos();
+    renderIntereses();
+    renderEvolucion();
     renderCartera();
     renderTrampas();
     renderOperaciones();
     renderAnalisis();
     renderProyecciones();
-    renderDividendos();
     renderHistoricoAnual();
     renderEvolucionPatrimonio();
     renderGoteo();
@@ -2129,11 +2130,14 @@ function renderSecundariasSiHaceFalta() {
     poblarSelectorHistoricoPrecio();
 }
 
-async function recargar() {
+let _primeraCargaHecha = false;
+async function recargar(modoRapido) {
     const btn = document.getElementById('btn-estado');
-    if (btn) { btn.textContent = 'Sincronizando radar...'; btn.classList.remove('ac'); }
+    if (btn && !modoRapido) { btn.textContent = 'Sincronizando radar...';
+        btn.classList.remove('ac'); }
     try {
-        const res = await fetch(API_GS + '?nocache=' + Date.now());
+        const parametroRapido = modoRapido ? '&rapido=1' : '';
+        const res = await fetch(API_GS + '?nocache=' + Date.now() + parametroRapido);
         const data = await res.json();
         if (!data.ok) throw new Error('Respuesta inválida');
 
@@ -2255,26 +2259,28 @@ async function recargar() {
         renderProximaAccion();
 
         // ── El resto de pestañas (Cartera, Trampas, Operaciones, Análisis, Proyecciones,
-        // Dividendos, Histórico, Evolución): en MÓVIL no se calcula nada de esto hasta que cierres
-        // el Radar — así, si solo entras a mirar el Radar y te vas, no se gasta ni un cálculo de
-        // más. En ORDENADOR se sigue calculando poco después, sin esperar a que cierres nada,
-        // porque ahí sueles revisarlo todo igualmente.
-        _secundariasRenderizadas = false;
-        const focusAbiertoAlCargar = document.getElementById('focus') && document.getElementById('focus')
-            .classList.contains('on');
-        const esMovilAlCargar = window.innerWidth < 768;
-        if (!esMovilAlCargar || !focusAbiertoAlCargar) {
-            // Ordenador siempre, o móvil con el Radar ya cerrado (mirando otra pestaña): calcula ya
-            if (window.requestIdleCallback) {
-                requestIdleCallback(renderSecundariasSiHaceFalta, { timeout: 800 });
-            } else {
-                setTimeout(renderSecundariasSiHaceFalta, 30);
+        if (modoRapido) {
+            // Datos ligeros ya mostrados en el Radar — pedimos el resto completo en segundo
+            // plano, sin que el usuario tenga que esperarlo para ver el Radar funcionando.
+            setTimeout(() => recargar(false), 50);
+        } else {
+            _secundariasRenderizadas = false;
+            const focusAbiertoAlCargar = document.getElementById('focus') && document.getElementById(
+                'focus').classList.contains('on');
+            const esMovilAlCargar = window.innerWidth < 768;
+            if (!esMovilAlCargar || !focusAbiertoAlCargar) {
+                // Ordenador siempre, o móvil con el Radar ya cerrado (mirando otra pestaña): calcula ya
+                if (window.requestIdleCallback) {
+                    requestIdleCallback(renderSecundariasSiHaceFalta, { timeout: 800 });
+                } else {
+                    setTimeout(renderSecundariasSiHaceFalta, 30);
+                }
             }
+            // Si es móvil y el Radar está abierto: no se hace nada más — se disparará solo al cerrarlo
         }
-        // Si es móvil y el Radar está abierto: no se hace nada más — se disparará solo al cerrarlo
 
         const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-        if (btn) { btn.textContent = '📡 En línea · ' + hora; btn.classList.add('ac'); }
+        if (btn) { btn.textContent = (modoRapido ? '📡 Radar listo · ' : '📡 En línea · ') + hora; btn.classList.add('ac'); }
         const pu = document.getElementById('pu-estado');
         if (pu) pu.textContent = 'Precios GS: ' + hora;
 
@@ -5864,22 +5870,26 @@ function renderProyeccionActivos() {
 }
 
 // ── INIT ──
-renderDividendos();
-renderIntereses();
-renderEvolucion();
-renderDashboard();
-renderCartera();
-renderProyecciones();
-renderAnalisis();
-renderHistoricoAnual();
-recargar();
+const esMovilInit = window.matchMedia('(max-width:760px)').matches;
+renderDashboard(); // Radar/Focus primero, con el snapshot estático mientras llega la red
+
+if (esMovilInit) {
+    // Móvil: el resto de pestañas NO se pintan con el snapshot al arrancar — se difieren igual
+    // que el resto de la carga, para que lo único que tarde en aparecer sea el propio Radar.
+    document.getElementById('focus').classList.add('on');
+} else {
+    renderDividendos();
+    renderIntereses();
+    renderEvolucion();
+    renderCartera();
+    renderProyecciones();
+    renderAnalisis();
+    renderHistoricoAnual();
+}
+
+recargar(esMovilInit); // en móvil, primera carga en modo rápido (sin los campos más pesados)
 setInterval(recargar, 5 * 60 * 1000);
 cargarCalendarioResultados();
-
-// En móvil, Modo Focus es la pantalla principal
-if (window.matchMedia('(max-width:760px)').matches) {
-    document.getElementById('focus').classList.add('on');
-}
 
 setTimeout(() => {
     notificar('📡 Sistemas en línea', 'Radar de proximidad inicializado correctamente', 'success');
