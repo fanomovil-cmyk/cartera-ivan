@@ -224,7 +224,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- FOCUS MODE -->
 <div class="focus-mode" id="focus">
-  <div class="close" onclick="document.getElementById('focus').classList.remove('on')">✕ Cerrar</div>
+  <div class="close" onclick="document.getElementById('focus').classList.remove('on'); renderSecundariasSiHaceFalta()">✕ Cerrar</div>
   <div style="max-width:800px;margin:0 auto;text-align:left">
     <div style="text-align:center">
       <h1 style="font-size:32px;margin-bottom:8px">📡 Radar Táctico</h1>
@@ -261,7 +261,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="hdr-r">
     <div class="btn" onclick="recargar()">↻ Refrescar radar</div>
     <div class="btn" id="btn-estado">Sincronizando...</div>
-    <div class="btn" onclick="document.getElementById('focus').classList.toggle('on')">📡 Radar</div>
+    <div class="btn" onclick="document.getElementById('focus').classList.toggle('on'); renderSecundariasSiHaceFalta()">📡 Radar</div>
     <div style="width:24px"></div>
     <div class="btn" onclick="exportarCSV()">📥 Exportar</div>
     <div class="btn" onclick="generarInformeMensual()">📄 Informe PDF</div>
@@ -2112,6 +2112,21 @@ async function generarInformeMensual() {
     doc.save('informe_cartera_' + hoy.toISOString().slice(0, 7) + '.pdf');
 }
 
+let _secundariasRenderizadas = false;
+function renderSecundariasSiHaceFalta() {
+    if (_secundariasRenderizadas) return; // ya calculado con los datos actuales, no repetir
+    _secundariasRenderizadas = true;
+    renderCartera();
+    renderTrampas();
+    renderOperaciones();
+    renderAnalisis();
+    renderProyecciones();
+    renderDividendos();
+    renderHistoricoAnual();
+    renderEvolucionPatrimonio();
+    poblarSelectorHistoricoPrecio();
+}
+
 async function recargar() {
     const btn = document.getElementById('btn-estado');
     if (btn) { btn.textContent = 'Sincronizando radar...'; btn.classList.remove('ac'); }
@@ -2238,25 +2253,23 @@ async function recargar() {
         renderProximaAccion();
 
         // ── El resto de pestañas (Cartera, Trampas, Operaciones, Análisis, Proyecciones,
-        // Dividendos, Histórico, Evolución) se rellenan justo después, pero SIN bloquear la
-        // primera pintura del Radar — así en el móvil ves el Radar casi al instante, y el resto
-        // está listo un instante después, sin que notes la espera al cambiar de pestaña.
-        const renderDiferido = () => {
-            renderCartera();
-            renderTrampas();
-            renderOperaciones();
-            renderAnalisis();
-            renderProyecciones();
-            renderDividendos();
-            renderHistoricoAnual();
-            renderEvolucionPatrimonio();
-            poblarSelectorHistoricoPrecio();
-        };
-        if (window.requestIdleCallback) {
-            requestIdleCallback(renderDiferido, { timeout: 800 });
-        } else {
-            setTimeout(renderDiferido, 30);
+        // Dividendos, Histórico, Evolución): en MÓVIL no se calcula nada de esto hasta que cierres
+        // el Radar — así, si solo entras a mirar el Radar y te vas, no se gasta ni un cálculo de
+        // más. En ORDENADOR se sigue calculando poco después, sin esperar a que cierres nada,
+        // porque ahí sueles revisarlo todo igualmente.
+        _secundariasRenderizadas = false;
+        const focusAbiertoAlCargar = document.getElementById('focus') && document.getElementById('focus')
+            .classList.contains('on');
+        const esMovilAlCargar = window.innerWidth < 768;
+        if (!esMovilAlCargar || !focusAbiertoAlCargar) {
+            // Ordenador siempre, o móvil con el Radar ya cerrado (mirando otra pestaña): calcula ya
+            if (window.requestIdleCallback) {
+                requestIdleCallback(renderSecundariasSiHaceFalta, { timeout: 800 });
+            } else {
+                setTimeout(renderSecundariasSiHaceFalta, 30);
+            }
         }
+        // Si es móvil y el Radar está abierto: no se hace nada más — se disparará solo al cerrarlo
 
         const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         if (btn) { btn.textContent = '📡 En línea · ' + hora; btn.classList.add('ac'); }
@@ -2361,8 +2374,6 @@ function renderDashboard() {
     renderFiltroPeriodo();
     renderSaludCartera();
     renderPlanPanico();
-    renderGoteo();
-    renderControlGoteo();
 
     // Rango de fechas del Centro de Mando: inicio = primera compra real, fin = última fecha real del CSV
     const rangoEl = document.getElementById('rango');
