@@ -241,6 +241,10 @@ html.light .badge-orden.venta{color:#B33A3A}
       <div class="ch"><h3>🎯 Objetivos a tiro</h3></div>
       <div id="focus-trampa">—</div>
     </div>
+    <div class="card" style="margin-top:20px;text-align:left" id="card-cortes-dividendo">
+      <div class="ch"><h3>⏰ Cortes de dividendo próximos</h3><span class="mt2" style="font-size:8px">si te pasas, esperas al siguiente pago</span></div>
+      <div id="focus-cortes">—</div>
+    </div>
     <div class="card" style="margin-top:20px;text-align:left;border:1px solid var(--ac)">
       <div class="ch"><h3>💧 Próximas compras de goteo</h3></div>
       <div id="focus-goteo">—</div>
@@ -2517,7 +2521,7 @@ function renderDashboard() {
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
             r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
-            '', min52: cn(r[16]), max52: cn(r[17]) }))
+            '', min52: cn(r[16]), max52: cn(r[17]), isin: r[15] || '' }))
         .filter(t => t.t > 0 && t.pa > 0)
         .sort((a, b) => {
             const aDisparada = a.d >= 0,
@@ -2629,6 +2633,34 @@ function renderDashboard() {
                     '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona + ';font-weight:700">' +
                     pct52.toFixed(0) + '% del rango</span><span>' + fe(t.max52, 0) + '</span></div></div>';
             })() : '') +
+            (t.isin ? (() => {
+                const info = calcularProximoCorte(t.isin);
+                if (!info) return '';
+                const nombresMesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep',
+                    'oct', 'nov', 'dic'
+                ];
+                const fechaTxt = info.fecha.getDate() + ' ' + nombresMesesCortos[info.fecha.getMonth()];
+                const divPorPago = t.dv / info.numPagosAlAnio;
+                const importeTotal = t.dv * t.acc / info.numPagosAlAnio;
+                const precioProyectado = t.pa ? Math.max(0, t.pa - divPorPago) : 0;
+                const pocoFrecuente = info.numPagosAlAnio <= 2;
+                const colorDias = info.dias <= 2 ? 'var(--rd)' : info.dias <= (pocoFrecuente ? 15 : 7) ?
+                    'var(--am)' : 'var(--gn)';
+                const meritaEsperar = info.dias <= 15 && divPorPago > 0.005 && (divPorPago / t.pa * 100) >=
+                    0.3; // el dividendo pesa al menos un 0,3% del precio, vale la pena tenerlo en cuenta
+                return '<div style="margin-top:4px;padding:5px 6px;background:var(--s2);border-radius:6px">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                    '<span style="font-size:8px;color:var(--mt)">💰 Próximo corte: ' + fechaTxt + '</span>' +
+                    '<span style="font-size:9px;font-weight:800;color:' + colorDias + '">' + (info.dias === 0 ?
+                        'HOY' : info.dias + 'd') + '</span></div>' +
+                    '<div class="mt2" style="font-size:8px;margin-top:1px">~' + fe(importeTotal) +
+                    ' bruto · ' + info.numPagosAlAnio + ' pago' + (info.numPagosAlAnio === 1 ? '' : 's') +
+                    '/año</div>' +
+                    (meritaEsperar ? '<div style="font-size:8px;margin-top:2px;color:var(--ac)">💡 Reparte ' +
+                        fe(divPorPago) + '/acc. — suele bajar sola a ~' + fe(precioProyectado) +
+                        ' en el corte, momento a vigilar</div>' : '') +
+                    '</div>';
+            })() : '') +
             (t.nota ? '<div style="font-size:' + fSub +
                 ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
             '</div>';
@@ -2638,6 +2670,7 @@ function renderDashboard() {
         trampasOrdenadas.slice(0, 6).map((t, i) => filaTrampa(t, i === 0, true)).join('') :
         '<div style="padding:20px;text-align:center;color:var(--mt);font-size:12px">No hay trampas activas</div>';
 
+    renderFocusCortes();
     renderFocusGoteo();
 
     const divsPorISINDash = {};
@@ -3309,8 +3342,29 @@ function calcularScoreActivo(isin) {
     const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
     const puntosDescuento = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
 
-    const score = puntosTrampa * 0.55 + puntosRango * 0.225 + puntosDescuento * 0.225;
-    return { nombre, isin, score, pctRango52, distTrampaPct, pa };
+    // Proximidad al dividendo: si el corte está cerca, sube con fuerza (comprar ahora garantiza
+    // cobrarlo); justo después de pasar el corte, baja mucho si el siguiente pago tarda meses
+    // (típico de anuales/semestrales tipo Air Liquide o LVMH) — así el sistema rota solo hacia la
+    // que tenga el próximo cobro más a tiro, sin que haga falta decidirlo a mano cada vez.
+    const puntosDividendo = calcularPuntosDividendo(isin);
+
+    const score = puntosTrampa * 0.47 + puntosRango * 0.19 + puntosDescuento * 0.19 + puntosDividendo * 0.15;
+    return { nombre, isin, score, pctRango52, distTrampaPct, pa, puntosDividendo };
+}
+
+// Convierte "cuántos días faltan para el próximo corte" en una puntuación 0-100. Dentro de la
+// ventana de oportunidad (20 días) sube con fuerza cuanto más cerca; fuera de la ventana, penaliza
+// más a las que pagan poco (1-2 veces al año) por estar lejos, ya que ahí perderse el momento sale
+// mucho más caro que en una que paga cada mes.
+function calcularPuntosDividendo(isin) {
+    const info = calcularProximoCorte(isin);
+    if (!info) return 50; // sin datos de calendario/día de corte, neutro
+    const VENTANA_OPORTUNIDAD = 20;
+    if (info.dias <= VENTANA_OPORTUNIDAD) {
+        return 60 + (VENTANA_OPORTUNIDAD - info.dias) / VENTANA_OPORTUNIDAD * 40;
+    }
+    const penalizacionFrecuencia = info.numPagosAlAnio <= 2 ? 1.5 : 1;
+    return Math.max(10, 50 - (info.dias - VENTANA_OPORTUNIDAD) * 0.3 * penalizacionFrecuencia);
 }
 
 function calcularRepartoETF(importe, universoISINs) {
@@ -3538,6 +3592,83 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
 }
 
 // ── RESUMEN COMPACTO DE GOTEO PARA EL RADAR: qué comprar y cuándo, de un vistazo ──
+// ── CORTES DE DIVIDENDO PRÓXIMOS: cuenta atrás real usando el día de corte de tu hoja DIVIDENDOS.
+// Aviso especial para las que pagan 1-2 veces al año — perdértelo ahí significa esperar meses.
+function calcularProximoCorte(isin) {
+    const cal = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin === isin);
+    if (!cal || !cal.diaCorte || !cal.meses || !cal.meses.length) return null;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const anioActual = hoy.getFullYear();
+    let candidatas = [];
+    cal.meses.forEach(m => {
+        candidatas.push(new Date(anioActual, m - 1, cal.diaCorte));
+        candidatas.push(new Date(anioActual + 1, m - 1, cal.diaCorte));
+    });
+    candidatas = candidatas.filter(d => d >= hoy).sort((a, b) => a - b);
+    if (!candidatas.length) return null;
+    const proxima = candidatas[0];
+    const dias = Math.round((proxima - hoy) / (1000 * 60 * 60 * 24));
+    return { fecha: proxima, dias, numPagosAlAnio: cal.meses.length, diaPago: cal.diaPago };
+}
+
+function renderFocusCortes() {
+    const cont = document.getElementById('focus-cortes');
+    const cardEl = document.getElementById('card-cortes-dividendo');
+    if (!cont) return;
+
+    const pos = posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0);
+    const proximos = pos.map(p => {
+        const info = calcularProximoCorte(p.isin);
+        if (!info) return null;
+        const pa = precioDe(p) || 0;
+        const divPorPago = p.divAcc / info.numPagosAlAnio;
+        const precioProyectado = pa ? Math.max(0, pa - divPorPago) : 0;
+        return { nombre: p.n, isin: p.isin, dias: info.dias, fecha: info.fecha, numPagosAlAnio: info
+            .numPagosAlAnio, diaPago: info.diaPago, importeEstimado: p.divAcc * p.sh / info.numPagosAlAnio,
+            pa, divPorPago, precioProyectado };
+    }).filter(Boolean).filter(x => x.dias <= 30).sort((a, b) => a.dias - b.dias);
+
+    if (!proximos.length) {
+        if (cardEl) cardEl.style.display = 'none';
+        return;
+    }
+    if (cardEl) cardEl.style.display = '';
+
+    const nombresMesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov',
+        'dic'];
+
+    cont.innerHTML = proximos.map(x => {
+        const pocoFrecuente = x.numPagosAlAnio <= 2;
+        let nivel, color, icono;
+        if (x.dias <= 2) { nivel = 'ÚLTIMA LLAMADA';
+            color = 'var(--rd)';
+            icono = '🔴'; } else if (x.dias <= (pocoFrecuente ? 15 : 7)) { nivel = 'A VIGILAR';
+            color = 'var(--am)';
+            icono = '🟠'; } else { nivel = 'Tranquilo';
+            color = 'var(--gn)';
+            icono = '🟢'; }
+        const fechaTxt = x.fecha.getDate() + ' ' + nombresMesesCortos[x.fecha.getMonth()];
+        const avisoEspecial = (pocoFrecuente && x.dias <= 15) ?
+            ('<div class="mt2" style="font-size:9px;margin-top:4px">⚠️ Solo paga ' + x.numPagosAlAnio +
+                ' vez' + (x.numPagosAlAnio === 1 ? '' : 'es') +
+                ' al año — si te pasas de esta fecha, el siguiente pago tarda meses.</div>') : '';
+        const proyeccionHTML = (x.dias <= 15 && x.pa && x.divPorPago > 0.01) ?
+            ('<div class="mt2" style="font-size:9px;margin-top:4px;padding:4px 6px;background:var(--s2);border-radius:5px">💡 Ahora a ' +
+                fe(x.pa) + ', reparte ' + fe(x.divPorPago) + '/acción — el día del corte suele bajar sola a ~' +
+                fe(x.precioProyectado) + ', un momento a vigilar para comprar</div>') : '';
+        return '<div style="padding:10px 16px;border-bottom:1px solid var(--bd);' + (x.dias <= 2 ?
+                'background:rgba(232,90,90,0.08)' : '') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<b style="font-size:14px">' + icono + ' ' + x.nombre + '</b>' +
+            '<span style="font-size:13px;font-weight:800;color:' + color + '">' + (x.dias === 0 ? 'HOY' :
+                x.dias + ' día' + (x.dias === 1 ? '' : 's')) + '</span></div>' +
+            '<div class="mt2" style="font-size:10px;margin-top:2px">Corte: ' + fechaTxt + ' · ~' + fe(x
+                .importeEstimado) + ' bruto por este pago</div>' +
+            avisoEspecial + proyeccionHTML + '</div>';
+    }).join('');
+}
+
 function renderFocusGoteo() {
     const cont = document.getElementById('focus-goteo');
     if (!cont) return;
@@ -3562,35 +3693,37 @@ function renderFocusGoteo() {
             const analisis = analizarGrupoRecurrente(importeReal, g.universo);
             if (analisis.tipo === 'pausa') {
                 esPausa = true;
-                destinoFilasHTML = '<div style="padding:6px 8px;margin-top:4px;background:rgba(232,90,90,0.12);border-radius:6px">' +
-                    '<div style="font-size:10px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
+                destinoFilasHTML = '<div style="padding:10px 12px;margin-top:6px;background:rgba(232,90,90,0.12);border-radius:8px">' +
+                    '<div style="font-size:14px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
                     .destino.nombre + '</div></div>';
                 importeMostrado = importeReal;
             } else {
                 importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
-                destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid var(--bd)">' +
-                        '<span style="font-size:10px">' + (r.esAccion ? '🎯 ' : '') + r.nombre + '</span>' +
-                        '<span style="font-size:10px;font-weight:700;color:var(--ac)">' + fe(r.importe, 0) +
-                        ' <span class="mt2" style="font-size:8px">(' + r.peso.toFixed(0) + '%)</span></span>' +
+                destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)">' +
+                        '<span style="font-size:14px;font-weight:600">' + (r.esAccion ? '🎯 ' : '') + r.nombre +
+                        '</span>' +
+                        '<span style="font-size:16px;font-weight:800;color:var(--ac)">' + fe(r.importe, 0) +
+                        ' <span class="mt2" style="font-size:10px;font-weight:600">(' + r.peso.toFixed(0) +
+                        '%)</span></span>' +
                         '</div>').join('') +
-                    (analisis.liquidez > 1 ? '<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--bd)"><span style="font-size:10px">💶 En liquidez (2,5%)</span><span style="font-size:10px;font-weight:700;color:var(--mt)">' +
+                    (analisis.liquidez > 1 ? '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)"><span style="font-size:14px;font-weight:600">💶 En liquidez (2,5%)</span><span style="font-size:16px;font-weight:800;color:var(--mt)">' +
                         fe(analisis.liquidez, 0) + '</span></div>' : '');
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
-            destinoFilasHTML = '<div style="padding:6px 8px;margin-top:4px;background:rgba(96,165,250,0.1);border-radius:6px">' +
-                '<span style="font-size:10px;font-weight:700;color:var(--ac)">➜ ' + (sugerencia ? sugerencia
+            destinoFilasHTML = '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px">' +
+                '<span style="font-size:15px;font-weight:800;color:var(--ac)">➜ ' + (sugerencia ? sugerencia
                     .nombre + (sugerencia.esObjetivoEstrategico ? ' 🎯' : '') : 'sin datos suficientes') +
                 '</span></div>';
         }
 
-        return '<div style="padding:10px 16px;border-bottom:1px solid var(--bd);' + (esPausa ?
+        return '<div style="padding:12px 16px;border-bottom:1px solid var(--bd);' + (esPausa ?
                 'background:rgba(232,90,90,0.08)' : '') + '">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
-            '<b style="font-size:12px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<span style="font-size:14px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
+            '<b style="font-size:15px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
+            '<span style="font-size:19px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
             '</div>' +
-            '<div class="mt2" style="font-size:9px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
+            '<div class="mt2" style="font-size:10px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
             destinoFilasHTML +
             '</div>';
     }).join('');
