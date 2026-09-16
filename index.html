@@ -2229,17 +2229,30 @@ async function recargar() {
             ULTIMA_FECHA_CSV_GS = data.ultimaFechaCSV;
         }
 
+        // ── Lo que se ve nada más abrir (Radar/Focus) va primero y sin retraso ──
         renderDashboard();
-        renderCartera();
-        renderTrampas();
-        renderOperaciones();
-        renderAnalisis();
-        renderProyecciones();
-        renderDividendos();
-        renderHistoricoAnual();
-        renderEvolucionPatrimonio();
         renderProximaAccion();
-        poblarSelectorHistoricoPrecio();
+
+        // ── El resto de pestañas (Cartera, Trampas, Operaciones, Análisis, Proyecciones,
+        // Dividendos, Histórico, Evolución) se rellenan justo después, pero SIN bloquear la
+        // primera pintura del Radar — así en el móvil ves el Radar casi al instante, y el resto
+        // está listo un instante después, sin que notes la espera al cambiar de pestaña.
+        const renderDiferido = () => {
+            renderCartera();
+            renderTrampas();
+            renderOperaciones();
+            renderAnalisis();
+            renderProyecciones();
+            renderDividendos();
+            renderHistoricoAnual();
+            renderEvolucionPatrimonio();
+            poblarSelectorHistoricoPrecio();
+        };
+        if (window.requestIdleCallback) {
+            requestIdleCallback(renderDiferido, { timeout: 800 });
+        } else {
+            setTimeout(renderDiferido, 30);
+        }
 
         const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         if (btn) { btn.textContent = '📡 En línea · ' + hora; btn.classList.add('ac'); }
