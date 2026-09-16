@@ -1094,9 +1094,11 @@ function resumenDivsEnVivo() {
     return RESUMEN_DIVS_GS && RESUMEN_DIVS_GS.length ? RESUMEN_DIVS_GS : D.resumen_divs;
 }
 
+let _cachePosicionesVivas = null;
 function posicionesVivas() {
-    if (!POSICIONES_GS.length) return D.posiciones; // API aún no ha respondido, usar snapshot
-    return POSICIONES_GS.map(live => {
+    if (_cachePosicionesVivas) return _cachePosicionesVivas; // reutiliza el cálculo si ya se hizo esta carga
+    if (!POSICIONES_GS.length) return D.posiciones; // API aún no ha respondido, usar snapshot (no se cachea)
+    _cachePosicionesVivas = POSICIONES_GS.map(live => {
         const estatico = D.posiciones.find(p => (MAP[p.n] || p.n) === live.nombre) || {};
         // El nombre en TR_DATOS a veces difiere del de la hoja CARTERA (ej. "Alphabet (A)" vs "Alphabet GOOGL").
         const clavesPosibles = [estatico.n, live.nombre, live.nombre === 'Alphabet GOOGL' ? 'Alphabet (A)' :
@@ -1129,6 +1131,7 @@ function posicionesVivas() {
             f: estatico.f || '—'
         };
     });
+    return _cachePosicionesVivas;
 }
 
 // ── RECARGAR VIA APPS SCRIPT ──
@@ -2120,6 +2123,7 @@ async function recargar() {
         // Precios cartera — MAP inverso (GS nombre → TR nombre)
         if (data.posiciones) {
             POSICIONES_GS = data.posiciones;
+            _cachePosicionesVivas = null; // datos nuevos: hay que recalcular la próxima vez que se pida
             const RMAP = {};
             for (const [k, v] of Object.entries(MAP)) RMAP[v] = k;
             data.posiciones.forEach(p => {
