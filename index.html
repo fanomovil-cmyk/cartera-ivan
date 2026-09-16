@@ -3221,7 +3221,7 @@ function calcularRepartoConAcciones(importe, universoISINs) {
 
     // Válvula de seguridad (umbral 36, ya validado) sobre los candidatos finales
     const MINIMO_MES_TOTAL = 50;
-    const UMBRAL_NADA_ATRACTIVO = 36;
+    const UMBRAL_NADA_ATRACTIVO = 34; // recalculado con pesos 51/20,5/20,5/8 (trampa/rango/descuento/dividendo)
     const scoreMedia = candidatosFinales.reduce((s, c) => s + c.score, 0) / candidatosFinales.length;
 
     if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
@@ -3348,7 +3348,7 @@ function calcularScoreActivo(isin) {
     // que tenga el próximo cobro más a tiro, sin que haga falta decidirlo a mano cada vez.
     const puntosDividendo = calcularPuntosDividendo(isin);
 
-    const score = puntosTrampa * 0.47 + puntosRango * 0.19 + puntosDescuento * 0.19 + puntosDividendo * 0.15;
+    const score = puntosTrampa * 0.51 + puntosRango * 0.205 + puntosDescuento * 0.205 + puntosDividendo * 0.08;
     return { nombre, isin, score, pctRango52, distTrampaPct, pa, puntosDividendo };
 }
 
@@ -3376,7 +3376,7 @@ function calcularRepartoETF(importe, universoISINs) {
     // de verdad), no seguimos el reparto continuo normal — nos limitamos a los 50€ mínimos del mes
     // (el hábito de aportación) y avisamos con claridad para guardar el resto en liquidez.
     const MINIMO_MES_TOTAL = 50;
-    const UMBRAL_NADA_ATRACTIVO = 36; // derivado: en el peor caso (rango=0, descuento=0), se dispara a partir de ~12% de distancia media a la trampa
+    const UMBRAL_NADA_ATRACTIVO = 34; // derivado: en el peor caso (rango=0, descuento=0, dividendo=suelo 10), se dispara a partir de ~12% de distancia media a la trampa, con pesos 51/20,5/20,5/8
     const scoreMedia = candidatos.reduce((s, c) => s + c.score, 0) / candidatos.length;
 
     if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
