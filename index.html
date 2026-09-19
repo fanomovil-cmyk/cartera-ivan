@@ -4707,15 +4707,17 @@ function renderDividendoPorAccion() {
     });
 
     const anios = [...new Set(divs.map(d => d.f.split('/')[2]))].sort();
-    if (anios.length < 2) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía solo hay datos de ' + anios.length +
-            ' año' + (anios.length === 1 ? '' : 's') +
-            ' — en cuanto tengamos 2 años completos por empresa, aquí se verá si el dividendo por acción sube, se estanca o cae de verdad.</div>';
+    const empresasConDosAnios = Object.values(porEmpresaAnio).filter(porAnio => Object.keys(porAnio).length >=
+        2).length;
+    if (anios.length < 2 || empresasConDosAnios < 2) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía no hay suficientes empresas con dos años completos de dividendo por acción (' +
+            empresasConDosAnios + (empresasConDosAnios === 1 ? ' empresa' : ' empresas') +
+            ' con más de un año de datos) — el histórico empezó a registrarse hace poco más de un año, así que la comparación real todavía no tiene sentido.</div>';
         return;
     }
 
-    const filas = Object.keys(porEmpresaAnio).sort((a, b) => (nombrePorClaveAcc[a] || a).localeCompare(
-        nombrePorClaveAcc[b] || b)).map(clave => {
+    const filas = Object.keys(porEmpresaAnio).filter(clave => Object.keys(porEmpresaAnio[clave]).length >= 2)
+        .sort((a, b) => (nombrePorClaveAcc[a] || a).localeCompare(nombrePorClaveAcc[b] || b)).map(clave => {
         const nombre = nombrePorClaveAcc[clave] || clave;
         const porAnio = porEmpresaAnio[clave];
         let celdas = '';
@@ -4764,15 +4766,16 @@ function renderTendenciaEmpresas() {
     });
 
     const anios = [...new Set(res.map(r => r.año))].sort();
-    if (anios.length < 2) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía solo hay datos de ' + anios.length +
-            ' año' + (anios.length === 1 ? '' : 's') +
-            ' — en cuanto pase a 2027 y tengamos un segundo año completo de cada empresa, aquí empezará a verse la tendencia real.</div>';
+    const empresasConTendenciaReal = Object.values(porEmpresa).filter(filas => filas.length >= 2).length;
+    if (anios.length < 2 || empresasConTendenciaReal < 2) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía no hay suficientes empresas con dos años completos de dividendo para comparar (' +
+            empresasConTendenciaReal + (empresasConTendenciaReal === 1 ? ' empresa' : ' empresas') +
+            ' con más de un año de datos) — el histórico de dividendos empezó a registrarse hace poco más de un año, así que la comparación real todavía no tiene sentido. En cuanto pasen más empresas por un segundo año completo, aquí se verá la tendencia de verdad.</div>';
         return;
     }
 
-    const filas = Object.keys(porEmpresa).sort((a, b) => (nombrePorClaveTend[a] || a).localeCompare(
-        nombrePorClaveTend[b] || b)).map(clave => {
+    const filas = Object.keys(porEmpresa).filter(clave => porEmpresa[clave].length >= 2).sort((a, b) => (
+        nombrePorClaveTend[a] || a).localeCompare(nombrePorClaveTend[b] || b)).map(clave => {
         const nombre = nombrePorClaveTend[clave] || clave;
         const porAnio = {};
         porEmpresa[clave].forEach(r => { porAnio[r.año] = r.neto_real; });
