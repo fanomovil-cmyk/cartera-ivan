@@ -623,6 +623,7 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="ch"><h3>📊 Control de lo ejecutado</h3><span class="mt2" style="font-size:8px">registra en la hoja HISTORICO_GOTEO cada vez que ejecutes una sugerencia</span></div>
     <div style="padding:14px 16px" id="control-goteo-container"></div>
   </div>
+  <div id="comparativa-goteo-container"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
@@ -2636,8 +2637,8 @@ function renderDashboard() {
             'rgba(52,199,123,0.15)' : 'rgba(226,154,62,0.15)';
         return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
             ';border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:2px' + estiloExtra + '">' +
-            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">' +
-            '<span style="font-size:' + fName + ';font-weight:700;flex:1;min-width:0">' + t.n + '</span>' +
+            '<div style="font-size:' + fName + ';font-weight:700">' + t.n + '</div>' +
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:2px">' +
             '<span style="font-size:' + (grande ? '22px' : '18px') + ';font-weight:800;color:' + colorPct +
             ';flex-shrink:0;background:' + bgPct + ';padding:2px 8px;border-radius:6px">' + (d ? d.toFixed(1) +
                 '%' : '—') + '</span>' +
@@ -2689,15 +2690,19 @@ function renderDashboard() {
                     'var(--am)' : 'var(--gn)';
                 const meritaEsperar = info.dias <= 15 && divPorPago > 0.005 && (divPorPago / t.pa * 100) >=
                     0.3; // el dividendo pesa al menos un 0,3% del precio, vale la pena tenerlo en cuenta
-                return '<div style="margin-top:4px;padding:5px 6px;background:var(--s2);border-radius:6px">' +
+                const muyCerca = info.dias <= 3;
+                return '<div style="margin-top:6px;padding:8px 10px;background:' + (muyCerca ?
+                        'rgba(232,90,90,0.12);border:1px solid var(--rd)' : 'var(--s2)') + ';border-radius:8px">' +
                     '<div style="display:flex;justify-content:space-between;align-items:center">' +
-                    '<span style="font-size:8px;color:var(--mt)">💰 Próximo corte: ' + fechaTxt + '</span>' +
-                    '<span style="font-size:9px;font-weight:800;color:' + colorDias + '">' + (info.dias === 0 ?
+                    '<span style="font-size:12px;color:var(--mt)">💰 Próximo corte: ' + fechaTxt + '</span>' +
+                    '<span style="font-size:14px;font-weight:800;color:' + colorDias + '">' + (info.dias === 0 ?
                         'HOY' : info.dias + 'd') + '</span></div>' +
-                    '<div class="mt2" style="font-size:8px;margin-top:1px">~' + fe(importeTotal) +
+                    (muyCerca ? '<div style="font-size:11px;font-weight:800;color:var(--rd);margin-top:2px">🚨 ¡Está a punto de cortar!</div>' :
+                        '') +
+                    '<div class="mt2" style="font-size:12px;margin-top:2px">~' + fe(importeTotal) +
                     ' bruto · ' + info.numPagosAlAnio + ' pago' + (info.numPagosAlAnio === 1 ? '' : 's') +
                     '/año</div>' +
-                    (meritaEsperar ? '<div style="font-size:8px;margin-top:2px;color:var(--ac)">💡 Reparte ' +
+                    (meritaEsperar ? '<div style="font-size:12px;margin-top:4px;color:var(--ac)">💡 Reparte ' +
                         fe(divPorPago) + '/acc. — suele bajar sola a ~' + fe(precioProyectado) +
                         ' en el corte, momento a vigilar</div>' : '') +
                     '</div>';
@@ -2958,7 +2963,7 @@ function renderDashboard() {
             if (detalle.length) tip += '\n' + detalle.map(x => '• ' + x.n + ': ' + fe(x.monto) + ' neto').join(
                 '\n');
             return '<div class="hm-col' + esActual + '" title="' + tip + '">' +
-                '<div class="hm-val" style="color:' + (valor > 0 ? color : 'var(--mt)') + ';font-size:13px;font-weight:800">' +
+                '<div class="hm-val" style="color:' + (valor > 0 ? color : 'var(--mt)') + ';font-size:11px;font-weight:800">' +
                 (valor > 0 ? (esFuturo ? '~' : '') + f1(valor) + '€' : '—') + '</div>' +
                 (valorDevolucion > 0.005 ? '<div style="font-size:8px;color:var(--mt)">+' + f1(valorDevolucion) +
                     '€ Hac.</div>' : '') +
@@ -3305,6 +3310,31 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     };
 }
 
+// ── RACHA DE CONCENTRACIÓN: si el mismo activo lleva varios meses seguidos ganando el reparto
+// Mensual, avisa aunque cada mes individual esté bien justificado — para no acabar concentrado
+// sin darte cuenta solo por ir ganando mes a mes.
+function detectarRachaConcentracion(nombreGanador) {
+    if (!HISTORICO_GOTEO_GS || !HISTORICO_GOTEO_GS.length) return null;
+    const hoy = new Date();
+    const mesesRecientes = [];
+    for (let i = 1; i <= 3; i++) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+        mesesRecientes.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    let racha = 0;
+    for (const clave of mesesRecientes) {
+        const huboEseActivoEseMs = HISTORICO_GOTEO_GS.some(h => h.fecha.slice(0, 7) === clave && h.activo ===
+            nombreGanador);
+        if (huboEseActivoEseMs) racha++;
+        else break; // racha se rompe en cuanto falta un mes
+    }
+    if (racha >= 2) {
+        return '⚠️ ' + nombreGanador + ' lleva ganando el reparto ' + (racha + 1) +
+            ' meses seguidos (contando este) — revisa que no se esté concentrando demasiado el peso ahí.';
+    }
+    return null;
+}
+
 function analizarGrupoRecurrente(importe, universoCSV) {
     const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
     const oportunidades = detectarOportunidadesExcepcionales();
@@ -3337,8 +3367,18 @@ function analizarGrupoRecurrente(importe, universoCSV) {
 
     // Solo "cerca" (sin disparar de verdad): aviso de vigilancia, sin tocar el reparto de los ETF
     if (oportunidades.length) {
-        const masCerca = oportunidades[0];
         const resultadoETF2 = calcularRepartoConAcciones(importe, universo);
+        // Si el candidato que dispara el aviso YA está ganando su propia plaza en el reparto (ej.
+        // Lowe's a la vez "cerca" y "acción ganadora"), el aviso sería redundante — se omite.
+        const yaGanaPlaza = isin => resultadoETF2.reparto.some(r => r.isin === isin && r.esAccion);
+        const masCerca = oportunidades.find(o => !yaGanaPlaza(o.isin));
+        if (!masCerca) {
+            return {
+                tipo: 'normal', reparto: resultadoETF2.reparto, liquidez: resultadoETF2.liquidez,
+                avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo, techoActivado: resultadoETF2.techoActivado,
+                avisoAccion: resultadoETF2.avisoAccion
+            };
+        }
         return {
             tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
             liquidez: resultadoETF2.liquidez, avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo,
@@ -3500,6 +3540,24 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
         nuevasAcciones, pagos: pagosEn6Meses, total: pagosEn6Meses.reduce((s, p) => s + p.importe, 0),
         totalDevolucion: pagosEn6Meses.reduce((s, p) => s + p.devolucion, 0)
     };
+}
+
+// Explica en una frase corta por qué un candidato se quedó por detrás del ganador — compara
+// yield y descuento (los dos factores más fáciles de entender de un vistazo), y se queda con la
+// diferencia más grande de las dos.
+function explicarDiferencia(ganador, candidato) {
+    const difYield = ganador.yieldActual - candidato.yieldActual;
+    const difDescuento = ganador.rentActualPct - candidato.rentActualPct; // más negativo=mejor (pérdida)
+    if (Math.abs(difYield) >= Math.abs(difDescuento) && difYield > 0.3) {
+        return 'yield más bajo (' + candidato.yieldActual.toFixed(1) + '% vs ' + ganador.yieldActual.toFixed(1) +
+            '%)';
+    }
+    if (difDescuento < -0.5) { // candidato está más caro que el ganador respecto a su coste
+        return 'menos descontada respecto a tu coste (' + (candidato.rentActualPct >= 0 ? '+' : '') + candidato
+            .rentActualPct.toFixed(1) + '% vs ' + (ganador.rentActualPct >= 0 ? '+' : '') + ganador
+            .rentActualPct.toFixed(1) + '%)';
+    }
+    return 'puntuación algo más baja en conjunto';
 }
 
 function sugerirDestinoFlexible(excluirIsin, universoCSV) {
@@ -3839,49 +3897,65 @@ function renderGoteo() {
                 // El importe real desplegado es la suma de lo que de verdad se reparte (puede ser
                 // menos que el nominal, por el límite de seguridad o por quedarse en liquidez).
                 importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
+                const nombresGanadores = analisis.reparto.filter(r => r.esAccion).map(r => r.nombre);
+                const techoHTML = analisis.techoActivado ?
+                    '<span style="display:inline-block;padding:3px 8px;background:rgba(183,166,232,0.25);color:#B7A6E8;border-radius:6px;font-size:10px;font-weight:800;margin-top:6px">🚀 TECHO 400€ ACTIVADO</span>' :
+                    '';
+                const resumenAccionHTML = nombresGanadores.length ?
+                    ('<div style="margin-top:8px;padding:10px 12px;background:rgba(183,166,232,0.12);border-radius:8px">' +
+                        '<div style="font-size:11px;font-weight:800;color:#B7A6E8">🎯 ' + nombresGanadores.join(
+                            ' · ') + '</div>' +
+                        '<div class="mt2" style="font-size:9px;margin-top:2px">destaca' + (nombresGanadores
+                            .length > 1 ? 'n' : '') + ' sobre al menos un ETF este mes</div>' + techoHTML +
+                        '</div>') : '';
                 const avisoHTML = analisis.motivoAviso ?
                     ('<div style="margin-top:8px;padding:8px 10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:9px;color:var(--am)">' +
                         analisis.motivoAviso + '</div>') : '';
-                const avisoAccionHTML = analisis.avisoAccion ?
-                    ('<div style="margin-top:8px;padding:10px;background:rgba(183,166,232,0.15);border:1px solid #B7A6E8;border-radius:8px;font-size:10px;font-weight:700;color:#B7A6E8">' +
-                        analisis.avisoAccion + '</div>') : '';
+                const rachaTexto = analisis.reparto.length ? detectarRachaConcentracion(analisis.reparto[0]
+                    .nombre) : null;
+                const avisoRachaHTML = rachaTexto ? ('<div style="margin-top:8px;padding:10px;background:rgba(226,154,62,0.15);border:2px solid var(--am);border-radius:8px;font-size:11px;font-weight:700;color:var(--am)">' +
+                    rachaTexto + '</div>') : '';
                 const filasReparto = analisis.reparto.map(r => {
                     const proy = proyectarDividendos6Meses(r.isin, r.importe, precioDe(posicionesVivas().find(
                         p => p.isin === r.isin) || {}) || 0);
-                    const adelantarHTML = r.esAccion ? (() => {
-                        const COMISION_ESTIMADA = 1; // € fijos, según tus operaciones directas reales
-                        const UMBRAL_MERECE_PENA = 150; // por debajo de esto, la comisión fija pesa demasiado
+                    let insigniaAdelantar = '';
+                    if (r.esAccion) {
+                        const COMISION_ESTIMADA = 1;
+                        const UMBRAL_MERECE_PENA = 150;
                         const pctComision = (COMISION_ESTIMADA / r.importe * 100);
                         const meritaLaPena = r.importe >= UMBRAL_MERECE_PENA;
-                        return '<div style="margin-top:6px;padding:8px 10px;background:' + (meritaLaPena ?
-                                'rgba(52,199,123,0.1);border:1px solid var(--gn)' :
-                                'rgba(226,154,62,0.1);border:1px solid var(--am)') + ';border-radius:6px;font-size:9px">' +
-                            (meritaLaPena ?
-                                '✅ Con ' + fe(r.importe, 0) + ', la comisión fija (~' + fe(COMISION_ESTIMADA, 0) +
-                                ') es solo el ' + pctComision.toFixed(1) +
-                                '% — probablemente compensa comprarlo ya (compra directa), en vez de esperar al día 2.' :
-                                '⚠️ Con solo ' + fe(r.importe, 0) + ', la comisión fija (~' + fe(
-                                    COMISION_ESTIMADA, 0) + ') es el ' + pctComision.toFixed(1) +
-                                '% del importe — probablemente mejor esperar al plan automático del día 2, salvo que veas la caída como excepcional de verdad.'
-                            ) + '</div>';
-                    })() : '';
-                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">' +
-                        '<div style="flex:1;min-width:0"><b style="font-size:11px">' + r.nombre + '</b> ' +
-                        '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' + (r.esAccion ?
-                            'rgba(183,166,232,0.25);color:#B7A6E8' : r.atractivo ?
-                            'rgba(52,199,123,0.2);color:var(--gn)' : 'rgba(226,154,62,0.2);color:var(--am)') +
-                            '">' + (r.esAccion ? '🎯 ACCIÓN A/A+' : r.atractivo ? '🎯 barato' : '⏳ mínimo') +
-                            '</span>' +
-                        '<div class="mt2" style="font-size:8px">' + (r.pctRango52 !== null ? 'al ' + r
-                            .pctRango52.toFixed(0) + '% de su rango 52sem' : '') + (r.distTrampaPct !== null ?
-                            ' · ' + Math.abs(r.distTrampaPct).toFixed(1) + '% de su trampa' : '') + '</div>' +
-                        adelantarHTML + '</div>' +
-                        '<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--gn)">' +
-                        fe(r.importe, 0) + '</div><div class="mt2" style="font-size:8px">' + r.peso.toFixed(0) +
-                        '%</div></div></div>' + (proy && proy.total > 0 ?
-                            '<div class="mt2" style="font-size:10px;padding:2px 0 6px">+ ' + fe(proy.total) +
-                            ' neto en dividendo estimado (6 meses)' + (proy.totalDevolucion > 0.005 ?
-                                ' · +' + fe(proy.totalDevolucion) + ' Hacienda' : '') + '</div>' : '');
+                        const tituloTip = meritaLaPena ?
+                            'Comisión ~1€ = ' + pctComision.toFixed(1) +
+                            '% del importe: probablemente compensa comprarlo ya' :
+                            'Comisión ~1€ = ' + pctComision.toFixed(1) +
+                            '% del importe: mejor esperar al día 2, salvo caída excepcional';
+                        insigniaAdelantar = '<span title="' + tituloTip +
+                            '" style="display:inline-block;margin-left:4px;font-size:9px;padding:1px 5px;border-radius:4px;background:' +
+                            (meritaLaPena ? 'rgba(52,199,123,0.2);color:var(--gn)' :
+                                'rgba(226,154,62,0.2);color:var(--am)') + '">' + (meritaLaPena ?
+                                '✅ adelantar' : '⏳ esperar') + '</span>';
+                    }
+                    const etiquetaTipo = r.esAccion ? '🎯 ACCIÓN' : r.atractivo ? '🎯 barato' : '⏳ mínimo';
+                    const colorEtiqueta = r.esAccion ? 'rgba(183,166,232,0.25);color:#B7A6E8' : r.atractivo ?
+                        'rgba(52,199,123,0.2);color:var(--gn)' : 'rgba(226,154,62,0.2);color:var(--am)';
+                    return '<div style="padding:10px 12px;margin-top:6px;background:var(--s2);border-radius:8px">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+                        '<div style="flex:1;min-width:0">' +
+                        '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">' +
+                        '<b style="font-size:12px">' + r.nombre + '</b>' +
+                        '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' +
+                        colorEtiqueta + '">' + etiquetaTipo + '</span>' + insigniaAdelantar + '</div>' +
+                        '<div class="mt2" style="font-size:9px;margin-top:2px">' + (r.pctRango52 !== null ?
+                            'rango: ' + r.pctRango52.toFixed(0) + '%' : '') + (r.distTrampaPct !== null ?
+                            ' · trampa: ' + Math.abs(r.distTrampaPct).toFixed(1) + '%' : '') + '</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;flex-shrink:0">' +
+                        '<div style="font-size:16px;font-weight:800;color:var(--gn)">' + fe(r.importe, 0) +
+                        '</div><div class="mt2" style="font-size:9px">' + r.peso.toFixed(0) + '%</div>' +
+                        '</div></div>' + (proy && proy.total > 0 ?
+                            '<div class="mt2" style="font-size:9px;margin-top:4px;padding-top:4px;border-top:1px solid var(--bd)">+' +
+                            fe(proy.total) + ' neto (6 meses)' + (proy.totalDevolucion > 0.005 ? ' · +' + fe(
+                                proy.totalDevolucion) + ' Hacienda' : '') + '</div>' : '') + '</div>';
                 }).join('');
                 const liquidezHTML = analisis.liquidez > 1 ?
                     ('<div style="margin-top:8px;padding:10px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:8px;display:flex;justify-content:space-between;align-items:center">' +
@@ -3891,9 +3965,8 @@ function renderGoteo() {
                 const avisoNadaHTML = analisis.avisoNadaAtractivo ?
                     ('<div style="margin-top:8px;padding:12px;background:rgba(226,154,62,0.12);border:2px solid var(--am);border-radius:10px;font-size:11px;font-weight:700;color:var(--am)">' +
                         analisis.avisoNadaAtractivo + '</div>') : '';
-                cuerpoHTML = avisoHTML + avisoAccionHTML + avisoNadaHTML + '<div style="margin-top:10px">' +
-                    filasReparto +
-                    '</div>' + liquidezHTML;
+                cuerpoHTML = resumenAccionHTML + avisoHTML + avisoRachaHTML + avisoNadaHTML + filasReparto +
+                    liquidezHTML;
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
@@ -3907,9 +3980,10 @@ function renderGoteo() {
                         'var(--am)' : 'var(--ac)') + '">➜ ' + sugerencia.nombre + '</div>' +
                     '<div class="mt2" style="font-size:9px;margin-top:5px;line-height:1.5">' + sugerencia
                     .explicacion + '</div>' +
-                    (sugerencia.top3 && sugerencia.top3.length > 1 ? '<div class="mt2" style="font-size:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">Siguientes opciones: ' +
-                        sugerencia.top3.slice(1).map(c => c.nombre + ' (' + c.puntuacionTotal.toFixed(0) +
-                            'pts)').join(' · ') + '</div>' : '') +
+                    (sugerencia.top3 && sugerencia.top3.length > 1 ? '<div class="mt2" style="font-size:9px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">Siguientes opciones:<br>' +
+                        sugerencia.top3.slice(1).map(c => '• ' + c.nombre + ' (' + c.puntuacionTotal.toFixed(0) +
+                            'pts) — se quedó atrás por ' + explicarDiferencia(sugerencia.top3[0], c)).join(
+                            '<br>') + '</div>' : '') +
                     (proyeccion ? renderMiniProyeccion(proyeccion) : '') + '</div>') :
                 '<div class="mt2" style="font-size:10px;margin-top:8px">Sin datos suficientes en CARTERA/TRAMPAS para decidir todavía.</div>';
         }
@@ -4009,6 +4083,78 @@ function renderControlGoteo() {
             }
         }
     });
+
+    renderComparativaGoteo();
+}
+
+// ── COMPARATIVA REAL: ¿está mereciendo la pena el sistema inteligente frente a un plan fijo a
+// los ETF? Cruza cada compra de goteo con su precio de entrada real (comprasDetalle) para calcular
+// la rentabilidad ponderada de verdad, con datos, no con intuición.
+function renderComparativaGoteo() {
+    const cont = document.getElementById('comparativa-goteo-container');
+    if (!cont) return;
+    if (!HISTORICO_GOTEO_GS.length || !COMPRAS_DETALLE_GS.length) {
+        cont.innerHTML = '';
+        return;
+    }
+    const pos = posicionesVivas();
+    const universoETFPorDefecto = (GOTEO_GS.find(g => g.tipo === 'MENSUAL' || g.tipo === 'Mensual') || {})
+        .universo || '';
+    const isinsETF = universoETFPorDefecto.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+
+    let sumaImporteTotal = 0,
+        sumaImportePorRent = 0;
+    let sumaImporteETF = 0,
+        sumaImporteETFPorRent = 0;
+
+    HISTORICO_GOTEO_GS.forEach(h => {
+        const compra = COMPRAS_DETALLE_GS.find(c => c.isin === h.isin && c.fecha === h.fecha && Math.abs(c
+            .importe - h.importe) < 0.5);
+        if (!compra || !compra.precio) return;
+        const posActual = pos.find(p => p.isin === h.isin);
+        const pa = posActual ? precioDe(posActual) : 0;
+        if (!pa) return;
+        const rentPct = (pa - compra.precio) / compra.precio * 100;
+
+        sumaImporteTotal += h.importe;
+        sumaImportePorRent += h.importe * rentPct;
+        if (isinsETF.includes(h.isin)) {
+            sumaImporteETF += h.importe;
+            sumaImporteETFPorRent += h.importe * rentPct;
+        }
+    });
+
+    if (sumaImporteTotal < 1) { cont.innerHTML = '';
+        return; }
+
+    const rentMediaTotal = sumaImportePorRent / sumaImporteTotal;
+    const rentMediaETF = sumaImporteETF > 1 ? (sumaImporteETFPorRent / sumaImporteETF) : null;
+
+    cont.innerHTML = '<div class="card" style="margin-top:14px">' +
+        '<div class="ch"><h3>⚖️ Sistema inteligente vs plan fijo a los ETF</h3><span class="mt2" style="font-size:8px">con tus compras reales, no una simulación</span></div>' +
+        '<div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+        '<div style="padding:10px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:8px">' +
+        '<div style="font-size:9px;color:var(--ac);font-weight:800">🧠 SISTEMA INTELIGENTE (todo)</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-top:2px">' + fe(sumaImporteTotal, 0) + '</div>' +
+        '<div class="mt2" style="font-size:9px">rentabilidad media ponderada: <b style="color:' + (
+            rentMediaTotal >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (rentMediaTotal >= 0 ? '+' : '') +
+        rentMediaTotal.toFixed(2) + '%</b></div></div>' +
+        '<div style="padding:10px;background:var(--s2);border-radius:8px">' +
+        '<div style="font-size:9px;color:var(--mt);font-weight:800">📊 SOLO LOS 3 ETF (subconjunto real)</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-top:2px">' + (rentMediaETF !== null ? fe(
+            sumaImporteETF, 0) : '—') + '</div>' +
+        '<div class="mt2" style="font-size:9px">' + (rentMediaETF !== null ? 'rentabilidad media ponderada: <b style="color:' +
+            (rentMediaETF >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (rentMediaETF >= 0 ? '+' : '') +
+            rentMediaETF.toFixed(2) + '%</b>' : 'sin compras de ETF todavía este periodo') +
+        '</div></div></div>' +
+        (rentMediaETF !== null ? '<div class="mt2" style="font-size:9px;padding:0 16px 12px">' + (
+                rentMediaTotal > rentMediaETF ? '✅ El sistema inteligente va por delante por ' + (
+                    rentMediaTotal - rentMediaETF).toFixed(2) +
+                ' puntos — las redirecciones a acciones A/A+ están aportando de verdad.' :
+                '⚠️ Los ETF solos van por delante por ' + (rentMediaETF - rentMediaTotal).toFixed(2) +
+                ' puntos este periodo — normal en rachas cortas, hay que vigilarlo con más histórico.') +
+            '</div>' : '') +
+        '</div>';
 }
 
 function renderMiniProyeccion(proy) {
