@@ -1094,6 +1094,7 @@ function resumenDivsEnVivo() {
     return RESUMEN_DIVS_GS && RESUMEN_DIVS_GS.length ? RESUMEN_DIVS_GS : D.resumen_divs;
 }
 
+let DATOS_EN_VIVO = false; // false = todavía mostrando el snapshot estático, no datos reales de hoy
 let _cachePosicionesVivas = null;
 function posicionesVivas() {
     if (_cachePosicionesVivas) return _cachePosicionesVivas; // reutiliza el cálculo si ya se hizo esta carga
@@ -2146,6 +2147,7 @@ async function recargar(modoRapido) {
         if (data.posiciones) {
             POSICIONES_GS = data.posiciones;
             _cachePosicionesVivas = null; // datos nuevos: hay que recalcular la próxima vez que se pida
+            DATOS_EN_VIVO = true; // a partir de aquí, los números que se muestren son reales, no el snapshot
             const RMAP = {};
             for (const [k, v] of Object.entries(MAP)) RMAP[v] = k;
             data.posiciones.forEach(p => {
@@ -2512,23 +2514,25 @@ function renderDashboard() {
         (radarHtml ? '<div style="position:absolute;top:14px;right:14px;text-align:right">' + radarHtml +
             '</div>' : '') +
         '<div class="kl" style="font-size:11px">Valor cartera</div>' +
-        '<div class="kv" style="color:var(--gn);font-size:clamp(19px,6vw,26px)">' + (totV ? fe(totV) : '—') + '</div>' +
-        (totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' + fe(
-            totCost) + '</div>' : '') +
+        '<div class="kv" style="color:var(--gn);font-size:clamp(19px,6vw,26px)">' + (!DATOS_EN_VIVO ?
+            '<span class="mt2" style="font-size:16px">cargando…</span>' : (totV ? fe(totV) : '—')) + '</div>' +
+        (DATOS_EN_VIVO && totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' +
+            fe(totCost) + '</div>' : '') +
         '</div>' +
         '<div class="kpi" style="--kc:#34C77B">' +
         '<div class="kl" style="font-size:11px">Rentabilidad acciones</div>' +
         '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">' +
         '<div style="color:#34C77B;font-size:clamp(22px,7vw,30px);font-weight:700;font-family:\'JetBrains Mono\',monospace">' +
-            (totCost ? pctAcciones.toFixed(1) + '%' : '—') + '</div>' +
-        (totGP ? '<div style="font-size:16px;font-weight:700;color:#34C77B">Total: ' + (totGP >= 0 ? '+' : '') +
-            fe(totGP) + '</div>' : '') +
+            (!DATOS_EN_VIVO ? '<span class="mt2" style="font-size:16px">cargando…</span>' : (totCost ? pctAcciones
+                .toFixed(1) + '%' : '—')) + '</div>' +
+        (DATOS_EN_VIVO && totGP ? '<div style="font-size:16px;font-weight:700;color:#34C77B">Total: ' + (totGP >=
+            0 ? '+' : '') + fe(totGP) + '</div>' : '') +
         '</div>' +
         '</div>';
 
     const rentTotalEl = document.getElementById('focus-rent-total');
     if (rentTotalEl) {
-        rentTotalEl.innerHTML =
+        rentTotalEl.innerHTML = !DATOS_EN_VIVO ? '<div class="mt2" style="font-size:16px;text-align:center">cargando datos reales…</div>' :
             '<div style="display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap">' +
             '<div style="font-size:clamp(28px,10vw,40px);font-weight:700;color:' + (gpCombinado >= 0 ?
                 'var(--gn)' : 'var(--rd)') + ';font-family:\'JetBrains Mono\',monospace;line-height:1.1">' + (
@@ -3464,9 +3468,18 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
     const calItem = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin === isin);
     if (!divAcc || !calItem || !calItem.meses.length) return null;
 
+    const posEncontrada = posicionesVivas().find(p => p.isin === isin);
+    const pais = posEncontrada ? posEncontrada.pais : '—';
+    const origenRate = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+
     const nuevasAcciones = capital / precioActual;
     const numPagosAlAnio = calItem.meses.length;
-    const porPago = (divAcc / numPagosAlAnio) * nuevasAcciones;
+    const brutoPorPago = (divAcc / numPagosAlAnio) * nuevasAcciones;
+    const retOrigenPorPago = brutoPorPago * origenRate;
+    const subtotalPorPago = brutoPorPago - retOrigenPorPago;
+    const irpfPorPago = subtotalPorPago * 0.19;
+    const netoPorPago = subtotalPorPago - irpfPorPago;
+    const devolucionPorPago = retOrigenPorPago;
 
     const nombresMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const hoy = new Date();
@@ -3478,11 +3491,15 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
         const mesRevisar = ((mesActual - 1 + i) % 12) + 1;
         if (calItem.meses.includes(mesRevisar)) {
             const anioPago = mesRevisar >= mesActual ? anioActualP : anioActualP + 1;
-            pagosEn6Meses.push({ mes: nombresMes[mesRevisar - 1], anio: anioPago, importe: porPago });
+            pagosEn6Meses.push({ mes: nombresMes[mesRevisar - 1], anio: anioPago, importe: netoPorPago,
+                devolucion: devolucionPorPago });
         }
     }
-    if (!pagosEn6Meses.length) return { nuevasAcciones, pagos: [], total: 0 };
-    return { nuevasAcciones, pagos: pagosEn6Meses, total: pagosEn6Meses.reduce((s, p) => s + p.importe, 0) };
+    if (!pagosEn6Meses.length) return { nuevasAcciones, pagos: [], total: 0, totalDevolucion: 0 };
+    return {
+        nuevasAcciones, pagos: pagosEn6Meses, total: pagosEn6Meses.reduce((s, p) => s + p.importe, 0),
+        totalDevolucion: pagosEn6Meses.reduce((s, p) => s + p.devolucion, 0)
+    };
 }
 
 function sugerirDestinoFlexible(excluirIsin, universoCSV) {
@@ -3862,8 +3879,9 @@ function renderGoteo() {
                         '<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--gn)">' +
                         fe(r.importe, 0) + '</div><div class="mt2" style="font-size:8px">' + r.peso.toFixed(0) +
                         '%</div></div></div>' + (proy && proy.total > 0 ?
-                            '<div class="mt2" style="font-size:8px;padding:2px 0 6px">+ ' + fe(proy.total) +
-                            ' en dividendo estimado (6 meses)</div>' : '');
+                            '<div class="mt2" style="font-size:10px;padding:2px 0 6px">+ ' + fe(proy.total) +
+                            ' neto en dividendo estimado (6 meses)' + (proy.totalDevolucion > 0.005 ?
+                                ' · +' + fe(proy.totalDevolucion) + ' Hacienda' : '') + '</div>' : '');
                 }).join('');
                 const liquidezHTML = analisis.liquidez > 1 ?
                     ('<div style="margin-top:8px;padding:10px;background:rgba(96,165,250,0.1);border:1px solid var(--ac);border-radius:8px;display:flex;justify-content:space-between;align-items:center">' +
@@ -3995,13 +4013,16 @@ function renderControlGoteo() {
 
 function renderMiniProyeccion(proy) {
     if (!proy.pagos || !proy.pagos.length) return '';
-    return '<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,0.15);border-radius:8px">' +
-        '<div style="font-size:8px;color:var(--mt);font-weight:700;text-transform:uppercase">💰 Dividendo estimado · próximos 6 meses</div>' +
-        proy.pagos.map(p => '<div style="display:flex;justify-content:space-between;font-size:9px;margin-top:3px"><span>' +
+    return '<div style="margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.15);border-radius:8px">' +
+        '<div style="font-size:10px;color:var(--mt);font-weight:700;text-transform:uppercase">💰 Dividendo neto estimado · próximos 6 meses</div>' +
+        proy.pagos.map(p => '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span>' +
             p.mes + ' ' + p.anio + '</span><span style="font-weight:700">' + fe(p.importe) + '</span></div>')
         .join('') +
-        '<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.15);font-weight:800;color:var(--gn)"><span>Total</span><span>' +
-        fe(proy.total) + '</span></div></div>';
+        '<div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15);font-weight:800;color:var(--gn)"><span>Total neto</span><span>' +
+        fe(proy.total) + '</span></div>' +
+        (proy.totalDevolucion > 0.005 ? '<div class="mt2" style="font-size:10px;margin-top:2px">+' + fe(proy
+            .totalDevolucion) + ' a devolver por Hacienda (tarda meses)</div>' : '') +
+        '</div>';
 }
 
 function renderPlanPanico() {
