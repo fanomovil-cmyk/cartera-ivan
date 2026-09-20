@@ -449,6 +449,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
     <div class="ch"><h3>🚦 Tendencia de rentabilidad por empresa y año</h3><span class="mt2" style="font-size:8px">verde = creciendo · naranja = plano · rojo = cayendo — pista para rotar una "Forever"</span></div>
+    <div style="padding:14px 16px 0" id="ranking-tendencia-container"></div>
     <div style="padding:14px 16px" id="tendencia-empresas-container"></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
@@ -4695,8 +4696,8 @@ function renderTrampas() {
 // ── RANKING TOP 3: quién lo está haciendo mejor y peor de verdad, usando el cambio ACUMULADO
 // desde el primer al último año visible (no solo el último tramo, que puede esconder una caída
 // larga como la de Newmont: -5,9% el último año, pero casi -60% en total en el periodo).
-function renderRankingSaludDividendo() {
-    const cont = document.getElementById('ranking-salud-dividendo-container');
+function renderRankingSaludDividendo(idContenedor) {
+    const cont = document.getElementById(idContenedor || 'ranking-salud-dividendo-container');
     if (!cont) return;
     const historico = HISTORICO_DIVIDENDOS_LARGO_GS || [];
     if (!historico.length) { cont.innerHTML = '';
@@ -5373,6 +5374,7 @@ function renderDividendos() {
     renderDividendoPorAccion();
     renderMesEnCurso();
     renderEvolucionMensualAnios();
+    renderRankingSaludDividendo('ranking-tendencia-container');
     renderTendenciaEmpresas();
 }
 
