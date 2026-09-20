@@ -444,6 +444,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
     <div class="ch"><h3>💊 Salud del dividendo — € por acción y año</h3><span class="mt2" style="font-size:8px">esto SÍ es puro: no se contamina si compras más acciones ese año</span></div>
+    <div style="padding:14px 16px 0" id="ranking-salud-dividendo-container"></div>
     <div style="padding:14px 16px" id="dividendo-por-accion-container"></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
@@ -912,6 +913,7 @@ let FLUJOS_CAJA_GS = [];
 let CALENDARIO_DIVIDENDOS_GS = [];
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
+let HISTORICO_DIVIDENDOS_LARGO_GS = [];
 let ULTIMA_FECHA_CSV_GS = null;
 let ANIO_DIVIDENDOS_TAB = null; // null = año actual por defecto; también puede ser 'todos' o un año concreto
 let ANIO_OPERACIONES_TAB = 'todos';
@@ -2253,6 +2255,9 @@ async function recargar(modoRapido) {
         }
         if (data.historicoPreciosPosiciones) {
             HISTORICO_PRECIOS_POSICIONES_GS = data.historicoPreciosPosiciones;
+        }
+        if (data.historicoDividendosLargo) {
+            HISTORICO_DIVIDENDOS_LARGO_GS = data.historicoDividendosLargo;
         }
         if (data.ultimaFechaCSV) {
             ULTIMA_FECHA_CSV_GS = data.ultimaFechaCSV;
@@ -4687,122 +4692,154 @@ function renderTrampas() {
 // compraste más acciones ese año. Para cada pago se calcula bruto/acciones-en-ese-momento, y se
 // suman esos importes por acción dentro de cada año — así representa lo que habría cobrado UNA
 // sola acción mantenida todo el año, sin importar cuántas tenías tú realmente.
+// ── RANKING TOP 3: quién lo está haciendo mejor y peor de verdad, usando el cambio ACUMULADO
+// desde el primer al último año visible (no solo el último tramo, que puede esconder una caída
+// larga como la de Newmont: -5,9% el último año, pero casi -60% en total en el periodo).
+function renderRankingSaludDividendo() {
+    const cont = document.getElementById('ranking-salud-dividendo-container');
+    if (!cont) return;
+    const historico = HISTORICO_DIVIDENDOS_LARGO_GS || [];
+    if (!historico.length) { cont.innerHTML = '';
+        return; }
+
+    const todosLosAnios = new Set();
+    historico.forEach(h => Object.keys(h.porAnio).forEach(a => todosLosAnios.add(a)));
+    const anios = [...todosLosAnios].sort().slice(-6);
+
+    const conCambioAcumulado = historico.map(h => {
+        const aniosConDato = anios.filter(a => h.porAnio[a] !== undefined);
+        if (aniosConDato.length < 2) return null;
+        const primero = h.porAnio[aniosConDato[0]];
+        const ultimo = h.porAnio[aniosConDato[aniosConDato.length - 1]];
+        if (!primero) return null;
+        const cambioPct = ((ultimo - primero) / primero) * 100;
+        return { nombre: h.nombre, cambioPct, desde: aniosConDato[0], hasta: aniosConDato[aniosConDato.length -
+            1] };
+    }).filter(Boolean).sort((a, b) => b.cambioPct - a.cambioPct);
+
+    if (conCambioAcumulado.length < 2) { cont.innerHTML = '';
+        return; }
+
+    const top3Positivo = conCambioAcumulado.slice(0, 3);
+    const top3Negativo = conCambioAcumulado.slice(-3).reverse();
+
+    const filaRanking = (lista, esPositivo) => lista.map(x => '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:' +
+        (esPositivo ? 'rgba(52,199,123,0.1)' : 'rgba(232,90,90,0.1)') + ';border-radius:6px;margin-top:4px">' +
+        '<span style="font-size:11px;font-weight:700">' + x.nombre + '</span>' +
+        '<span style="font-size:12px;font-weight:800;color:' + (esPositivo ? 'var(--gn)' : 'var(--rd)') + '">' +
+        (x.cambioPct >= 0 ? '+' : '') + x.cambioPct.toFixed(0) + '%</span></div>' +
+        '<div class="mt2" style="font-size:8px;padding-left:8px">' + x.desde + ' → ' + x.hasta + '</div>').join(
+        '');
+
+    cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+        '<div><div style="font-size:9px;font-weight:800;color:var(--gn);text-transform:uppercase">📈 Top 3 mejor tendencia</div>' +
+        filaRanking(top3Positivo, true) + '</div>' +
+        '<div><div style="font-size:9px;font-weight:800;color:var(--rd);text-transform:uppercase">📉 Top 3 peor tendencia</div>' +
+        filaRanking(top3Negativo, false) + '</div>' +
+        '</div>';
+}
+
 function renderDividendoPorAccion() {
     const cont = document.getElementById('dividendo-por-accion-container');
     if (!cont) return;
-    const divs = divsEnVivo() || [];
-    if (!divs.length) { cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos todavía.</div>';
-        return; }
-
-    const porEmpresaAnio = {}; // { clave(ISIN): { año: divPorAccion } }
-    const nombrePorClaveAcc = {};
-    divs.forEach(d => {
-        if (!d.sh || d.sh <= 0) return; // sin acciones en ese momento no podemos calcular el € por acción
-        const anio = d.f.split('/')[2];
-        const porAccionEstePago = d.bruto / d.sh;
-        const clave = d.isin || d.n;
-        if (!porEmpresaAnio[clave]) porEmpresaAnio[clave] = {};
-        porEmpresaAnio[clave][anio] = (porEmpresaAnio[clave][anio] || 0) + porAccionEstePago;
-        nombrePorClaveAcc[clave] = d.n;
-    });
-
-    const anios = [...new Set(divs.map(d => d.f.split('/')[2]))].sort();
-    const empresasConDosAnios = Object.values(porEmpresaAnio).filter(porAnio => Object.keys(porAnio).length >=
-        2).length;
-    if (anios.length < 2 || empresasConDosAnios < 2) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía no hay suficientes empresas con dos años completos de dividendo por acción (' +
-            empresasConDosAnios + (empresasConDosAnios === 1 ? ' empresa' : ' empresas') +
-            ' con más de un año de datos) — el histórico empezó a registrarse hace poco más de un año, así que la comparación real todavía no tiene sentido.</div>';
+    const historico = HISTORICO_DIVIDENDOS_LARGO_GS || [];
+    if (!historico.length) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos en HISTORICO_DIVIDENDOS todavía.</div>';
         return;
     }
 
-    const filas = Object.keys(porEmpresaAnio).filter(clave => Object.keys(porEmpresaAnio[clave]).length >= 2)
-        .sort((a, b) => (nombrePorClaveAcc[a] || a).localeCompare(nombrePorClaveAcc[b] || b)).map(clave => {
-        const nombre = nombrePorClaveAcc[clave] || clave;
-        const porAnio = porEmpresaAnio[clave];
-        let celdas = '';
-        let anioAnterior = null;
-        anios.forEach(a => {
-            const valor = porAnio[a];
-            if (valor === undefined) { celdas += '<td class="mt2">—</td>';
-                return; }
-            let color = 'var(--mt)',
-                flecha = '';
-            if (anioAnterior !== null && porAnio[anioAnterior] !== undefined) {
-                const variacion = ((valor - porAnio[anioAnterior]) / porAnio[anioAnterior]) * 100;
-                if (variacion > 3) { color = 'var(--gn)';
-                    flecha = '▲'; } else if (variacion < -3) { color = 'var(--rd)';
-                    flecha = '▼'; } else { color = 'var(--am)';
-                    flecha = '▬'; }
-                celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(valor,
-                        4) + ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (variacion >= 0 ? '+' :
-                        '') + variacion.toFixed(1) + '%</div></td>';
-            } else {
-                celdas += '<td style="font-family:monospace">' + fe(valor, 4) + '</td>';
-            }
-            anioAnterior = a;
-        });
-        return '<tr><td style="font-weight:700;font-size:11px">' + nombre + '</td>' + celdas + '</tr>';
-    }).join('');
+    // Últimos 6 años con datos reales en la hoja, no todo el histórico desde 1992 (ilegible)
+    const todosLosAnios = new Set();
+    historico.forEach(h => Object.keys(h.porAnio).forEach(a => todosLosAnios.add(a)));
+    const anios = [...todosLosAnios].sort().slice(-6);
+
+    const filas = historico
+        .filter(h => anios.filter(a => h.porAnio[a] !== undefined).length >= 2) // solo con 2+ años reales en este tramo
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+        .map(h => {
+            let celdas = '';
+            let anioAnterior = null;
+            anios.forEach(a => {
+                const valor = h.porAnio[a];
+                if (valor === undefined) { celdas += '<td class="mt2">—</td>';
+                    return; }
+                let color = 'var(--mt)',
+                    flecha = '';
+                if (anioAnterior !== null && h.porAnio[anioAnterior] !== undefined) {
+                    const variacion = ((valor - h.porAnio[anioAnterior]) / h.porAnio[anioAnterior]) * 100;
+                    if (variacion > 3) { color = 'var(--gn)';
+                        flecha = '▲'; } else if (variacion < -3) { color = 'var(--rd)';
+                        flecha = '▼'; } else { color = 'var(--am)';
+                        flecha = '▬'; }
+                    celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(
+                            valor, 4) + ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (
+                            variacion >= 0 ? '+' : '') + variacion.toFixed(1) + '%</div></td>';
+                } else {
+                    celdas += '<td style="font-family:monospace">' + fe(valor, 4) + '</td>';
+                }
+                anioAnterior = a;
+            });
+            return '<tr><td style="font-weight:700;font-size:11px">' + h.nombre + '</td>' + celdas + '</tr>';
+        }).join('');
+
+    if (!filas) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Ninguna empresa tiene 2+ años de datos en el tramo ' +
+            anios[0] + '-' + anios[anios.length - 1] + '.</div>';
+        return;
+    }
 
     cont.innerHTML = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Empresa</th>' +
         anios.map(a => '<th>' + a + '</th>').join('') + '</tr></thead><tbody>' + filas + '</tbody></table></div>' +
-        '<div class="mt2" style="font-size:8px;margin-top:8px">💡 Si una posición "Forever" lleva 2-3 años seguidos en rojo aquí (dividendo por acción cayendo de verdad), es la señal más objetiva que tenemos para plantearse rotarla a otra empresa.</div>';
+        '<div class="mt2" style="font-size:8px;margin-top:8px">💡 Si una posición "Forever" lleva 2-3 años seguidos en rojo aquí (dividendo por acción cayendo de verdad), es la señal más objetiva que tenemos para plantearse rotarla a otra empresa. Datos de HISTORICO_DIVIDENDOS.</div>';
 }
 
 function renderTendenciaEmpresas() {
     const cont = document.getElementById('tendencia-empresas-container');
     if (!cont) return;
-    const res = resumenDivsEnVivo() || [];
-    if (!res.length) { cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos suficientes todavía.</div>';
-        return; }
-
-    const porEmpresa = {}; // clave: ISIN
-    const nombrePorClaveTend = {};
-    res.forEach(r => {
-        const clave = r.isin || r.n;
-        (porEmpresa[clave] = porEmpresa[clave] || []).push(r);
-        nombrePorClaveTend[clave] = r.n; // se queda con el nombre más reciente visto
-    });
-
-    const anios = [...new Set(res.map(r => r.año))].sort();
-    const empresasConTendenciaReal = Object.values(porEmpresa).filter(filas => filas.length >= 2).length;
-    if (anios.length < 2 || empresasConTendenciaReal < 2) {
-        cont.innerHTML = '<div class="mt2" style="font-size:11px">Todavía no hay suficientes empresas con dos años completos de dividendo para comparar (' +
-            empresasConTendenciaReal + (empresasConTendenciaReal === 1 ? ' empresa' : ' empresas') +
-            ' con más de un año de datos) — el histórico de dividendos empezó a registrarse hace poco más de un año, así que la comparación real todavía no tiene sentido. En cuanto pasen más empresas por un segundo año completo, aquí se verá la tendencia de verdad.</div>';
+    const historico = HISTORICO_DIVIDENDOS_LARGO_GS || [];
+    if (!historico.length) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Sin datos en HISTORICO_DIVIDENDOS todavía.</div>';
         return;
     }
 
-    const filas = Object.keys(porEmpresa).filter(clave => porEmpresa[clave].length >= 2).sort((a, b) => (
-        nombrePorClaveTend[a] || a).localeCompare(nombrePorClaveTend[b] || b)).map(clave => {
-        const nombre = nombrePorClaveTend[clave] || clave;
-        const porAnio = {};
-        porEmpresa[clave].forEach(r => { porAnio[r.año] = r.neto_real; });
-        let celdas = '';
-        let anioAnterior = null;
-        anios.forEach(a => {
-            const valor = porAnio[a];
-            if (valor === undefined) { celdas += '<td class="mt2">—</td>';
-                return; }
-            let color = 'var(--mt)',
-                flecha = '';
-            if (anioAnterior !== null && porAnio[anioAnterior] !== undefined) {
-                const variacion = ((valor - porAnio[anioAnterior]) / porAnio[anioAnterior]) * 100;
-                if (variacion > 5) { color = 'var(--gn)';
-                    flecha = '▲'; } else if (variacion < -5) { color = 'var(--rd)';
-                    flecha = '▼'; } else { color = 'var(--am)';
-                    flecha = '▬'; }
-                celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(valor) +
-                    ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (variacion >= 0 ? '+' : '') +
-                    variacion.toFixed(0) + '%</div></td>';
-            } else {
-                celdas += '<td style="font-family:monospace">' + fe(valor) + '</td>';
-            }
-            anioAnterior = a;
-        });
-        return '<tr><td style="font-weight:700;font-size:11px">' + nombre + '</td>' + celdas + '</tr>';
-    }).join('');
+    const todosLosAnios = new Set();
+    historico.forEach(h => Object.keys(h.porAnio).forEach(a => todosLosAnios.add(a)));
+    const anios = [...todosLosAnios].sort().slice(-6);
+
+    const filas = historico
+        .filter(h => anios.filter(a => h.porAnio[a] !== undefined).length >= 2)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+        .map(h => {
+            let celdas = '';
+            let anioAnterior = null;
+            anios.forEach(a => {
+                const valor = h.porAnio[a];
+                if (valor === undefined) { celdas += '<td class="mt2">—</td>';
+                    return; }
+                let color = 'var(--mt)',
+                    flecha = '';
+                if (anioAnterior !== null && h.porAnio[anioAnterior] !== undefined) {
+                    const variacion = ((valor - h.porAnio[anioAnterior]) / h.porAnio[anioAnterior]) * 100;
+                    if (variacion > 5) { color = 'var(--gn)';
+                        flecha = '▲'; } else if (variacion < -5) { color = 'var(--rd)';
+                        flecha = '▼'; } else { color = 'var(--am)';
+                        flecha = '▬'; }
+                    celdas += '<td style="color:' + color + ';font-weight:700;font-family:monospace">' + fe(
+                        valor) + ' ' + flecha + '<div class="mt2" style="font-size:8px">' + (variacion >= 0 ?
+                        '+' : '') + variacion.toFixed(0) + '%</div></td>';
+                } else {
+                    celdas += '<td style="font-family:monospace">' + fe(valor) + '</td>';
+                }
+                anioAnterior = a;
+            });
+            return '<tr><td style="font-weight:700;font-size:11px">' + h.nombre + '</td>' + celdas + '</tr>';
+        }).join('');
+
+    if (!filas) {
+        cont.innerHTML = '<div class="mt2" style="font-size:11px">Ninguna empresa tiene 2+ años de datos en el tramo ' +
+            anios[0] + '-' + anios[anios.length - 1] + '.</div>';
+        return;
+    }
 
     cont.innerHTML = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Empresa</th>' +
         anios.map(a => '<th>' + a + '</th>').join('') + '</tr></thead><tbody>' + filas + '</tbody></table></div>';
@@ -5332,6 +5369,7 @@ function renderDividendos() {
         (v ? '<span class="' + c + '" style="font-size:11px">' + v + '</span>' : '') +
         '</div>').join('');
 
+    renderRankingSaludDividendo();
     renderDividendoPorAccion();
     renderMesEnCurso();
     renderEvolucionMensualAnios();
