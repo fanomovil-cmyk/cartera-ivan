@@ -867,6 +867,15 @@ function renderCalendarioResultados() {
     }).join('');
 }
 
+// ── ALIAS DE ISIN: Trade Republic usa a veces un ISIN distinto para el mismo activo en
+// compras/dividendos concretos (ej. BlackRock: US09290D1019 en algunas compras sueltas de 1
+// acción, frente al US09247X1019 de la posición principal). Este mapa junta ambos como el mismo.
+const ISIN_ALIAS = {
+    'US09290D1019': 'US09247X1019', // BlackRock
+};
+const isinCanonico = isin => ISIN_ALIAS[isin] || isin;
+const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinCanonico(isinPosicion);
+
 // ── MAPEO ──
 const MAP = {
     'Abbott Labs': 'Abbott Laboratories',
@@ -1071,7 +1080,7 @@ function proximosCobrosEnVivo() {
         const ultimoCobro = fechasEsta && fechasEsta.length ?
             [...fechasEsta].sort((a, b) => b.fecha - a.fecha)[0].fecha.toLocaleDateString('es-ES') :
             'Sin cobro aún';
-        const yaCobradoAnio = divsHist.filter(d => d.isin === p.isin && d.f.endsWith('/' + anioActual2)).reduce(
+        const yaCobradoAnio = divsHist.filter(d => esMismoISIN(d.isin, p.isin) && d.f.endsWith('/' + anioActual2)).reduce(
             (s, d) => s + d.neto_real, 0);
 
         return {
@@ -1389,7 +1398,7 @@ function renderDetalleActivo() {
     const gananciaRealizada = ventasCerradas.reduce((s, o) => s + o.gp, 0);
 
     // Dividendos: total histórico + desglose por mes del año en curso (cruce exacto por ISIN)
-    const divsActivo = (divsEnVivo() || []).filter(d => d.isin === isin).sort((a, b) => {
+    const divsActivo = (divsEnVivo() || []).filter(d => esMismoISIN(d.isin, isin)).sort((a, b) => {
         const [da, ma, ya] = a.f.split('/');
         const [db, mb, yb] = b.f.split('/');
         return (yb + mb + db) - (ya + ma + da) < 0 ? 1 : -1; // más reciente primero
@@ -1439,7 +1448,7 @@ function renderDetalleActivo() {
         ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta',
             detalleHTML: '<div class="mt2" style="margin-top:2px">' + fe(o.acciones, 4) + ' acc. a ' + fe(o.pVenta) +
                 '€</div>', monto: o.gp, color: o.gp >= 0 ? 'var(--gn)' : 'var(--rd)' })),
-        ...(COMPRAS_DETALLE_GS || []).filter(c => p.isin && c.isin === p.isin).map(c => {
+        ...(COMPRAS_DETALLE_GS || []).filter(c => p.isin && esMismoISIN(c.isin, p.isin)).map(c => {
             const etiquetaTipo = c.manual ? 'Manual (marcada NO)' : (c.planAhorro ? 'Plan de ahorro' :
                 'Compra directa');
             const accionesTxt = (+c.acciones || 0).toLocaleString('es-ES', { minimumFractionDigits: 4,
