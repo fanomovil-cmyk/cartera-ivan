@@ -3224,6 +3224,15 @@ function detectarOportunidadesExcepcionales() {
 // A/A+ con puntuación claramente mejor (margen ≥15 puntos) puede quitarle presupuesto a un ETF
 // concreto — plaza por plaza, no todo o nada. Si una acción destaca de forma extraordinaria
 // (score ≥80), el techo sube de 200€ a 400€ sin recortar lo que ya tuvieran los ETF que sigan bien.
+// ── TASA DE REFERENCIA (configurable): por defecto el 2,5% de TR, pero si en algún momento hay
+// algo mejor disponible (depósito, cuenta remunerada...), se pone en una fila especial de la
+// propia hoja GOTEO: TIPO="TASA_REFERENCIA", IMPORTE=el % nuevo (ej. 3,25 o 4). El sistema deja
+// de comparar contra el 2,5% de TR y compara contra esa referencia mientras esté puesta.
+function obtenerTasaReferencia() {
+    const filaTasa = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'TASA_REFERENCIA');
+    return (filaTasa && filaTasa.importe > 0) ? filaTasa.importe : 2.5;
+}
+
 function calcularRepartoConAcciones(importe, universoISINs) {
     const MARGEN_VENTAJA = 15; // puntos que una acción debe superar a un ETF concreto para robarle su plaza
     const UMBRAL_TECHO = 80; // score a partir del cual se justifica doblar el presupuesto
@@ -3314,7 +3323,7 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     // Se comprueba sobre el YIELD PONDERADO del reparto real que se acaba de calcular — no sobre
     // el mejor candidato individual, que puede llevarse solo una fracción pequeña del capital
     // mientras el grueso va a parar a ETFs de yield bajo, diluyendo el retorno real del conjunto.
-    const TASA_LIQUIDEZ_TR = 2.5; // % que da TR sin arriesgar nada
+    const TASA_LIQUIDEZ_TR = obtenerTasaReferencia(); // % configurable en la hoja GOTEO (fila TASA_REFERENCIA), 2,5% por defecto
     const MARGEN_SOBRE_LIQUIDEZ = 2.5; // puntos de margen exigidos, para compensar el riesgo de invertir
     const UMBRAL_RETORNO_MINIMO = TASA_LIQUIDEZ_TR + MARGEN_SOBRE_LIQUIDEZ; // 5,0% de yield mínimo
     const yieldPonderado = totalDesplegado ? candidatosFinales.reduce((s, c, i) => s + importesFinales[i] * (c
@@ -3884,7 +3893,7 @@ function renderFocusGoteo() {
     const iconoTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
     const notaFrecuencia = { 'Mensual': 'día 2 de cada mes', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
 
-    cont.innerHTML = GOTEO_GS.map(g => {
+    cont.innerHTML = GOTEO_GS.filter(g => (g.tipo || '').toUpperCase().trim() !== 'TASA_REFERENCIA').map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
         let destinoFilasHTML, esPausa = false,
@@ -3955,7 +3964,7 @@ function renderGoteo() {
     const gastadoEsteMes = (HISTORICO_GOTEO_GS || []).filter(h => h.fecha.slice(0, 7) === mesActualClave).reduce(
         (s, h) => s + h.importe, 0);
 
-    const tarjetas = GOTEO_GS.map(g => {
+    const tarjetas = GOTEO_GS.filter(g => (g.tipo || '').toUpperCase().trim() !== 'TASA_REFERENCIA').map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
         let importeMostrado = importeReal; // se recalcula abajo con lo que de verdad se va a desplegar
