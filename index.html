@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2856,13 +2857,33 @@ function renderDashboard() {
         const previstosDevolucion = Array(12).fill(0);
         const previstosIRPF = Array(12).fill(0);
 
+        // Último dividendo REAL por acción cobrado — más preciso que el promedio anual fijo
+        // (divAcc/N) para empresas que suben el pago cada vez (ej. Realty Income). LVMH queda
+        // excluida a propósito: sus 2 pagos al año (abril/diciembre) NO son iguales entre sí, así
+        // que usar "el último cobrado" como proxy del siguiente daría un número equivocado.
+        const ISIN_LVMH = 'FR0000121014';
+        const ultimoDivPorAccion = isin => {
+            if (!isin || isin === ISIN_LVMH) return null;
+            const pagos = (divsEnVivo() || []).filter(d => d.isin === isin && d.sh > 0);
+            if (!pagos.length) return null;
+            const ultimo = pagos.reduce((a, b) => {
+                const [da, ma, ya] = a.f.split('/');
+                const [db, mb, yb] = b.f.split('/');
+                return new Date(+ya, ma - 1, +da) >= new Date(+yb, mb - 1, +db) ? a : b;
+            });
+            return ultimo.bruto / ultimo.sh;
+        };
+
         pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
-            const anualTotal = p.divAcc * p.sh;
+            const divPorAccionReal = ultimoDivPorAccion(p.isin);
+            const anualTotal = divPorAccionReal ? divPorAccionReal * (calendarioPorISIN[p.isin] || []).length *
+                p.sh : p.divAcc * p.sh;
 
             // 0) Fuente principal: calendario manual de la pestaña DIVIDENDOS — exacto, tú lo has puesto a mano.
             const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
             if (mesesManual && mesesManual.length) {
-                const importePorPago = anualTotal / mesesManual.length;
+                const importePorPago = divPorAccionReal ? divPorAccionReal * p.sh : anualTotal / mesesManual
+                    .length;
                 const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais);
                 mesesManual.forEach(m => {
                     const mes = m - 1; // la hoja usa 1=enero..12=diciembre
@@ -3262,11 +3283,21 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         .map(p => calcularScoreActivo(p.isin))
         .sort((a, b) => b.score - a.score);
 
-    // Una acción "gana plaza" si supera a AL MENOS UNO de los ETF por el margen — así pueden
-    // clasificarse varias a la vez (hasta el tope), no solo la número uno.
+    // Una acción "gana plaza" si cumple DOS cosas a la vez: supera a AL MENOS UNO de los ETF por
+    // el margen de score, Y su yield individual llega al mínimo exigido frente a la liquidez sin
+    // riesgo. Las dos condiciones son necesarias — un buen score (trampa/rango/timing) no basta
+    // por sí solo si el retorno absoluto no compensa frente a no arriesgar nada. Este filtro va
+    // AQUÍ, antes de decidir quién gana plaza — nunca después, porque los ETF (2-2,5% de yield)
+    // nunca podrían superar un filtro de yield aplicado sobre ellos, y no tiene sentido exigírselo:
+    // ya ganaron su plaza limpiamente con el score relativo, eso es suficiente para ellos.
+    const TASA_LIQUIDEZ_TR = obtenerTasaReferencia();
+    const MARGEN_SOBRE_LIQUIDEZ = 2.5;
+    const UMBRAL_RETORNO_MINIMO = TASA_LIQUIDEZ_TR + MARGEN_SOBRE_LIQUIDEZ;
+
     const peorScoreETF = candidatosETF.length ? Math.min(...candidatosETF.map(e => e.score)) : 0;
     const accionesGanadoras = todasLasAcciones
-        .filter(acc => (acc.score - peorScoreETF) >= MARGEN_VENTAJA)
+        .filter(acc => (acc.score - peorScoreETF) >= MARGEN_VENTAJA && (acc.yieldActual || 0) >=
+            UMBRAL_RETORNO_MINIMO)
         .slice(0, MAX_ACCIONES_GANADORAS);
     const mejorAccion = accionesGanadoras[0] || null; // la de mayor score, para el mensaje y el techo
 
@@ -3318,68 +3349,6 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     const importesFinales = importesBrutos.map(x => x * factorAjuste);
     const totalDesplegado = importesFinales.reduce((s, x) => s + x, 0);
     const liquidezSobrante = Math.max(0, importeTotal - totalDesplegado);
-
-    // ── FILTRO ABSOLUTO: ¿bate esto de verdad la liquidez sin riesgo? ──
-    // Se comprueba sobre el YIELD PONDERADO del reparto real que se acaba de calcular — no sobre
-    // el mejor candidato individual, que puede llevarse solo una fracción pequeña del capital
-    // mientras el grueso va a parar a ETFs de yield bajo, diluyendo el retorno real del conjunto.
-    const TASA_LIQUIDEZ_TR = obtenerTasaReferencia(); // % configurable en la hoja GOTEO (fila TASA_REFERENCIA), 2,5% por defecto
-    const MARGEN_SOBRE_LIQUIDEZ = 2.5; // puntos de margen exigidos, para compensar el riesgo de invertir
-    const UMBRAL_RETORNO_MINIMO = TASA_LIQUIDEZ_TR + MARGEN_SOBRE_LIQUIDEZ; // 5,0% de yield mínimo
-    const yieldPonderado = totalDesplegado ? candidatosFinales.reduce((s, c, i) => s + importesFinales[i] * (c
-        .yieldActual || 0), 0) / totalDesplegado : 0;
-
-    if (yieldPonderado < UMBRAL_RETORNO_MINIMO) {
-        // Antes de rendirnos: ¿hay algún candidato que POR SÍ SOLO sí supere el 5%? Si los hay,
-        // concentramos el presupuesto completo solo en esos, en vez de tirar todo el reparto a la
-        // basura por culpa de los ETF de yield bajo que diluían la media del conjunto.
-        const candidatosQueSiCumplen = candidatosFinales.filter(c => (c.yieldActual || 0) >=
-            UMBRAL_RETORNO_MINIMO);
-
-        if (candidatosQueSiCumplen.length) {
-            const nCumplen = candidatosQueSiCumplen.length;
-            const baselineCumplen = importeTotal / nCumplen;
-            const brutosCumplen = candidatosQueSiCumplen.map(c => baselineCumplen * (c.score / 50));
-            const sumaBrutaCumplen = brutosCumplen.reduce((s, x) => s + x, 0);
-            const factorCumplen = sumaBrutaCumplen > importeTotal ? importeTotal / sumaBrutaCumplen : 1;
-            const finalesCumplen = brutosCumplen.map(x => x * factorCumplen);
-            const totalDesplegadoCumplen = finalesCumplen.reduce((s, x) => s + x, 0);
-            const yieldPonderadoCumplen = totalDesplegadoCumplen ? candidatosQueSiCumplen.reduce((s, c, i) => s +
-                finalesCumplen[i] * (c.yieldActual || 0), 0) / totalDesplegadoCumplen : 0;
-
-            const repartoCumplen = candidatosQueSiCumplen.map((c, i) => ({
-                nombre: c.nombre, isin: c.isin, importe: finalesCumplen[i],
-                peso: totalDesplegadoCumplen ? (finalesCumplen[i] / totalDesplegadoCumplen * 100) : 0,
-                pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion:
-                    accionesGanadoras.includes(c)
-            })).sort((a, b) => b.importe - a.importe);
-
-            return {
-                reparto: repartoCumplen, liquidez: Math.max(0, importeTotal - totalDesplegadoCumplen),
-                avisoAccion: '💰 El reparto entre los 4 candidatos solo daba un ' + yieldPonderado.toFixed(2) +
-                    '% ponderado (por debajo del ' + UMBRAL_RETORNO_MINIMO.toFixed(1) +
-                    '% mínimo) — se concentra el presupuesto solo en ' + candidatosQueSiCumplen.map(c => c
-                        .nombre).join(', ') + ', que sí superan el umbral individualmente (yield ponderado del reparto concentrado: ' +
-                    yieldPonderadoCumplen.toFixed(2) + '%).'
-            };
-        }
-
-        // Ninguno individualmente llega al 5%: ahí sí, mínimo del hábito para todos
-        const sumaScoresBajosYield = candidatosFinales.reduce((s, c) => s + Math.max(1, c.score), 0);
-        const repartoMinimoYield = candidatosFinales.map(c => ({
-            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
-                sumaScoresBajosYield), peso: (Math.max(1, c.score) / sumaScoresBajosYield) * 100, pctRango52: c
-                .pctRango52, distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras
-                .includes(c)
-        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
-        return {
-            reparto: repartoMinimoYield, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
-            avisoNadaAtractivo: '💶 Ni siquiera concentrando el presupuesto en el mejor candidato individual se llega al ' +
-                UMBRAL_RETORNO_MINIMO.toFixed(1) + '% mínimo exigido (' + TASA_LIQUIDEZ_TR + '% de TR + ' +
-                MARGEN_SOBRE_LIQUIDEZ + ' puntos de margen) — no compensa el riesgo frente a la liquidez sin arriesgar nada. Nos limitamos a los ' +
-                fe(MINIMO_MES_TOTAL, 0) + ' mínimos del hábito.'
-        };
-    }
 
     const repartoFinal = candidatosFinales.map((c, i) => ({
         nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
