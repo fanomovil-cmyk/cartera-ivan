@@ -2575,9 +2575,9 @@ function renderDashboard() {
     // ordenadas por cuánto se han pasado — nunca mezcladas por valor absoluto con las que solo
     // están "cerca" pero sin disparar todavía, que van después, ordenadas por cercanía a cero.
     const trampasOrdenadas = [...TRAMPAS_GS]
-        .map(r => ({ n: r[0], p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]), acc: cn(r[6]), cap: cn(
-            r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || null, nota: r[14] ||
-            '', min52: cn(r[16]), max52: cn(r[17]), isin: r[15] || '' }))
+        .map(r => ({ n: r[0], calidad: r[1] || '', p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]),
+            acc: cn(r[6]), cap: cn(r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] ||
+            null, nota: r[14] || '', min52: cn(r[16]), max52: cn(r[17]), isin: r[15] || '' }))
         .filter(t => t.t > 0 && t.pa > 0)
         .sort((a, b) => {
             const aDisparada = a.d >= 0,
@@ -2604,7 +2604,8 @@ function renderDashboard() {
         const enZona = yaDisparada || ad <= 1.5;
         const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
         const cls = ad <= 5 ? 'c' : ad <= 10 ? 'm' : 'f';
-        const pc = t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
+        const esE = (t.calidad || '').toUpperCase().includes('ESPEC');
+        const pc = esE ? 'es' : t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
         const colorPct = enZona ? 'var(--rd)' : destacada ? 'var(--gn)' : cls === 'c' ? 'var(--gn)' : cls ===
             'm' ? 'var(--am)' : 'var(--rd)';
         const fName = grande ? (destacada ? 'clamp(18px,6vw,24px)' : 'clamp(16px,5vw,20px)') : (destacada ?
@@ -2637,14 +2638,15 @@ function renderDashboard() {
                 ';font-weight:700;color:var(--mt);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:' +
                 padEstado + '">○ Sin orden</span>';
         }
-        const esLarga = (t.p || '').length > 3; // "ESPECULATIVA" no cabe al lado del nombre como una insignia normal
+        const esLarga = esE || (t.p || '').length > 3; // "ESPECULATIVA" no cabe al lado del nombre como una insignia normal
+        const textoBadge = esE ? 'ESPECULATIVA' : t.p;
         const insigniaCorta = esLarga ? '' :
             ('<span class="pr ' + pc + '" style="flex-shrink:0' + (grande ? ';font-size:14px;padding:4px 9px' :
-                '') + '">' + t.p + '</span>');
+                '') + '">' + textoBadge + '</span>');
         const filaLarga = esLarga ?
             ('<div style="margin-top:3px"><span class="pr ' + pc +
                 '" style="display:inline-block;font-size:' + (grande ? '11px' : '9px') +
-                ';padding:2px 7px">' + t.p + '</span></div>') : '';
+                ';padding:2px 7px">' + textoBadge + '</span></div>') : '';
         const yieldPct = t.t ? (t.dv / t.t * 100) : 0;
         const proy1000 = t.t ? (1000 / t.t * t.dv) : 0; // bruto anual si se invirtieran 1000€ a precio de la trampa
         const bgPct = colorPct === 'var(--rd)' ? 'rgba(232,90,90,0.15)' : colorPct === 'var(--gn)' ?
