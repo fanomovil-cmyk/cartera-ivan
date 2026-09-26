@@ -383,8 +383,12 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="card">
     <div class="ch"><h3>💼 Escáner de posiciones — TR + precios en vivo</h3><span class="mt2" style="font-size:9px" id="pu-estado">Cargando precios...</span></div>
     <div id="periodo-filtros-cartera" style="padding:0 0 4px;display:flex;gap:8px;flex-wrap:wrap">—</div>
-    <div class="mt2" style="font-size:8px;padding:0 0 10px">Los dividendos y la rentabilidad total se filtran por el periodo elegido. El G/P por precio siempre es el total acumulado (aún no guardamos el precio de cada posición a cierre de año).</div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P € (total)</th><th>Rent.% (total)</th><th>Div. cobrados (periodo)</th><th>Rent. Total% (precio total + div. periodo)</th><th>Peso%</th></tr></thead><tbody id="tb-cartera"></tbody><tfoot><tr id="tf-cartera"><td colspan="12" class="mt2">—</td></tr></tfoot></table></div>
+    <div class="mt2" style="font-size:8px;padding:0 0 10px">Los dividendos y la rentabilidad total se filtran por el periodo elegido. El G/P por precio siempre es el total acumulado (aún no guardamos el precio de cada posición a cierre de año). Separado en positivas (mejor a peor) y negativas (peor a mejor), según G/P por precio.</div>
+    <div style="font-size:11px;font-weight:800;color:var(--gn);margin-top:6px">🟢 En positivo</div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P € (total)</th><th>Rent.% (total)</th><th>Div. cobrados (periodo)</th><th>Rent. Total% (precio total + div. periodo)</th><th>Peso%</th></tr></thead><tbody id="tb-cartera-pos"></tbody></table></div>
+    <div style="font-size:11px;font-weight:800;color:var(--rd);margin-top:16px">🔴 En negativo</div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>País</th><th>Acciones</th><th>P.Medio TR</th><th>P.Actual GS</th><th>Importe invertido €</th><th>Valor €</th><th>G/P € (total)</th><th>Rent.% (total)</th><th>Div. cobrados (periodo)</th><th>Rent. Total% (precio total + div. periodo)</th><th>Peso%</th></tr></thead><tbody id="tb-cartera-neg"></tbody></table></div>
+    <div class="sc"><table class="dt" style="margin-top:8px"><tfoot><tr id="tf-cartera"><td colspan="12" class="mt2">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>📊 Análisis de concentración</h3></div>
@@ -3232,10 +3236,12 @@ function detectarOportunidadesExcepcionales() {
             oportunidades.push({
                 nombre: p.n, isin: p.isin, precioActual: pa, prioridad, distPct, pctRango52,
                 automatizable: trampaFila[18] !== false, yaDisparada,
-                motivo: yaDisparada ?
+                motivo: (yaDisparada ?
                     'ya ha tocado su propia trampa (' + fe(trampa) + '), el precio que decidiste con calma' :
-                    'está a solo ' + Math.abs(distPct).toFixed(1) + '% de su trampa Y en el ' + pctRango52
-                    .toFixed(0) + '% más bajo de su rango de 52 semanas — dos señales confirmándose a la vez'
+                    'está a solo ' + Math.abs(distPct).toFixed(1) + '% de su trampa (' + fe(trampa) +
+                    ') Y en el ' + pctRango52.toFixed(0) +
+                    '% más bajo de su rango de 52 semanas — dos señales confirmándose a la vez') +
+                    ' · precio ahora: ' + fe(pa) + ' €'
             });
         }
     });
@@ -3312,6 +3318,20 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         .slice(0, MAX_ACCIONES_GANADORAS);
     const mejorAccion = accionesGanadoras[0] || null; // la de mayor score, para el mensaje y el techo
 
+    // Explicación legible de POR QUÉ cada acción ganó su plaza — con el ETF de referencia, el
+    // margen conseguido y el yield frente al mínimo exigido, para no tener que confiar a ciegas.
+    const etfDeReferencia = baseParaVara.length ? baseParaVara.reduce((peor, e) => (!peor || e.score < peor.score) ?
+        e : peor, null) : null;
+    const explicacionesAccion = {};
+    accionesGanadoras.forEach(acc => {
+        const margen = etfDeReferencia ? (acc.score - etfDeReferencia.score) : null;
+        explicacionesAccion[acc.isin] = '🎯 Puntuación ' + acc.score.toFixed(0) + '/100' + (etfDeReferencia ?
+            ' vs ' + etfDeReferencia.nombre + ' (' + etfDeReferencia.score.toFixed(0) +
+            '/100) — le gana por ' + margen.toFixed(0) + ' puntos (mínimo exigido: ' + MARGEN_VENTAJA + ').' :
+            '.') + ' Yield actual ' + (acc.yieldActual || 0).toFixed(1) + '% (mínimo exigido: ' +
+            UMBRAL_RETORNO_MINIMO.toFixed(1) + '%).';
+    });
+
     // Cada ETF pierde su plaza solo si SU PROPIO score queda por debajo de alguna acción ganadora
     // con el margen suficiente — un ETF fuerte puede sobrevivir aunque otro más flojo no lo haga.
     let candidatosFinales = [];
@@ -3344,7 +3364,8 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         const repartoMinimo = candidatosFinales.map(c => ({
             nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(0.1, c.yieldActual || 0) /
                 sumaYields), peso: (Math.max(0.1, c.yieldActual || 0) / sumaYields) * 100, pctRango52: c.pctRango52,
-            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c)
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c), pa: c.pa,
+            score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
         })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
         const ganadorMenosMalo = candidatosFinales.reduce((mejor, c) => (!mejor || (c.yieldActual || 0) > (
             mejor.yieldActual || 0)) ? c : mejor, null);
@@ -3368,7 +3389,8 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         const repartoMinimo = candidatosFinales.map(c => ({
             nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
                 sumaScoresBajos), peso: (Math.max(1, c.score) / sumaScoresBajos) * 100, pctRango52: c.pctRango52,
-            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c)
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c), pa: c.pa,
+            score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
         })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
         return {
             reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
@@ -3391,7 +3413,8 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     const repartoFinal = candidatosFinales.map((c, i) => ({
         nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
         peso: totalDesplegado ? (importesFinales[i] / totalDesplegado * 100) : 0, pctRango52: c.pctRango52,
-        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: accionesGanadoras.includes(c)
+        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: accionesGanadoras.includes(c),
+        pa: c.pa, score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
     })).sort((a, b) => b.importe - a.importe);
 
     return {
@@ -4048,9 +4071,14 @@ function renderGoteo() {
                         '<b style="font-size:12px">' + r.nombre + '</b>' +
                         '<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:' +
                         colorEtiqueta + '">' + etiquetaTipo + '</span>' + insigniaAdelantar + '</div>' +
-                        '<div class="mt2" style="font-size:9px;margin-top:2px">' + (r.pctRango52 !== null ?
-                            'rango: ' + r.pctRango52.toFixed(0) + '%' : '') + (r.distTrampaPct !== null ?
-                            ' · trampa: ' + Math.abs(r.distTrampaPct).toFixed(1) + '%' : '') + '</div>' +
+                        '<div class="mt2" style="font-size:9px;margin-top:2px">' + (r.pa ? '💶 ' + f2(r.pa) +
+                            ' € ahora' : '') + (r.pctRango52 !== null ? ' · rango 52sem: ' + r.pctRango52.toFixed(
+                                0) + '%' : '') + (r.distTrampaPct !== null ? ' · trampa: ' + Math.abs(r
+                                .distTrampaPct).toFixed(1) + '%' : '') + (r.yieldActual ? ' · yield: ' + r
+                                .yieldActual.toFixed(1) + '%' : '') + (r.score !== undefined ? ' · score: ' + r
+                                .score.toFixed(0) + '/100' : '') + '</div>' +
+                        (r.explicacion ? '<div class="mt2" style="font-size:9px;margin-top:3px;color:var(--tx)">' +
+                            r.explicacion + '</div>' : '') +
                         '</div>' +
                         '<div style="text-align:right;flex-shrink:0">' +
                         '<div style="font-size:16px;font-weight:800;color:var(--gn)">' + fe(r.importe, 0) +
@@ -4517,7 +4545,10 @@ function renderCartera() {
         divsPorISINyAnio[d.isin][anio] = (divsPorISINyAnio[d.isin][anio] || 0) + d.neto_real;
     });
 
-    document.getElementById('tb-cartera').innerHTML = pos.map((p, i) => {
+    // Calculamos primero TODAS las filas con sus datos, sin pintar nada — así podemos partirlas en
+    // positivas/negativas (según G/P por precio) y ordenarlas cada grupo por separado antes de
+    // generar el HTML: positivas de mejor a peor rendimiento, negativas de peor a mejor.
+    const filasCalculadas = pos.map(p => {
         const pa = precioDe(p);
         const val = pa ? pa * p.sh : 0;
         const gp = pa ? val - p.ct : 0;
@@ -4530,6 +4561,11 @@ function renderCartera() {
             'Sin dividendos cobrados aún';
         totV += val;
         totGP += gp;
+        return { p, pa, val, gp, rp, pe, divsRecibidos, rentTotalReal, tooltipDivs };
+    });
+
+    const pintarFila = (f, i) => {
+        const { p, pa, val, gp, rp, pe, divsRecibidos, rentTotalReal, tooltipDivs } = f;
         const bg = i % 2 ? 'background:var(--s2)' : '';
         return '<tr style="' + bg + '">' +
             '<td><div style="font-weight:600;font-size:11px">' + p.n + (tieneResultadosEsteMes(p.n) ?
@@ -4556,7 +4592,17 @@ function renderCartera() {
                 f1(rentTotalReal) + '%' : '—') + '</td>' +
             '<td class="mt2">' + f1(pe) + '%</td>' +
             '</tr>';
-    }).join('');
+    };
+
+    const filasPositivas = filasCalculadas.filter(f => f.rp >= 0).sort((a, b) => b.rp - a.rp);
+    const filasNegativas = filasCalculadas.filter(f => f.rp < 0).sort((a, b) => a.rp - b.rp);
+
+    document.getElementById('tb-cartera-pos').innerHTML = filasPositivas.length ?
+        filasPositivas.map(pintarFila).join('') :
+        '<tr><td colspan="12" class="mt2" style="text-align:center;padding:10px">Ninguna posición en positivo ahora mismo.</td></tr>';
+    document.getElementById('tb-cartera-neg').innerHTML = filasNegativas.length ?
+        filasNegativas.map(pintarFila).join('') :
+        '<tr><td colspan="12" class="mt2" style="text-align:center;padding:10px">Ninguna posición en negativo ahora mismo. 🎉</td></tr>';
 
     const totDivsRecibidos = pos.reduce((s, p) => s + (p.isin ? (divsPorISIN[p.isin] || 0) : 0), 0);
     const rTot = totCost && totV ? (totGP / totCost * 100) : 0;
