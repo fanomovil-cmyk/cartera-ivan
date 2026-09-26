@@ -509,6 +509,10 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="card"><div class="ch"><h3>📈 Escenarios de crecimiento</h3></div><div style="padding:14px 16px" id="escenarios-container"></div></div>
     <div class="card"><div class="ch"><h3>📊 Proyección a 5 años</h3></div><div style="padding:14px 16px" id="proyeccion5-container"></div></div>
   </div>
+  <div class="card" style="margin-top:12px;border:1px solid var(--pu)">
+    <div class="ch"><h3>🎲 Simulación Monte Carlo (drift/volatilidad de TU cartera real)</h3><span class="mt2" style="font-size:8px">2.000 escenarios simulados a partir del histórico real de HISTORICO_DIVIDENDOS — no de cifras inventadas</span></div>
+    <div style="padding:14px 16px" id="montecarlo-container"></div>
+  </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
     <div class="ch"><h3>💡 Recomendaciones inteligentes</h3></div>
     <div style="padding:14px 16px" id="recomendaciones-container"></div>
@@ -3295,7 +3299,13 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     const MARGEN_SOBRE_LIQUIDEZ = 2.5;
     const UMBRAL_RETORNO_MINIMO = TASA_LIQUIDEZ_TR + MARGEN_SOBRE_LIQUIDEZ;
 
-    const peorScoreETF = candidatosETF.length ? Math.min(...candidatosETF.map(e => e.score)) : 0;
+    // La vara de medir (peor ETF) solo cuenta ETF con datos reales en TRAMPAS — un ETF nuevo sin
+    // fila todavía no debe hacer más fácil (ni más difícil) que una acción le robe la plaza a los
+    // demás, porque su "score" de 50 no significa nada real. Si NINGÚN ETF del universo tiene
+    // datos aún, se cae de vuelta a contarlos todos para no dejar la vara sin definir.
+    const etfsConDatos = candidatosETF.filter(e => !e.sinDatosReales);
+    const baseParaVara = etfsConDatos.length ? etfsConDatos : candidatosETF;
+    const peorScoreETF = baseParaVara.length ? Math.min(...baseParaVara.map(e => e.score)) : 0;
     const accionesGanadoras = todasLasAcciones
         .filter(acc => (acc.score - peorScoreETF) >= MARGEN_VENTAJA && (acc.yieldActual || 0) >=
             UMBRAL_RETORNO_MINIMO)
@@ -3321,6 +3331,33 @@ function calcularRepartoConAcciones(importe, universoISINs) {
     if (!candidatosFinales.length) return { reparto: [], liquidez: importeTotal };
 
     const MINIMO_MES_TOTAL = 50;
+
+    // Válvula de seguridad ABSOLUTA: si ni siquiera el mejor candidato (ETF o acción) llega al
+    // suelo de rentabilidad (referencia TR + margen), no tiene sentido desplegar los 400€ enteros
+    // solo por ganar en el ranking relativo — un ETF al 2% puede ser "el mejor" de la lista y seguir
+    // perdiendo contra quedarse en liquidez al 2,5%. Se cubren solo los 50€ del hábito (el mínimo
+    // que ya sale del "Redondeo"/plan que no merece la pena pausar por tan poco) repartidos hacia
+    // la opción MENOS MALA (mayor yield real, no mayor score) de entre lo disponible ese mes.
+    const mejorYieldDisponible = Math.max(0, ...candidatosFinales.map(c => c.yieldActual || 0));
+    if (mejorYieldDisponible < UMBRAL_RETORNO_MINIMO) {
+        const sumaYields = candidatosFinales.reduce((s, c) => s + Math.max(0.1, c.yieldActual || 0), 0);
+        const repartoMinimo = candidatosFinales.map(c => ({
+            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(0.1, c.yieldActual || 0) /
+                sumaYields), peso: (Math.max(0.1, c.yieldActual || 0) / sumaYields) * 100, pctRango52: c.pctRango52,
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c)
+        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
+        const ganadorMenosMalo = candidatosFinales.reduce((mejor, c) => (!mejor || (c.yieldActual || 0) > (
+            mejor.yieldActual || 0)) ? c : mejor, null);
+        return {
+            reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
+            avisoNadaAtractivo: '🔒 Nada llega al ' + UMBRAL_RETORNO_MINIMO.toFixed(1) +
+                '% mínimo exigido (referencia ' + TASA_LIQUIDEZ_TR.toFixed(1) + '% + ' + MARGEN_SOBRE_LIQUIDEZ
+                .toFixed(1) + 'pp de margen) — mejor yield disponible: ' + mejorYieldDisponible.toFixed(1) +
+                '%. Cubrimos solo los ' + fe(MINIMO_MES_TOTAL, 0) + ' del hábito, la opción menos mala es ' +
+                (ganadorMenosMalo ? ganadorMenosMalo.nombre : '—') + '. El resto se queda en liquidez ganando el ' +
+                TASA_LIQUIDEZ_TR.toFixed(1) + '% en TR.'
+        };
+    }
 
     // Válvula de seguridad relativa (umbral 34, ya validado) sobre los candidatos finales
     const UMBRAL_NADA_ATRACTIVO = 34; // recalculado con pesos 51/20,5/20,5/8 (trampa/rango/descuento/dividendo)
@@ -3462,6 +3499,14 @@ function calcularScoreActivo(isin) {
     const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
     const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
     if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
+
+    // Sin fila en TRAMPAS todavía (ISIN nuevo, p.ej. un ETF recién añadido al plan mensual antes de
+    // que le hayamos puesto trampa/rango 52 semanas/dividendo a mano) — no fingir un score neutro
+    // de 50 como si fuera un dato real: se marca para que no cuente como vara de medir frente a
+    // otros candidatos que sí tienen datos reales. En cuanto se rellene la fila en TRAMPAS, este
+    // aviso desaparece solo.
+    if (!trampaFila) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null, pa, yieldActual: 0,
+        sinDatosReales: true };
 
     const trampa = trampaFila ? cn(trampaFila[3]) : 0;
     const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
@@ -5517,6 +5562,116 @@ function renderEvolucion() {
     }).join('');
 }
 
+// ── MONTE CARLO CON DATOS REALES: drift y volatilidad calculados del histórico de dividendo/acción
+// (HISTORICO_DIVIDENDOS_LARGO_GS) de tus propias posiciones, ponderado por su peso en tu cartera
+// actual (coste). Nada de driftMensual/volatilidadMensual inventados a mano — si algún día cambia
+// tu cartera o llega más histórico, el drift/volatilidad se recalculan solos. ──
+function calcularDriftVolatilidadRealDividendos() {
+    const pos = posicionesVivas();
+    const totalCoste = pos.reduce((s, p) => s + (p.ct || 0), 0) || 1;
+    const anioActual = new Date().getFullYear();
+    let driftPonderado = 0, pesoConDatos = 0;
+    let tasasTodas = []; // {t: tasa de crecimiento interanual, peso: peso en cartera} para la volatilidad conjunta
+    let nActivosConDatos = 0;
+
+    pos.forEach(p => {
+        const hist = (HISTORICO_DIVIDENDOS_LARGO_GS || []).find(h => h.isin === p.isin);
+        if (!hist || !hist.porAnio) return;
+        // Solo años dentro de tu horizonte de inversión real (desde 2016) y ya cerrados/consolidados,
+        // para no dejar que 30 años de un solo activo (ej. Abbott desde 1992) pesen más que otro con
+        // solo 5 años de histórico — cada activo aporta SU tasa media, no cada año individual.
+        const anios = Object.keys(hist.porAnio).map(Number).filter(a => a >= 2016 && a <= anioActual).sort((a, b) => a - b);
+        if (anios.length < 3) return; // histórico insuficiente para este activo, se ignora sin penalizar
+        const tasas = [];
+        for (let i = 1; i < anios.length; i++) {
+            const v0 = hist.porAnio[anios[i - 1]], v1 = hist.porAnio[anios[i]];
+            if (v0 > 0 && v1 !== undefined) tasas.push((v1 - v0) / v0);
+        }
+        if (!tasas.length) return;
+        const mediaActivo = tasas.reduce((s, x) => s + x, 0) / tasas.length;
+        const peso = (p.ct || 0) / totalCoste;
+        driftPonderado += mediaActivo * peso;
+        pesoConDatos += peso;
+        nActivosConDatos++;
+        tasas.forEach(t => tasasTodas.push({ t, peso: peso / tasas.length }));
+    });
+
+    if (!pesoConDatos || tasasTodas.length < 5) return null; // sin suficiente histórico real todavía
+
+    const driftAnualReal = driftPonderado / pesoConDatos;
+    const sumaPesos = tasasTodas.reduce((s, x) => s + x.peso, 0) || 1;
+    const mediaTasas = tasasTodas.reduce((s, x) => s + x.t * x.peso, 0) / sumaPesos;
+    const varTasas = tasasTodas.reduce((s, x) => s + x.peso * Math.pow(x.t - mediaTasas, 2), 0) / sumaPesos;
+    const volatilidadAnualReal = Math.sqrt(varTasas);
+    return { driftAnualReal, volatilidadAnualReal, nActivosConDatos, pesoConDatos: pesoConDatos * 100 };
+}
+
+// Box-Muller: genera un número con distribución normal(0,1) a partir de dos uniformes — sin
+// dependencias externas, suficiente para una simulación de este tamaño.
+function _normalAleatorio() {
+    let u1 = Math.random(), u2 = Math.random();
+    if (u1 < 1e-12) u1 = 1e-12;
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function simularMonteCarloDividendos(netoRealMensual) {
+    const stats = calcularDriftVolatilidadRealDividendos();
+    // Fallback SOLO si de verdad no hay histórico suficiente todavía (p.ej. cartera muy nueva) —
+    // en ese caso usamos el mismo 5% conservador que ya usa el resto del panel, nunca las cifras
+    // de Deep (0,6%/3,5% mensual inventadas sin relación con esta cartera).
+    const driftAnual = stats ? stats.driftAnualReal : 0.05;
+    const volAnual = stats ? Math.max(0.03, stats.volatilidadAnualReal) : 0.15; // suelo mínimo: 0% de riesgo no es realista
+    const driftMensual = driftAnual / 12;
+    const volMensual = volAnual / Math.sqrt(12);
+
+    const N = 2000, MESES = 12;
+    const totales = [];
+    for (let s = 0; s < N; s++) {
+        let mensual = netoRealMensual, total = 0;
+        for (let m = 0; m < MESES; m++) {
+            mensual = Math.max(0, mensual * (1 + driftMensual + volMensual * _normalAleatorio()));
+            total += mensual;
+        }
+        totales.push(total);
+    }
+    totales.sort((a, b) => a - b);
+    const pct = p => totales[Math.min(N - 1, Math.floor(p * N))];
+    return {
+        p10: pct(0.10), p25: pct(0.25), p50: pct(0.50), p75: pct(0.75), p90: pct(0.90),
+        driftAnual, volAnual, esReal: !!stats,
+        nActivosConDatos: stats ? stats.nActivosConDatos : 0, pesoConDatos: stats ? stats.pesoConDatos : 0
+    };
+}
+
+function renderMonteCarloDividendos(netoRealMensual) {
+    const cont = document.getElementById('montecarlo-container');
+    if (!cont) return;
+    const r = simularMonteCarloDividendos(netoRealMensual);
+    const objetivoAnual = 300 * 12;
+    cont.innerHTML =
+        '<div class="mt2" style="font-size:10px;margin-bottom:10px">' + (r.esReal ?
+            '✅ Drift ' + (r.driftAnual * 100).toFixed(1) + '%/año y volatilidad ' + (r.volAnual * 100).toFixed(1) +
+            '%/año calculados con el histórico real de ' + r.nActivosConDatos + ' de tus activos (' + r.pesoConDatos
+            .toFixed(0) + '% del coste de tu cartera).' :
+            '⚠️ Histórico real insuficiente todavía (menos de 3 años en HISTORICO_DIVIDENDOS para tus posiciones) — usando una estimación conservadora (5%/año, volatilidad 15%) hasta que haya más datos.') +
+        '</div>' +
+        '<div class="g2" style="gap:12px">' +
+        [
+            { l: 'Pesimista (P10)', v: r.p10, c: 'var(--rd)' },
+            { l: 'Mediana (P50)', v: r.p50, c: '#B7A6E8' },
+            { l: 'Optimista (P90)', v: r.p90, c: 'var(--gn)' }
+        ].map(x => '<div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">' +
+            '<div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">' + x.l +
+            ' — 12 meses</div><div style="font-size:18px;font-weight:700;color:' + x.c + '">' + fe(x.v) + '</div>' +
+            '</div>').join('') +
+        '</div>' +
+        '<div class="mt2" style="font-size:9px;margin-top:10px">80% de los escenarios simulados caen entre ' +
+        fe(r.p10, 0) + ' y ' + fe(r.p90, 0) + ' en los próximos 12 meses (frente a un objetivo anual de ' + fe(
+            objetivoAnual, 0) + ' a 300€/mes). En el escenario mediano, ' + (r.p50 >= objetivoAnual ?
+            '✅ el objetivo quedaría cubierto.' : 'faltarían ' + fe(objetivoAnual - r.p50, 0) +
+            ' — coherente con lo que ya muestran las tarjetas de arriba.') + '</div>';
+}
+
 // ── PROYECCIONES ──
 function renderProyecciones() {
     const anioActual = new Date().getFullYear();
@@ -5529,6 +5684,7 @@ function renderProyecciones() {
     // Run-rate actual: lo que generan tus posiciones DE HOY en un año completo, entre 12 —
     // más representativo que la media histórica si la cartera ha crecido durante el año.
     const runRateMensual = posicionesVivas().reduce((s, p) => s + (p.divAnio || 0), 0) / 12;
+    renderMonteCarloDividendos(runRateMensual);
 
     const proyMeses = 12;
     const crecimientoAnualEstimado = 0.05; // 5% anual real (escenario "Moderado"), no mensual
