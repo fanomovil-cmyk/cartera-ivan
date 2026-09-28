@@ -923,6 +923,21 @@ let DIVIDENDOS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
 let GOTEO_GS = [];
+// Control manual desde el propio panel: aunque el sistema calcule 200€ o 400€ (techo), puedes
+// bajarlo en cualquier momento (ej. a 50€ porque ese mes no hay liquidez o quieres pausar) y todo
+// se recalcula al instante. Manda por encima de TODO (techo automático y PRESUPUESTO_MES de la
+// hoja) mientras esté activo — null significa "sin tocar, usa lo normal".
+let GOTEO_OVERRIDE_MENSUAL = null;
+function ajustarPresupuestoGoteoMensual(valor) {
+    GOTEO_OVERRIDE_MENSUAL = valor === '' || valor === null ? null : Math.max(0, parseFloat(valor) || 0);
+    renderGoteo();
+    renderFocusGoteo();
+}
+function resetPresupuestoGoteoMensual() {
+    GOTEO_OVERRIDE_MENSUAL = null;
+    renderGoteo();
+    renderFocusGoteo();
+}
 let OBJETIVOS_GS = [];
 let HISTORICO_GOTEO_GS = [];
 let COMPRAS_DETALLE_GS = [];
@@ -3265,6 +3280,67 @@ function obtenerTasaReferencia() {
     return (filaTasa && filaTasa.importe > 0) ? filaTasa.importe : 2.5;
 }
 
+// ── PRESUPUESTO DEL MES fijado a mano (fila GOTEO con TIPO="PRESUPUESTO_MES", IMPORTE=la cifra
+// que quieras, ej. 50 para octubre): cuando existe, manda siempre esa cifra y el techo especial de
+// 400€ NO se aplica (el techo solo actúa en modo automático). Sin esa fila, todo sigue igual que
+// antes: el importe normal de la fila Mensual + techo automático si procede.
+function obtenerPresupuestoManual() {
+    const fila = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MES');
+    return (fila && fila.importe > 0) ? fila.importe : null;
+}
+
+// Reparte un importe entre unos candidatos con la mecánica de suelo ETF + peso (score-34) + tope
+// del 50% — separado en su propia función para poder calcular también el reparto "sin acciones"
+// (el contrafactual que se muestra en el aviso: cuánto habría recibido cada ETF sin competencia).
+function _distribuirSueloYCompetitivo(candidatosETF, accionesEnJuego, importeTotal) {
+    const SUELO_ETF_OBJETIVO = 50, TOPE_PCT = 0.5, UMBRAL = 34;
+    const sueloETFAplicado = Math.min(SUELO_ETF_OBJETIVO, importeTotal);
+    const topeIndividual = importeTotal * TOPE_PCT;
+    const candidatosFinales = [...candidatosETF, ...accionesEnJuego];
+
+    const sumaScoresETF = candidatosETF.reduce((s, e) => s + Math.max(0.1, e.score), 0);
+    const importes = {};
+    candidatosETF.forEach(etf => { importes[etf.isin] = sumaScoresETF ? sueloETFAplicado * (Math.max(0.1, etf
+        .score) / sumaScoresETF) : 0; });
+    accionesEnJuego.forEach(acc => { importes[acc.isin] = 0; });
+
+    const restante = importeTotal - sueloETFAplicado;
+    const pesos = candidatosFinales.map(c => Math.max(0, c.score - UMBRAL));
+    const sumaPesos = pesos.reduce((s, w) => s + w, 0);
+    if (sumaPesos > 0) {
+        candidatosFinales.forEach((c, i) => { importes[c.isin] += restante * (pesos[i] / sumaPesos); });
+    }
+
+    // Tope del 50%: el exceso solo se ofrece a candidatos con score >34 que aún tengan margen libre
+    // hasta su propio tope. Si nadie puede absorberlo, se queda fuera (va a liquidez).
+    let excedente = 0;
+    candidatosFinales.forEach(c => {
+        if (importes[c.isin] > topeIndividual) {
+            excedente += importes[c.isin] - topeIndividual;
+            importes[c.isin] = topeIndividual;
+        }
+    });
+    let vueltas = 0;
+    while (excedente > 0.01 && vueltas < 5) {
+        const elegibles = candidatosFinales.filter(c => c.score > UMBRAL && importes[c.isin] < topeIndividual - 0.01);
+        if (!elegibles.length) break;
+        const sumaPesosElegibles = elegibles.reduce((s, c) => s + Math.max(0, c.score - UMBRAL), 0);
+        if (!sumaPesosElegibles) break;
+        const excedenteRestante = excedente;
+        excedente = 0;
+        elegibles.forEach(c => {
+            const peso = Math.max(0, c.score - UMBRAL);
+            const propuesta = excedenteRestante * (peso / sumaPesosElegibles);
+            const margenLibre = topeIndividual - importes[c.isin];
+            const asignado = Math.min(propuesta, margenLibre);
+            importes[c.isin] += asignado;
+            if (propuesta > asignado) excedente += propuesta - asignado;
+        });
+        vueltas++;
+    }
+    return importes;
+}
+
 function calcularRepartoConAcciones(importe, universoISINs) {
     const MARGEN_VENTAJA = 15; // puntos que una acción debe superar a un ETF concreto para robarle su plaza
     const UMBRAL_TECHO = 80; // score a partir del cual se justifica doblar el presupuesto
@@ -3332,25 +3408,35 @@ function calcularRepartoConAcciones(importe, universoISINs) {
             UMBRAL_RETORNO_MINIMO.toFixed(1) + '%).';
     });
 
-    // Cada ETF pierde su plaza solo si SU PROPIO score queda por debajo de alguna acción ganadora
-    // con el margen suficiente — un ETF fuerte puede sobrevivir aunque otro más flojo no lo haga.
-    let candidatosFinales = [];
-    candidatosETF.forEach(etf => {
-        const leGanaAlguna = accionesGanadoras.some(acc => (acc.score - etf.score) >= MARGEN_VENTAJA);
-        if (!leGanaAlguna) candidatosFinales.push(etf);
-    });
-
-    let importeTotal = importe;
-    let techoActivado = false;
-    if (mejorAccion && mejorAccion.score >= UMBRAL_TECHO) {
-        importeTotal += EXTRA_TECHO;
-        techoActivado = true;
+    // Presupuesto del mes, de mayor a menor prioridad:
+    // 1) El control deslizante del propio panel (GOTEO_OVERRIDE_MENSUAL) — para bajarlo al instante
+    //    cualquier mes sin tocar nada en Google Sheets. Manda siempre que esté activo, sin techo.
+    // 2) La fila PRESUPUESTO_MES fijada a mano en la hoja GOTEO — manda si no hay control activo,
+    //    tampoco lleva techo (fijar el número a mano es una decisión tuya).
+    // 3) El importe normal de la fila Mensual + techo automático si procede.
+    const presupuestoManual = obtenerPresupuestoManual();
+    let importeTotal, techoActivado = false;
+    if (GOTEO_OVERRIDE_MENSUAL !== null) {
+        importeTotal = GOTEO_OVERRIDE_MENSUAL;
+    } else if (presupuestoManual !== null) {
+        importeTotal = presupuestoManual;
+    } else {
+        importeTotal = importe;
+        if (mejorAccion && mejorAccion.score >= UMBRAL_TECHO) {
+            importeTotal += EXTRA_TECHO;
+            techoActivado = true;
+        }
     }
-    candidatosFinales.push(...accionesGanadoras);
+
+    // Los ETF YA NO se eliminan nunca. El margen de 15 puntos solo decidió arriba qué acciones
+    // entran a competir (accionesGanadoras) — a partir de aquí, todos los candidatos finales son
+    // siempre los 3 ETF del universo + esas acciones, y el DINERO (no la presencia) es lo que se
+    // reparte según el motor de suelo/peso/tope de abajo.
+    const candidatosFinales = [...candidatosETF, ...accionesGanadoras];
 
     if (!candidatosFinales.length) return { reparto: [], liquidez: importeTotal };
 
-    const MINIMO_MES_TOTAL = 50;
+    const MINIMO_MES_TOTAL = Math.min(50, importeTotal);
 
     // Válvula de seguridad ABSOLUTA: si ni siquiera el mejor candidato (ETF o acción) llega al
     // suelo de rentabilidad (referencia TR + margen), no tiene sentido desplegar los 400€ enteros
@@ -3380,50 +3466,51 @@ function calcularRepartoConAcciones(importe, universoISINs) {
         };
     }
 
-    // Válvula de seguridad relativa (umbral 34, ya validado) sobre los candidatos finales
-    const UMBRAL_NADA_ATRACTIVO = 34; // recalculado con pesos 51/20,5/20,5/8 (trampa/rango/descuento/dividendo)
-    const scoreMedia = candidatosFinales.reduce((s, c) => s + c.score, 0) / candidatosFinales.length;
+    // UMBRAL_NADA_ATRACTIVO (34) ya no necesita una válvula aparte: el motor de abajo pesa a cada
+    // candidato por (score-34), así que si NADIE supera 34, el peso de todos es 0 y la parte
+    // competitiva entera cae a liquidez sola — el mismo resultado, sin necesitar un caso especial.
+    const UMBRAL_NADA_ATRACTIVO = 34;
 
-    if (scoreMedia < UMBRAL_NADA_ATRACTIVO) {
-        const sumaScoresBajos = candidatosFinales.reduce((s, c) => s + Math.max(1, c.score), 0);
-        const repartoMinimo = candidatosFinales.map(c => ({
-            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(1, c.score) /
-                sumaScoresBajos), peso: (Math.max(1, c.score) / sumaScoresBajos) * 100, pctRango52: c.pctRango52,
-            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c), pa: c.pa,
-            score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
-        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
-        return {
-            reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
-            avisoNadaAtractivo: '🔒 Nada realmente atractivo este mes (puntuación media ' + scoreMedia.toFixed(0) +
-                '/100) — nos limitamos a los ' + fe(MINIMO_MES_TOTAL, 0) +
-                ' mínimos del hábito. Guarda el resto en liquidez, sigue ganando el 2,5% en TR.'
-        };
-    }
-
-    // Reparto continuo, igual que el motor original, pero ahora sobre la lista final mixta
-    const n = candidatosFinales.length;
-    const baseline = importeTotal / n;
-    const importesBrutos = candidatosFinales.map(c => baseline * (c.score / 50));
-    const sumaBruta = importesBrutos.reduce((s, x) => s + x, 0);
-    const factorAjuste = sumaBruta > importeTotal ? importeTotal / sumaBruta : 1;
-    const importesFinales = importesBrutos.map(x => x * factorAjuste);
-    const totalDesplegado = importesFinales.reduce((s, x) => s + x, 0);
+    // ── MOTOR DE REPARTO: suelo ETF (mín 50€, entre los 3 ETF por su propio score) + resto
+    // repartido por peso (score-34) entre TODOS los candidatos + tope del 50% del presupuesto ──
+    const importesPorCandidato = _distribuirSueloYCompetitivo(candidatosETF, accionesGanadoras, importeTotal);
+    const totalDesplegado = candidatosFinales.reduce((s, c) => s + importesPorCandidato[c.isin], 0);
     const liquidezSobrante = Math.max(0, importeTotal - totalDesplegado);
 
-    const repartoFinal = candidatosFinales.map((c, i) => ({
-        nombre: c.nombre, isin: c.isin, importe: importesFinales[i],
-        peso: totalDesplegado ? (importesFinales[i] / totalDesplegado * 100) : 0, pctRango52: c.pctRango52,
-        distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50, esAccion: accionesGanadoras.includes(c),
-        pa: c.pa, score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
+    // Contrafactual para el aviso: cuánto habría recibido cada ETF si ninguna acción compitiera —
+    // mismo motor, mismo presupuesto, sin accionesGanadoras.
+    const importesSinAcciones = _distribuirSueloYCompetitivo(candidatosETF, [], importeTotal);
+
+    const repartoFinal = candidatosFinales.map(c => ({
+        nombre: c.nombre, isin: c.isin, importe: importesPorCandidato[c.isin],
+        peso: totalDesplegado ? (importesPorCandidato[c.isin] / totalDesplegado * 100) : 0,
+        pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50,
+        esAccion: accionesGanadoras.includes(c), pa: c.pa, score: c.score, yieldActual: c.yieldActual,
+        explicacion: explicacionesAccion[c.isin] || null
     })).sort((a, b) => b.importe - a.importe);
 
-    return {
-        reparto: repartoFinal, liquidez: liquidezSobrante, techoActivado,
-        avisoAccion: accionesGanadoras.length ? '🎯 ' + accionesGanadoras.map(a => a.nombre + ' (' + a.score
-            .toFixed(0) + 'pts)').join(', ') + (accionesGanadoras.length > 1 ? ' destacan claramente sobre al menos un ETF' :
-            ' destaca claramente sobre al menos un ETF') + (techoActivado ?
-            ' — techo especial activado, presupuesto ampliado a ' + fe(importeTotal, 0) : '') + '.' : ''
-    };
+    // Aviso: qué acción entra, cuánto recibe, y a cuáles ETF en concreto (y cuánto) les quita
+    // plaza frente al reparto que habrían tenido sin ella — nunca "al menos uno". Si el presupuesto
+    // es tan bajo que el suelo de los ETF (mín. 50€) se lo come entero, la acción puede quedarse a
+    // 0€ pese a ganar por puntuación — en ese caso el texto lo explica en vez de sonar contradictorio
+    // ("recibe 0€ (sin ella habría recibido X€)" confundía más de lo que aclaraba).
+    const avisoAccion = accionesGanadoras.length ?
+        accionesGanadoras.map(a => {
+            const recibido = importesPorCandidato[a.isin];
+            if (recibido < 0.5) {
+                return '🎯 ' + a.nombre + ' (' + a.score.toFixed(0) +
+                    'pts) puntúa por encima de los ETF, pero no recibe nada este mes: con ' + fe(importeTotal, 0) +
+                    ' de presupuesto, el suelo mínimo de los ETF (' + fe(Math.min(50, importeTotal), 0) +
+                    ') se lleva prácticamente todo. Sube el presupuesto para que también compita por dinero.';
+            }
+            const detalleETF = candidatosETF.map(etf => etf.nombre + ': ' + fe(importesPorCandidato[etf.isin], 0) +
+                ' (sin ' + a.nombre + ' habría recibido ' + fe(importesSinAcciones[etf.isin], 0) + ')').join(' · ');
+            return '🎯 ' + a.nombre + ' (' + a.score.toFixed(0) + 'pts) entra en el reparto y recibe ' + fe(
+                recibido, 0) + '. ' + detalleETF + '.';
+        }).join(' ') + ' Presupuesto usado: ' + fe(importeTotal, 0) + (techoActivado ?
+            ' (techo especial activado)' : '') + ' · Liquidez: ' + fe(liquidezSobrante, 0) + '.' : '';
+
+    return { reparto: repartoFinal, liquidez: liquidezSobrante, techoActivado, presupuestoUsado: importeTotal, avisoAccion };
 }
 
 // ── RACHA DE CONCENTRACIÓN: si el mismo activo lleva varios meses seguidos ganando el reparto
@@ -3452,6 +3539,9 @@ function detectarRachaConcentracion(nombreGanador) {
 }
 
 function analizarGrupoRecurrente(importe, universoCSV) {
+    // El control manual del panel (barra de presupuesto) manda desde aquí mismo, incluida la rama
+    // de pausa — así "bajar a 50€ este mes" también reduce lo que se redirige si hay una pausa activa.
+    if (GOTEO_OVERRIDE_MENSUAL !== null) importe = GOTEO_OVERRIDE_MENSUAL;
     const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
     const oportunidades = detectarOportunidadesExcepcionales();
 
@@ -3959,7 +4049,7 @@ function renderFocusGoteo() {
     const iconoTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
     const notaFrecuencia = { 'Mensual': 'día 2 de cada mes', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
 
-    cont.innerHTML = GOTEO_GS.filter(g => (g.tipo || '').toUpperCase().trim() !== 'TASA_REFERENCIA').map(g => {
+    cont.innerHTML = GOTEO_GS.filter(g => !['TASA_REFERENCIA', 'PRESUPUESTO_MES'].includes((g.tipo || '').toUpperCase().trim())).map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
         let destinoFilasHTML, esPausa = false,
@@ -3972,7 +4062,7 @@ function renderFocusGoteo() {
                 destinoFilasHTML = '<div style="padding:10px 12px;margin-top:6px;background:rgba(232,90,90,0.12);border-radius:8px">' +
                     '<div style="font-size:14px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
                     .destino.nombre + '</div></div>';
-                importeMostrado = importeReal;
+                importeMostrado = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : importeReal;
             } else {
                 importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
                 destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)">' +
@@ -4033,7 +4123,7 @@ function renderGoteo() {
     const gastadoEsteMes = (HISTORICO_GOTEO_GS || []).filter(h => h.fecha.slice(0, 7) === mesActualClave).reduce(
         (s, h) => s + h.importe, 0);
 
-    const tarjetas = GOTEO_GS.filter(g => (g.tipo || '').toUpperCase().trim() !== 'TASA_REFERENCIA').map(g => {
+    const tarjetas = GOTEO_GS.filter(g => !['TASA_REFERENCIA', 'PRESUPUESTO_MES'].includes((g.tipo || '').toUpperCase().trim())).map(g => {
         const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
         let importeMostrado = importeReal; // se recalcula abajo con lo que de verdad se va a desplegar
@@ -4041,11 +4131,31 @@ function renderGoteo() {
         let cuerpoHTML;
         if (esGrupo) {
             const analisis = analizarGrupoRecurrente(importeReal, g.universo);
+            const presupuestoEfectivo = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : (analisis
+                .presupuestoUsado !== undefined ? analisis.presupuestoUsado : importeReal);
+            const maxSlider = 1000;
+            const marcasSlider = [0, 50, 100, 200, 300, 400, 500, 750, 1000];
+            const controlPresupuestoHTML = '<div style="margin-bottom:10px;padding:10px 12px;background:var(--s2);border-radius:8px">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+                '<span style="font-size:10px;color:var(--mt)">💧 Presupuesto de este mes' + (GOTEO_OVERRIDE_MENSUAL !==
+                    null ? ' <span style="color:var(--am);font-weight:700">(ajustado a mano)</span>' : '') + '</span>' +
+                '<span id="presupuesto-slider-valor" style="font-size:15px;font-weight:800;color:var(--ac);font-family:monospace">' +
+                fe(presupuestoEfectivo, 0) + '</span></div>' +
+                '<input type="range" min="0" max="' + maxSlider + '" step="5" value="' + presupuestoEfectivo +
+                '" list="marcas-presupuesto" oninput="document.getElementById(\'presupuesto-slider-valor\').textContent=fe(parseFloat(this.value),0)" onchange="ajustarPresupuestoGoteoMensual(this.value)" style="width:100%;margin-top:4px">' +
+                '<datalist id="marcas-presupuesto">' + marcasSlider.map(m => '<option value="' + m + '"></option>')
+                    .join('') + '</datalist>' +
+                '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--mt);margin-top:1px;padding:0 1px">' +
+                marcasSlider.map(m => '<span>' + m + '€</span>').join('') + '</div>' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
+                '<span class="mt2" style="font-size:8px">arrástralo para simular con menos (o más) dinero este mes — el número de arriba se actualiza mientras lo mueves; se recalcula el reparto al soltar</span>' +
+                (GOTEO_OVERRIDE_MENSUAL !== null ? '<button class="btn" style="font-size:9px;padding:2px 8px" onclick="resetPresupuestoGoteoMensual()">↺ normal</button>' :
+                    '') + '</div></div>';
             if (analisis.tipo === 'pausa') {
-                importeMostrado = importeReal; // pausa: se redirige el importe completo, sin cambios
+                importeMostrado = presupuestoEfectivo; // pausa: se redirige el presupuesto efectivo del mes
                 const d = analisis.destino;
-                const proy = proyectarDividendos6Meses(d.isin, importeReal, d.precioActual);
-                cuerpoHTML = '<div style="margin-top:10px;padding:12px;background:rgba(232,90,90,0.1);border:2px solid var(--rd);border-radius:10px">' +
+                const proy = proyectarDividendos6Meses(d.isin, presupuestoEfectivo, d.precioActual);
+                cuerpoHTML = controlPresupuestoHTML + '<div style="margin-top:10px;padding:12px;background:rgba(232,90,90,0.1);border:2px solid var(--rd);border-radius:10px">' +
                     '<div style="font-size:13px;font-weight:800;color:var(--rd)">⏸️ PAUSA ESTE MES → ' + d
                     .nombre + '</div>' +
                     '<div class="mt2" style="font-size:10px;margin-top:6px">' + analisis.motivo + '</div>' +
@@ -4058,13 +4168,10 @@ function renderGoteo() {
                 const techoHTML = analisis.techoActivado ?
                     '<span style="display:inline-block;padding:3px 8px;background:rgba(183,166,232,0.25);color:#B7A6E8;border-radius:6px;font-size:10px;font-weight:800;margin-top:6px">🚀 TECHO 400€ ACTIVADO</span>' :
                     '';
-                const resumenAccionHTML = nombresGanadores.length ?
+                const resumenAccionHTML = (nombresGanadores.length && analisis.avisoAccion) ?
                     ('<div style="margin-top:8px;padding:10px 12px;background:rgba(183,166,232,0.12);border-radius:8px">' +
-                        '<div style="font-size:11px;font-weight:800;color:#B7A6E8">🎯 ' + nombresGanadores.join(
-                            ' · ') + '</div>' +
-                        '<div class="mt2" style="font-size:9px;margin-top:2px">destaca' + (nombresGanadores
-                            .length > 1 ? 'n' : '') + ' sobre al menos un ETF este mes</div>' + techoHTML +
-                        '</div>') : '';
+                        '<div style="font-size:11px;font-weight:800;color:#B7A6E8;line-height:1.5">' + analisis
+                        .avisoAccion + '</div>' + techoHTML + '</div>') : '';
                 const avisoHTML = analisis.motivoAviso ?
                     ('<div style="margin-top:8px;padding:8px 10px;background:rgba(226,154,62,0.1);border:1px solid var(--am);border-radius:8px;font-size:9px;color:var(--am)">' +
                         analisis.motivoAviso + '</div>') : '';
@@ -4127,8 +4234,8 @@ function renderGoteo() {
                 const avisoNadaHTML = analisis.avisoNadaAtractivo ?
                     ('<div style="margin-top:8px;padding:12px;background:rgba(226,154,62,0.12);border:2px solid var(--am);border-radius:10px;font-size:11px;font-weight:700;color:var(--am)">' +
                         analisis.avisoNadaAtractivo + '</div>') : '';
-                cuerpoHTML = resumenAccionHTML + avisoHTML + avisoRachaHTML + avisoNadaHTML + filasReparto +
-                    liquidezHTML;
+                cuerpoHTML = controlPresupuestoHTML + resumenAccionHTML + avisoHTML + avisoRachaHTML +
+                    avisoNadaHTML + filasReparto + liquidezHTML;
             }
         } else {
             const sugerencia = sugerirDestinoFlexible(null, g.universo);
