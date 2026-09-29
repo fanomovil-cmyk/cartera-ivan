@@ -1,8 +1,9 @@
 {
+  "id": "/cartera-ivan/radar.html",
   "name": "Radar 2",
   "short_name": "Radar 2",
   "start_url": "radar.html",
-  "scope": ".",
+  "scope": "radar.html",
   "display": "standalone",
   "background_color": "#0A0C12",
   "theme_color": "#0A0C12",
