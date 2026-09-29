@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar 2</title>
+<meta name="theme-color" content="#0A0C12">
+
+<!-- Ajustes para que al añadirlo a la pantalla de inicio se abra como app, sin barra de direcciones -->
+<link rel="manifest" href="radar2.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Radar 2">
+<link rel="apple-touch-icon" href="radar-icon.png">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg:#0A0C12;
+  --s1:#12151F;
+  --s2:#171B27;
+  --bd:#242A3A;
+  --ac:#C9A24B;
+  --ac2:#E4C777;
+  --gn:#34C77B;
+  --am:#E29A3E;
+  --rd:#E85A5A;
+  --tx:#ECEFF6;
+  --mt:#707B93;
+  --pu:#B7A6E8;
+  --pi:#E38FB0;
+  --radius:12px;
+  --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-color:var(--bd) var(--bg)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:6px}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}
+
+body{
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgba(201,162,75,0.06), transparent 60%),
+    radial-gradient(900px 480px at 100% 0%, rgba(52,199,123,0.04), transparent 55%),
+    var(--bg);
+  color:var(--tx);
+  font-family:'Inter',sans-serif;
+  padding:16px;
+  font-size:13px;
+  line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  max-width:800px;
+  margin:0 auto;
+}
+
+.rhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:8px}
+.rhdr h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.2px}
+.rhdr p{font-size:9px;color:var(--mt);margin-top:2px;font-family:'JetBrains Mono',monospace;letter-spacing:1px}
+
+.btn{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:8px 15px;font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--mt);transition:all 0.18s ease;letter-spacing:0.2px}
+.btn:hover{border-color:var(--ac);color:var(--ac2)}
+.btn.ac{color:var(--gn);border-color:var(--gn)}
+
+.kg{display:grid;grid-template-columns:1fr;gap:11px;margin-bottom:18px}
+.kpi{background:linear-gradient(180deg,var(--s1),var(--s1) 60%,var(--s2));border:1px solid var(--bd);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--ac));opacity:0.9}
+.kl{font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}
+.kv{font-size:19px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;letter-spacing:-0.3px}
+.ks{font-size:9px;color:var(--mt);margin-top:5px}
+
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.ch{padding:12px 16px;border-bottom:1px solid var(--bd);background:var(--s2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.ch h3{font-family:'Space Grotesk',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mt);font-weight:600}
+
+.gn{color:var(--gn);font-family:'JetBrains Mono',monospace;font-weight:600}
+.rd{color:var(--rd);font-family:'JetBrains Mono',monospace;font-weight:600}
+.am{color:var(--am);font-family:'JetBrains Mono',monospace;font-weight:600}
+.bl{color:var(--ac2);font-family:'JetBrains Mono',monospace}
+.mt2{color:var(--mt);font-family:'JetBrains Mono',monospace}
+.pu{color:var(--pu);font-family:'JetBrains Mono',monospace}
+.pi{color:var(--pi);font-family:'JetBrains Mono',monospace}
+
+.pr{font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;letter-spacing:0.3px;border:1px solid transparent}
+.pr.ap{background:rgba(201,162,75,0.22);color:#F0D389;border-color:rgba(201,162,75,0.4)}
+.pr.a{background:rgba(201,162,75,0.13);color:#D9B968;border-color:rgba(201,162,75,0.25)}
+.pr.am2{background:rgba(201,162,75,0.07);color:#B7A26B;border-color:rgba(201,162,75,0.15)}
+.pr.b{background:var(--s2);color:var(--mt);border-color:var(--bd)}
+.pr.es{background:rgba(226,154,62,0.18);color:#F0BC7A;border-color:rgba(226,154,62,0.3)}
+
+@keyframes pulse{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}
+
+@keyframes alertaZona{
+  0%,100%{box-shadow:inset 0 0 0 1px rgba(232,90,90,0.35),0 0 0px rgba(232,90,90,0)}
+  50%{box-shadow:inset 0 0 0 1px rgba(232,90,90,0.75),0 0 16px rgba(232,90,90,0.35)}
+}
+.zona-disparo{animation:alertaZona 2.2s ease-in-out infinite;border-left:3px solid var(--rd)!important;background:rgba(232,90,90,0.06)!important}
+.zona-disparo .zona-tag{display:inline-block;font-size:7.5px;font-weight:800;letter-spacing:0.6px;color:#FFD7D7;background:rgba(232,90,90,0.25);border:1px solid rgba(232,90,90,0.5);border-radius:4px;padding:1px 5px;margin-left:6px;animation:pulse 1.4s ease-in-out infinite}
+
+.radar-dia{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:5px 12px 5px 6px;border-radius:20px;font-size:12px;font-weight:700;width:fit-content}
+@keyframes alarmaFuerte{0%,100%{box-shadow:0 0 0 rgba(232,90,90,0)}50%{box-shadow:0 0 14px rgba(232,90,90,0.6)}}
+.radar-alarma{animation:alarmaFuerte 1s ease-in-out infinite}
+
+@keyframes crecerBarra{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.tfill{transform-origin:left;animation:crecerBarra 0.9s cubic-bezier(.22,.9,.32,1);border-radius:2px}
+.tfill.c{background:linear-gradient(90deg,var(--gn),#5FE0A0)}
+.tfill.m{background:linear-gradient(90deg,var(--am),#F0BC7A)}
+.tfill.f{background:linear-gradient(90deg,var(--rd),#F09090)}
+
+.alert-box{background:rgba(232,90,90,0.08);border:1px solid var(--rd);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;min-width:0}
+.alert-box .icon{font-size:16px;flex-shrink:0}
+.alert-box span:not(.icon){flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word}
+.alert-box.warn{background:rgba(232,90,90,0.08);border-color:var(--rd);animation:alertaZona 2.2s ease-in-out infinite}
+.alert-box.info{background:rgba(201,162,75,0.08);border-color:var(--ac)}
+.alert-box.success{background:rgba(52,199,123,0.08);border-color:var(--gn)}
+
+.notification{position:fixed;bottom:16px;right:16px;left:16px;background:var(--s2);border:1px solid var(--ac);border-radius:var(--radius);padding:16px 20px;z-index:1000;max-width:420px;margin:0 auto;box-shadow:0 14px 34px -8px rgba(0,0,0,0.55);animation:slideUp 0.4s ease}
+@keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
+.notification .title{font-weight:700;font-size:15px;font-family:'Space Grotesk',sans-serif}
+.notification .desc{font-size:12px;color:var(--mt);margin-top:6px;line-height:1.4}
+.notification .close-btn{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--mt);font-size:15px}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="notif-container"></div>
+
+<div class="rhdr">
+  <div>
+    <h1>📡 Radar Táctico</h1>
+    <p id="rango">SOLO LO QUE IMPORTA</p>
+  </div>
+  <div>
+    <button class="btn" id="btn-estado" onclick="recargar()">↻ Refrescar</button>
+  </div>
+</div>
+
+<div id="focus-proxima-accion" style="margin-bottom:12px"></div>
+<div id="focus-alertas" style="margin-bottom:12px"></div>
+<div class="kg" id="focus-kpis"></div>
+
+<div class="card">
+  <div class="ch"><h3>📊 Retorno de la misión</h3></div>
+  <div id="focus-rent-total" style="padding:24px">—</div>
+</div>
+
+<div class="card">
+  <div class="ch"><h3>🎯 Objetivos a tiro</h3></div>
+  <div id="focus-trampa">—</div>
+</div>
+
+<div class="card" id="card-cortes-dividendo">
+  <div class="ch"><h3>⏰ Cortes de dividendo próximos</h3><span class="mt2" style="font-size:8px">si te pasas, esperas al siguiente pago</span></div>
+  <div id="focus-cortes">—</div>
+</div>
+
+<div class="card" style="border:1px solid var(--ac)">
+  <div class="ch"><h3>💧 Próximas compras de goteo</h3></div>
+  <div id="focus-goteo">—</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// FUNCIONES BASE (copiadas de index.html)
+// ══════════════════════════════════════════════════════════════════════
+function round2(n) { return Math.round((+n || 0) * 100) / 100; }
+const fe = (n, d = 2) => (+n || 0).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }) +
+' €';
+const f2 = n => (+n || 0).toFixed(2);
+const f1 = n => (+n || 0).toFixed(1);
+const gc = n => n >= 0 ? 'var(--gn)' : 'var(--rd)';
+const sg = n => (n >= 0 ? '+' : '') + fe(n);
+const cn = s => parseFloat(String(s || 0).replace(/[^0-9.\-]/g, '')) || 0;
+
+function diasDesde(fechaStr) {
+    if (!fechaStr) return null;
+    const partes = fechaStr.split(/[\/\-]/);
+    if (partes.length !== 3) return null;
+    let d, m, y;
+    if (partes[0].length === 4) {
+        [y, m, d] = partes.map(x => parseInt(x, 10));
+    } else {
+        [d, m, y] = partes.map(x => parseInt(x, 10));
+        if (y < 100) y += 2000;
+    }
+    const fecha = new Date(y, m - 1, d);
+    if (isNaN(fecha.getTime())) return null;
+    return Math.max(0, Math.round((new Date() - fecha) / 86400000));
+}
+
+function notificar(titulo, desc, tipo = 'info') {
+    const cont = document.getElementById('notif-container');
+    const el = document.createElement('div');
+    el.className = 'notification';
+    const color = tipo === 'success' ? 'var(--gn)' : tipo === 'warn' ? 'var(--rd)' : 'var(--ac)';
+    el.style.borderColor = color;
+    const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.innerHTML = `
+        <div class="close-btn" onclick="this.parentElement.remove()">✕</div>
+        <div class="title" style="color:${color};display:flex;align-items:center;gap:6px">
+            <span style="width:9px;height:9px;border-radius:50%;background:${color};display:inline-block;animation:pulse 1.2s ease-in-out infinite"></span>
+            ${titulo}
+        </div>
+        <div class="desc">${desc}</div>
+        <div style="font-size:9px;color:var(--mt);margin-top:9px;font-family:'JetBrains Mono',monospace;letter-spacing:0.4px">SEÑAL RECIBIDA · ${hora}</div>
+    `;
+    cont.appendChild(el);
+    setTimeout(() => { if (el.parentElement) el.remove(); }, 8000);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// DATOS ESTÁTICOS DE RESPALDO (snapshot D, igual que index.html — se usan
+// mientras la API_GS no ha respondido todavía)
+// ══════════════════════════════════════════════════════════════════════
+const D = {"posiciones": [{"n": "Abbott Labs", "pais": "USA", "ret": 0.15, "sh": 18.5331, "pm": 81.1159, "ct": 1503.33, "nc": 9, "f": "10/04/2026"}, {"n": "AbbVie", "pais": "USA", "ret": 0.15, "sh": 4.3451, "pm": 175.7382, "ct": 763.6, "nc": 3, "f": "07/04/2026"}, {"n": "Air Liquide", "pais": "FRA", "ret": 0.128, "sh": 11.051, "pm": 162.99, "ct": 1801.2, "nc": 2, "f": "22/07/2026"}, {"n": "Becton Dickinson", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 134.6, "ct": 673.0, "nc": 1, "f": "08/07/2026"}, {"n": "BlackRock", "pais": "USA", "ret": 0.15, "sh": 3.0, "pm": 867.6, "ct": 2602.8, "nc": 3, "f": "19/05/2026"}, {"n": "Core MSCI World USD (Acc)", "pais": "IRL", "ret": 0.0, "sh": 10.584, "pm": 110.24, "ct": 1166.78, "nc": 26, "f": "04/08/2025"}, {"n": "Lowe's", "pais": "USA", "ret": 0.15, "sh": 5.0, "pm": 183.65, "ct": 918.25, "nc": 1, "f": "13/07/2026"}, {"n": "MasterCard", "pais": "USA", "ret": 0.15, "sh": 3.0634, "pm": 434.5433, "ct": 1331.18, "nc": 10, "f": "02/02/2026"}, {"n": "Medtronic", "pais": "USA", "ret": 0.15, "sh": 7.0, "pm": 71.1429, "ct": 498.0, "nc": 1, "f": "09/07/2026"}, {"n": "Newmont", "pais": "USA", "ret": 0.15, "sh": 8.546, "pm": 98.33, "ct": 840.33, "nc": 19, "f": "02/03/2026"}, {"n": "Realty Income", "pais": "USA", "ret": 0.15, "sh": 24.09, "pm": 53.81, "ct": 1296.28, "nc": 22, "f": "02/04/2026"}, {"n": "Vici Properties", "pais": "USA", "ret": 0.15, "sh": 40.0, "pm": 23.075, "ct": 923.0, "nc": 1, "f": "08/07/2026"}, {"n": "Visa", "pais": "USA", "ret": 0.15, "sh": 2.4852, "pm": 273.7607, "ct": 680.35, "nc": 7, "f": "02/02/2026"}, {"n": "AMD", "pais": "USA", "ret": 0.0, "sh": 0.104, "pm": 181.5, "ct": 18.88, "nc": 4, "f": "09/12/2025"}, {"n": "Alphabet GOOGL", "pais": "USA", "ret": 0.0, "sh": 4.0, "pm": 285.25, "ct": 1141.0, "nc": 1, "f": "23/07/2026"}], "dividendos": [{"f": "18/12/2025", "n": "Telefonica", "pais": "ESP", "sh": 26.1028, "bruto": 3.93, "ret_origen": 0.0, "neto_tr": 3.93, "tax_es": 0.75, "neto_final": 3.18, "devolucion": 0.0, "neto_real": 3.18}, {"f": "14/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 3.07, "ret_origen": 0.0, "neto_tr": 3.07, "tax_es": 0.58, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "15/01/2026", "n": "Repsol", "pais": "ESP", "sh": 6.1425, "bruto": 3.07, "ret_origen": 0.0, "neto_tr": 3.07, "tax_es": 0.58, "neto_final": 2.49, "devolucion": 0.0, "neto_real": 2.49}, {"f": "26/01/2026", "n": "Acerinox", "pais": "ESP", "sh": 13.9752, "bruto": 4.33, "ret_origen": 0.0, "neto_tr": 4.33, "tax_es": 0.82, "neto_final": 3.51, "devolucion": 0.0, "neto_real": 3.51}, {"f": "02/03/2026", "n": "Visa", "pais": "USA", "sh": 1.4225, "bruto": 0.94, "ret_origen": 0.14, "neto_tr": 0.8, "tax_es": 0.25, "neto_final": 0.55, "devolucion": 0.14, "neto_real": 0.69}, {"f": "26/03/2026", "n": "Newmont", "pais": "USA", "sh": 2.0, "bruto": 0.53, "ret_origen": 0.08, "neto_tr": 0.45, "tax_es": 0.14, "neto_final": 0.31, "devolucion": 0.08, "neto_real": 0.39}, {"f": "08/05/2026", "n": "MasterCard", "pais": "USA", "sh": 1.4436, "bruto": 1.26, "ret_origen": 0.19, "neto_tr": 1.07, "tax_es": 0.33, "neto_final": 0.74, "devolucion": 0.19, "neto_real": 0.93}, {"f": "15/05/2026", "n": "AbbVie", "pais": "USA", "sh": 4.0, "bruto": 6.96, "ret_origen": 1.04, "neto_tr": 5.91, "tax_es": 1.84, "neto_final": 4.07, "devolucion": 1.04, "neto_real": 5.11}, {"f": "15/05/2026", "n": "Realty Income", "pais": "USA", "sh": 6.9542, "bruto": 1.89, "ret_origen": 0.28, "neto_tr": 1.61, "tax_es": 0.5, "neto_final": 1.11, "devolucion": 0.28, "neto_real": 1.39}, {"f": "15/05/2026", "n": "Abbott Labs", "pais": "USA", "sh": 6.0, "bruto": 3.8, "ret_origen": 0.57, "neto_tr": 3.23, "tax_es": 1.0, "neto_final": 2.23, "devolucion": 0.57, "neto_real": 2.8}, {"f": "20/05/2026", "n": "Air Liquide", "pais": "FRA", "sh": 10.0, "bruto": 37.0, "ret_origen": 4.74, "neto_tr": 32.26, "tax_es": 6.13, "neto_final": 26.13, "devolucion": 4.74, "neto_real": 30.87}, {"f": "01/06/2026", "n": "Visa", "pais": "USA", "sh": 2.4852, "bruto": 1.69, "ret_origen": 0.25, "neto_tr": 1.43, "tax_es": 0.45, "neto_final": 0.98, "devolucion": 0.25, "neto_real": 1.23}, {"f": "15/06/2026", "n": "Realty Income", "pais": "USA", "sh": 17.8107, "bruto": 4.9, "ret_origen": 0.74, "neto_tr": 4.17, "tax_es": 1.3, "neto_final": 2.87, "devolucion": 0.74, "neto_real": 3.61}, {"f": "22/06/2026", "n": "Newmont", "pais": "USA", "sh": 6.3891, "bruto": 1.7, "ret_origen": 0.26, "neto_tr": 1.45, "tax_es": 0.45, "neto_final": 1.0, "devolucion": 0.26, "neto_real": 1.26}, {"f": "23/06/2026", "n": "BlackRock", "pais": "USA", "sh": 2.0, "bruto": 11.77, "ret_origen": 1.77, "neto_tr": 10.0, "tax_es": 3.12, "neto_final": 6.88, "devolucion": 1.77, "neto_real": 8.65}, {"f": "09/07/2026", "n": "Indra Sistemas", "pais": "ESP", "sh": 10.0403, "bruto": 3.01, "ret_origen": 0.0, "neto_tr": 3.01, "tax_es": 0.57, "neto_final": 2.44, "devolucion": 0.0, "neto_real": 2.44}, {"f": "15/07/2026", "n": "Realty Income", "pais": "USA", "sh": 23.9478, "bruto": 6.69, "ret_origen": 1.0, "neto_tr": 5.69, "tax_es": 1.77, "neto_final": 3.92, "devolucion": 1.0, "neto_real": 4.92}], "intereses": [{"f": "09/2025", "bruto": 2.29, "tax": 0.44, "neto": 1.85}, {"f": "10/2025", "bruto": 7.62, "tax": 1.45, "neto": 6.17}, {"f": "11/2025", "bruto": 20.63, "tax": 3.92, "neto": 16.71}, {"f": "12/2025", "bruto": 20.15, "tax": 3.83, "neto": 16.32}, {"f": "01/2026", "bruto": 29.56, "tax": 5.62, "neto": 23.94}, {"f": "02/2026", "bruto": 55.58, "tax": 10.56, "neto": 45.02}, {"f": "03/2026", "bruto": 48.5, "tax": 9.22, "neto": 39.28}, {"f": "04/2026", "bruto": 53.1, "tax": 10.09, "neto": 43.01}, {"f": "05/2026", "bruto": 49.38, "tax": 9.38, "neto": 40.0}, {"f": "06/2026", "bruto": 91.1, "tax": 17.31, "neto": 73.79}, {"f": "07/2026", "bruto": 144.89, "tax": 27.53, "neto": 117.36}], "savebacks": [{"f": "02/09/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "02/10/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "03/11/2025", "n": "MSCI ACWI EUR Hedged (Acc)", "i": 15.0}, {"f": "01/12/2025", "n": "nan", "i": 15.0}, {"f": "01/01/2026", "n": "nan", "i": 14.7}, {"f": "01/02/2026", "n": "nan", "i": 15.0}, {"f": "01/03/2026", "n": "nan", "i": 10.77}, {"f": "01/04/2026", "n": "nan", "i": 15.0}, {"f": "01/05/2026", "n": "nan", "i": 13.69}, {"f": "01/06/2026", "n": "Abbott Labs", "i": 12.51}, {"f": "01/07/2026", "n": "Newmont", "i": 13.84}]};
+
+// ══════════════════════════════════════════════════════════════════════
+// URL DE LA API (misma que index.html)
+// ══════════════════════════════════════════════════════════════════════
+const API_GS = 'https://script.google.com/macros/s/AKfycbzZIpT9-8Clu7unO-Y9kwa7IwwCT-_xa8Q3la78AtymUSfdo1wjP4nw1LDjIrbvuekR8A/exec';
+
+// ── ALIAS DE ISIN ──
+const ISIN_ALIAS = {
+    'US09290D1019': 'US09247X1019', // BlackRock
+};
+const isinCanonico = isin => ISIN_ALIAS[isin] || isin;
+const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinCanonico(isinPosicion);
+
+// ── MAPEO ──
+const MAP = {
+    'Abbott Labs': 'Abbott Laboratories',
+    'AbbVie': 'AbbVie Inc',
+    'Air Liquide': 'Air Liquide SA',
+    'AMD': 'AMD',
+    'Becton Dickinson': 'Becton Dickinson',
+    'BlackRock': 'BlackRock Inc',
+    'Core MSCI World USD (Acc)': 'Core MSCI World USD (Acc)',
+    "Lowe's": "Lowe's Companies",
+    'MasterCard': 'MasterCard Inc',
+    'Medtronic': 'Medtronic PLC',
+    'Newmont': 'Newmont Corp',
+    'Realty Income': 'Realty Income Corp',
+    'Vici Properties': 'VICI Properties',
+    'Visa': 'Visa Inc'
+};
+
+let PA = {},
+    TRAMPAS_GS = [];
+
+function precioDe(p) {
+    if (p && p.isin && PA[p.isin] !== undefined) return PA[p.isin];
+    return (p && PA[MAP[p.n] || p.n]) || 0;
+}
+
+let POSICIONES_GS = [];
+let OPERACIONES_CERRADAS = [];
+let COMISIONES_ABIERTAS = {};
+let DIVIDENDOS_GS = null,
+    INTERESES_GS = null,
+    SAVEBACKS_GS = null;
+let PLAN_PANICO_GS = [];
+let GOTEO_GS = [];
+// Control manual desde el propio panel: manda por encima de TODO (techo automático y
+// PRESUPUESTO_MES de la hoja) mientras esté activo — null significa "sin tocar, usa lo normal".
+let GOTEO_OVERRIDE_MENSUAL = null;
+function ajustarPresupuestoGoteoMensual(valor) {
+    GOTEO_OVERRIDE_MENSUAL = valor === '' || valor === null ? null : Math.max(0, parseFloat(valor) || 0);
+    renderFocusGoteo();
+}
+function resetPresupuestoGoteoMensual() {
+    GOTEO_OVERRIDE_MENSUAL = null;
+    renderFocusGoteo();
+}
+let OBJETIVOS_GS = [];
+let CALENDARIO_DIVIDENDOS_GS = [];
+let PICOS_ESPECULATIVAS_GS = {};
+let ULTIMA_FECHA_CSV_GS = null;
+let PERIODO_SELECCIONADO = 'todo'; // el radar siempre muestra "todo", sin selector de periodo
+
+let EFECTIVO_PROPIO_TR = 0;
+const trampasAvisadas = new Set();
+
+let CIERRE_ANTERIOR = null;
+let VALOR_CARTERA_ACTUAL = 0;
+
+function calcularVariacionDia(valorActual, costeActual) {
+    if (!valorActual || !CIERRE_ANTERIOR || CIERRE_ANTERIOR.valor == null) return null;
+    const cierreAnteriorValor = CIERRE_ANTERIOR.valor;
+    const cierreAnteriorCoste = CIERRE_ANTERIOR.coste;
+    let variacion;
+    if (costeActual != null && cierreAnteriorCoste != null) {
+        const gananciaHoy = valorActual - costeActual;
+        const gananciaAyer = cierreAnteriorValor - cierreAnteriorCoste;
+        variacion = gananciaHoy - gananciaAyer;
+    } else {
+        variacion = valorActual - cierreAnteriorValor;
+    }
+    const variacionPct = cierreAnteriorValor ? (variacion / cierreAnteriorValor * 100) : 0;
+    return { cierreAnterior: cierreAnteriorValor, variacion, variacionPct, fecha: CIERRE_ANTERIOR.fecha };
+}
+
+function divsEnVivo() {
+    return DIVIDENDOS_GS && DIVIDENDOS_GS.length ? DIVIDENDOS_GS : D.dividendos;
+}
+function interesesEnVivo() {
+    return INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses;
+}
+function savebacksEnVivo() {
+    return SAVEBACKS_GS && SAVEBACKS_GS.length ? SAVEBACKS_GS : D.savebacks;
+}
+
+let DATOS_EN_VIVO = false;
+let _cachePosicionesVivas = null;
+function posicionesVivas() {
+    if (_cachePosicionesVivas) return _cachePosicionesVivas;
+    if (!POSICIONES_GS.length) return D.posiciones;
+    _cachePosicionesVivas = POSICIONES_GS.map(live => {
+        const estatico = D.posiciones.find(p => (MAP[p.n] || p.n) === live.nombre) || {};
+        const clavesPosibles = [estatico.n, live.nombre, live.nombre === 'Alphabet GOOGL' ? 'Alphabet (A)' :
+            null];
+        let comisionInfo = 0;
+        for (const clave of clavesPosibles) {
+            if (clave && COMISIONES_ABIERTAS[clave]) { comisionInfo = COMISIONES_ABIERTAS[clave].comision; break; }
+        }
+        const paisPorIsin = { ES: 'ESP', FR: 'FRA', US: 'USA', IE: 'IRL', DE: 'DEU', GB: 'GBR', NL: 'NLD',
+            CH: 'CHE', LU: 'LUX', IT: 'ITA' };
+        const isinLimpio = (live.isin || '').trim().toUpperCase();
+        const paisDesdeIsin = isinLimpio ? paisPorIsin[isinLimpio.substring(0, 2)] : null;
+        return {
+            n: live.nombre,
+            isin: isinLimpio,
+            tipo: live.tipo || 'Forever',
+            pais: estatico.pais || paisDesdeIsin || '—',
+            sector: live.sector || 'Sin clasificar',
+            ret: estatico.ret || 0,
+            sh: live.acciones,
+            pm: live.pCompra,
+            divAcc: live.divAcc || 0,
+            divAnio: live.divAnio || 0,
+            ct: live.acciones * live.pCompra,
+            comisiones: comisionInfo,
+            nc: estatico.nc || 1,
+            f: estatico.f || '—'
+        };
+    });
+    return _cachePosicionesVivas;
+}
+
+function fechaEnPeriodo_DDMMYYYY(f) {
+    if (PERIODO_SELECCIONADO === 'todo') return true;
+    const partes = f.split('/');
+    const mes = partes[1], anio = partes[2];
+    if (PERIODO_SELECCIONADO === 'mes') {
+        const hoy = new Date();
+        return mes === String(hoy.getMonth() + 1).padStart(2, '0') && anio === String(hoy.getFullYear());
+    }
+    return anio === PERIODO_SELECCIONADO;
+}
+function fechaEnPeriodo_MMYYYY(f) {
+    if (PERIODO_SELECCIONADO === 'todo') return true;
+    const partes = f.split('/');
+    const mes = partes[0], anio = partes[1];
+    if (PERIODO_SELECCIONADO === 'mes') {
+        const hoy = new Date();
+        return mes === String(hoy.getMonth() + 1).padStart(2, '0') && anio === String(hoy.getFullYear());
+    }
+    return anio === PERIODO_SELECCIONADO;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RESULTADOS PRÓXIMOS — el radar completo también los usa en "Próxima
+// acción", pero cargarlos (llamadas a Finnhub) es opcional y no crítico
+// para la carga rápida; se deja vacío aquí (misma variable, sin llamada).
+// ══════════════════════════════════════════════════════════════════════
+let RESULTADOS_PROXIMOS = [];
+
+// ══════════════════════════════════════════════════════════════════════
+// PRÓXIMA ACCIÓN RECOMENDADA (copiado 1:1 de renderProximaAccion en index.html)
+// ══════════════════════════════════════════════════════════════════════
+function renderProximaAccion() {
+    const cont = document.getElementById('proxima-accion');
+    const contFocus = document.getElementById('focus-proxima-accion');
+    if (!cont && !contFocus) return;
+
+    const candidatas = [];
+
+    TRAMPAS_GS.forEach(r => {
+        const d = Math.abs(cn(r[5]));
+        const op = r[11] === true;
+        if (d > 0 && d <= 1.5 && !op) {
+            candidatas.push({
+                prioridad: 1,
+                icon: '🚨',
+                texto: r[0] + ' está a solo ' + d.toFixed(1) + '% de su trampa y no tienes la orden puesta.',
+                color: 'var(--rd)'
+            });
+        }
+    });
+
+    const hoy = new Date();
+    const en7dias = new Date(hoy.getTime() + 7 * 86400000);
+    RESULTADOS_PROXIMOS.forEach(r => {
+        const f = new Date(r.fecha + 'T00:00:00');
+        if (f >= hoy && f <= en7dias) {
+            const dias = Math.round((f - hoy) / 86400000);
+            candidatas.push({
+                prioridad: 2,
+                icon: '📅',
+                texto: r.nombre + ' presenta resultados en ' + dias + ' día' + (dias === 1 ? '' : 's') + '.',
+                color: 'var(--am)'
+            });
+        }
+    });
+
+    const rDiv = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0) / 12;
+    const rInt = interesesEnVivo().reduce((s, i) => s + i.neto, 0) / Math.max(1, interesesEnVivo().length);
+    const totMesActual = rDiv + rInt + 150;
+    const faltaObjetivo = 300 - totMesActual;
+    if (faltaObjetivo > 0 && faltaObjetivo < 30) {
+        candidatas.push({
+            prioridad: 3,
+            icon: '🎯',
+            texto: 'Solo te faltan ' + fe(faltaObjetivo) + ' para llegar a los 300€/mes de objetivo.',
+            color: 'var(--gn)'
+        });
+    }
+
+    const pos = posicionesVivas();
+    const totalCostAccion = pos.reduce((s, p) => s + p.ct, 0);
+    const masConcentrado = pos.map(p => ({ n: p.n, peso: totalCostAccion ? p.ct / totalCostAccion * 100 : 0 }))
+        .sort((a, b) => b.peso - a.peso)[0];
+    if (masConcentrado && masConcentrado.peso > 25) {
+        candidatas.push({
+            prioridad: 4,
+            icon: '📊',
+            texto: masConcentrado.n + ' supone el ' + masConcentrado.peso.toFixed(0) +
+                '% de tu cartera — vigila la concentración.',
+            color: 'var(--am)'
+        });
+    }
+
+    candidatas.sort((a, b) => a.prioridad - b.prioridad);
+    const elegida = candidatas[0];
+
+    const html = !elegida ?
+        '<div class="alert-box success"><span class="icon">✅</span><span style="font-weight:600">Todo en orden — no hay ninguna acción urgente pendiente hoy.</span></div>' :
+        '<div style="border:1px solid ' + elegida.color +
+        ';border-radius:var(--radius);padding:14px 16px;background:color-mix(in srgb, ' + elegida.color +
+        ' 8%, transparent);display:flex;align-items:center;gap:12px">' +
+        '<span style="font-size:22px">' + elegida.icon + '</span>' +
+        '<div><div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Próxima acción recomendada</div>' +
+        '<div style="font-size:13px;font-weight:700">' + elegida.texto + '</div></div>' +
+        '</div>';
+
+    if (cont) cont.innerHTML = html;
+    if (contFocus) contFocus.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// CORTES DE DIVIDENDO (calcularProximoCorte + renderFocusCortes, copiados 1:1)
+// ══════════════════════════════════════════════════════════════════════
+function calcularProximoCorte(isin) {
+    const cal = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin === isin);
+    if (!cal || !cal.diaCorte || !cal.meses || !cal.meses.length) return null;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const anioActual = hoy.getFullYear();
+    let candidatas = [];
+    cal.meses.forEach(m => {
+        candidatas.push(new Date(anioActual, m - 1, cal.diaCorte));
+        candidatas.push(new Date(anioActual + 1, m - 1, cal.diaCorte));
+    });
+    candidatas = candidatas.filter(d => d >= hoy).sort((a, b) => a - b);
+    if (!candidatas.length) return null;
+    const proxima = candidatas[0];
+    const dias = Math.round((proxima - hoy) / (1000 * 60 * 60 * 24));
+    return { fecha: proxima, dias, numPagosAlAnio: cal.meses.length, diaPago: cal.diaPago };
+}
+
+function renderFocusCortes() {
+    const cont = document.getElementById('focus-cortes');
+    const cardEl = document.getElementById('card-cortes-dividendo');
+    if (!cont) return;
+
+    const pos = posicionesVivas().filter(p => (p.divAcc || 0) > 0 && p.sh > 0);
+    const proximos = pos.map(p => {
+        const info = calcularProximoCorte(p.isin);
+        if (!info) return null;
+        const pa = precioDe(p) || 0;
+        const divPorPago = p.divAcc / info.numPagosAlAnio;
+        const precioProyectado = pa ? Math.max(0, pa - divPorPago) : 0;
+        const accionesCon1000 = pa ? (1000 / pa) : 0;
+        const importeCon1000PorPago = accionesCon1000 * divPorPago;
+        const yieldAnualPct = pa ? (p.divAcc / pa * 100) : 0;
+        return { nombre: p.n, isin: p.isin, dias: info.dias, fecha: info.fecha, numPagosAlAnio: info
+            .numPagosAlAnio, diaPago: info.diaPago, pa, divPorPago, precioProyectado, sh: p.sh,
+            importeCon1000PorPago, yieldAnualPct };
+    }).filter(Boolean).filter(x => x.dias <= 30).sort((a, b) => a.dias - b.dias);
+
+    if (!proximos.length) {
+        if (cardEl) cardEl.style.display = 'none';
+        return;
+    }
+    if (cardEl) cardEl.style.display = '';
+
+    const nombresMesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov',
+        'dic'];
+
+    cont.innerHTML = proximos.map(x => {
+        const pocoFrecuente = x.numPagosAlAnio <= 2;
+        let nivel, color, icono;
+        if (x.dias <= 2) { nivel = 'ÚLTIMA LLAMADA';
+            color = 'var(--rd)';
+            icono = '🔴'; } else if (x.dias <= (pocoFrecuente ? 15 : 7)) { nivel = 'A VIGILAR';
+            color = 'var(--am)';
+            icono = '🟠'; } else { nivel = 'Tranquilo';
+            color = 'var(--gn)';
+            icono = '🟢'; }
+        const fechaTxt = x.fecha.getDate() + ' ' + nombresMesesCortos[x.fecha.getMonth()];
+        const avisoEspecial = (pocoFrecuente && x.dias <= 15) ?
+            ('<div class="mt2" style="font-size:13px;margin-top:6px">⚠️ Solo paga ' + x.numPagosAlAnio +
+                ' vez' + (x.numPagosAlAnio === 1 ? '' : 'es') +
+                ' al año — si te pasas de esta fecha, el siguiente pago tarda meses.</div>') : '';
+        const proyeccionHTML = (x.dias <= 15 && x.pa && x.divPorPago > 0.01) ?
+            ('<div class="mt2" style="font-size:13px;margin-top:6px;padding:8px 10px;background:var(--s2);border-radius:6px">💡 Ahora a ' +
+                fe(x.pa) + ', reparte ' + fe(x.divPorPago) + '/acción — el día del corte suele bajar sola a ~' +
+                fe(x.precioProyectado) + ', un momento a vigilar para comprar</div>') : '';
+        return '<div style="padding:16px;border-bottom:1px solid var(--bd);' + (x.dias <= 2 ?
+                'background:rgba(232,90,90,0.08)' : '') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<b style="font-size:20px">' + icono + ' ' + x.nombre + '</b>' +
+            '<span style="font-size:20px;font-weight:800;color:' + color + '">' + (x.dias === 0 ? 'HOY' :
+                x.dias + ' día' + (x.dias === 1 ? '' : 's')) + '</span></div>' +
+            '<div class="mt2" style="font-size:15px;margin-top:4px">Corte: ' + fechaTxt + '</div>' +
+            '<div style="margin-top:8px;padding:8px 10px;background:var(--s2);border-radius:6px">' +
+            '<div style="display:flex;justify-content:space-between;font-size:15px">' +
+            '<span class="mt2">Si inviertes 1.000€ a ' + fe(x.pa) + '</span>' +
+            '<span style="font-weight:800;color:var(--gn)">' + fe(x.importeCon1000PorPago) +
+            ' este pago</span></div>' +
+            '<div class="mt2" style="font-size:12px;margin-top:2px">' + x.yieldAnualPct.toFixed(2) +
+            '% yield anual · ' + x.numPagosAlAnio + ' pago' + (x.numPagosAlAnio === 1 ? '' : 's') +
+            '/año</div></div>' +
+            avisoEspecial + proyeccionHTML + '</div>';
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// MOTOR DE GOTEO — copiado 1:1 de index.html (obtenerTasaReferencia,
+// obtenerPresupuestoManual, _distribuirSueloYCompetitivo,
+// calcularRepartoConAcciones, calcularScoreActivo, calcularPuntosDividendo,
+// detectarOportunidadesExcepcionales, analizarGrupoRecurrente,
+// sugerirDestinoFlexible, avisoOrdenTrampaActiva).
+// Suelo 50€ ETF / tope 50% del presupuesto / peso = score-34 / override
+// manual / suelo absoluto de rentabilidad — ni un número tocado.
+// ══════════════════════════════════════════════════════════════════════
+function obtenerTasaReferencia() {
+    const filaTasa = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'TASA_REFERENCIA');
+    return (filaTasa && filaTasa.importe > 0) ? filaTasa.importe : 2.5;
+}
+
+function obtenerPresupuestoManual() {
+    const fila = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MES');
+    return (fila && fila.importe > 0) ? fila.importe : null;
+}
+
+function _distribuirSueloYCompetitivo(candidatosETF, accionesEnJuego, importeTotal) {
+    const SUELO_ETF_OBJETIVO = 50, TOPE_PCT = 0.5, UMBRAL = 34;
+    const sueloETFAplicado = Math.min(SUELO_ETF_OBJETIVO, importeTotal);
+    const topeIndividual = importeTotal * TOPE_PCT;
+    const candidatosFinales = [...candidatosETF, ...accionesEnJuego];
+
+    const sumaScoresETF = candidatosETF.reduce((s, e) => s + Math.max(0.1, e.score), 0);
+    const importes = {};
+    candidatosETF.forEach(etf => { importes[etf.isin] = sumaScoresETF ? sueloETFAplicado * (Math.max(0.1, etf
+        .score) / sumaScoresETF) : 0; });
+    accionesEnJuego.forEach(acc => { importes[acc.isin] = 0; });
+
+    const restante = importeTotal - sueloETFAplicado;
+    const pesos = candidatosFinales.map(c => Math.max(0, c.score - UMBRAL));
+    const sumaPesos = pesos.reduce((s, w) => s + w, 0);
+    if (sumaPesos > 0) {
+        candidatosFinales.forEach((c, i) => { importes[c.isin] += restante * (pesos[i] / sumaPesos); });
+    }
+
+    let excedente = 0;
+    candidatosFinales.forEach(c => {
+        if (importes[c.isin] > topeIndividual) {
+            excedente += importes[c.isin] - topeIndividual;
+            importes[c.isin] = topeIndividual;
+        }
+    });
+    let vueltas = 0;
+    while (excedente > 0.01 && vueltas < 5) {
+        const elegibles = candidatosFinales.filter(c => c.score > UMBRAL && importes[c.isin] < topeIndividual - 0.01);
+        if (!elegibles.length) break;
+        const sumaPesosElegibles = elegibles.reduce((s, c) => s + Math.max(0, c.score - UMBRAL), 0);
+        if (!sumaPesosElegibles) break;
+        const excedenteRestante = excedente;
+        excedente = 0;
+        elegibles.forEach(c => {
+            const peso = Math.max(0, c.score - UMBRAL);
+            const propuesta = excedenteRestante * (peso / sumaPesosElegibles);
+            const margenLibre = topeIndividual - importes[c.isin];
+            const asignado = Math.min(propuesta, margenLibre);
+            importes[c.isin] += asignado;
+            if (propuesta > asignado) excedente += propuesta - asignado;
+        });
+        vueltas++;
+    }
+    return importes;
+}
+
+function calcularRepartoConAcciones(importe, universoISINs) {
+    const MARGEN_VENTAJA = 15;
+    const UMBRAL_TECHO = 80;
+    const EXTRA_TECHO = 200;
+    const MAX_ACCIONES_GANADORAS = 3;
+
+    const candidatosETF = universoISINs.map(isin => calcularScoreActivo(isin));
+
+    const tieneTrampaEscalonada = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return t ? ((t[14] || '').toLowerCase()).includes('escalonado') : false;
+    };
+    const esAutomatizable = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return !t || t[18] !== false;
+    };
+    const todasLasAcciones = posicionesVivas()
+        .filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && !universoISINs.includes(p.isin) &&
+            esAutomatizable(p.isin) && !tieneTrampaEscalonada(p.isin))
+        .filter(p => {
+            const t = TRAMPAS_GS.find(r => r[15] === p.isin);
+            const prioridad = t ? (t[2] || '').trim() : '';
+            return prioridad === 'A+' || prioridad === 'A';
+        })
+        .map(p => calcularScoreActivo(p.isin))
+        .sort((a, b) => b.score - a.score);
+
+    const TASA_LIQUIDEZ_TR = obtenerTasaReferencia();
+    const MARGEN_SOBRE_LIQUIDEZ = 2.5;
+    const UMBRAL_RETORNO_MINIMO = TASA_LIQUIDEZ_TR + MARGEN_SOBRE_LIQUIDEZ;
+
+    const etfsConDatos = candidatosETF.filter(e => !e.sinDatosReales);
+    const baseParaVara = etfsConDatos.length ? etfsConDatos : candidatosETF;
+    const peorScoreETF = baseParaVara.length ? Math.min(...baseParaVara.map(e => e.score)) : 0;
+    const accionesGanadoras = todasLasAcciones
+        .filter(acc => (acc.score - peorScoreETF) >= MARGEN_VENTAJA && (acc.yieldActual || 0) >=
+            UMBRAL_RETORNO_MINIMO)
+        .slice(0, MAX_ACCIONES_GANADORAS);
+    const mejorAccion = accionesGanadoras[0] || null;
+
+    const etfDeReferencia = baseParaVara.length ? baseParaVara.reduce((peor, e) => (!peor || e.score < peor.score) ?
+        e : peor, null) : null;
+    const explicacionesAccion = {};
+    accionesGanadoras.forEach(acc => {
+        const margen = etfDeReferencia ? (acc.score - etfDeReferencia.score) : null;
+        explicacionesAccion[acc.isin] = '🎯 Puntuación ' + acc.score.toFixed(0) + '/100' + (etfDeReferencia ?
+            ' vs ' + etfDeReferencia.nombre + ' (' + etfDeReferencia.score.toFixed(0) +
+            '/100) — le gana por ' + margen.toFixed(0) + ' puntos (mínimo exigido: ' + MARGEN_VENTAJA + ').' :
+            '.') + ' Yield actual ' + (acc.yieldActual || 0).toFixed(1) + '% (mínimo exigido: ' +
+            UMBRAL_RETORNO_MINIMO.toFixed(1) + '%).';
+    });
+
+    const presupuestoManual = obtenerPresupuestoManual();
+    let importeTotal, techoActivado = false;
+    if (GOTEO_OVERRIDE_MENSUAL !== null) {
+        importeTotal = GOTEO_OVERRIDE_MENSUAL;
+    } else if (presupuestoManual !== null) {
+        importeTotal = presupuestoManual;
+    } else {
+        importeTotal = importe;
+        if (mejorAccion && mejorAccion.score >= UMBRAL_TECHO) {
+            importeTotal += EXTRA_TECHO;
+            techoActivado = true;
+        }
+    }
+
+    const candidatosFinales = [...candidatosETF, ...accionesGanadoras];
+
+    if (!candidatosFinales.length) return { reparto: [], liquidez: importeTotal };
+
+    const MINIMO_MES_TOTAL = Math.min(50, importeTotal);
+
+    const mejorYieldDisponible = Math.max(0, ...candidatosFinales.map(c => c.yieldActual || 0));
+    if (mejorYieldDisponible < UMBRAL_RETORNO_MINIMO) {
+        const sumaYields = candidatosFinales.reduce((s, c) => s + Math.max(0.1, c.yieldActual || 0), 0);
+        const repartoMinimo = candidatosFinales.map(c => ({
+            nombre: c.nombre, isin: c.isin, importe: MINIMO_MES_TOTAL * (Math.max(0.1, c.yieldActual || 0) /
+                sumaYields), peso: (Math.max(0.1, c.yieldActual || 0) / sumaYields) * 100, pctRango52: c.pctRango52,
+            distTrampaPct: c.distTrampaPct, atractivo: false, esAccion: accionesGanadoras.includes(c), pa: c.pa,
+            score: c.score, yieldActual: c.yieldActual, explicacion: explicacionesAccion[c.isin] || null
+        })).filter(r => r.importe > 0.5).sort((a, b) => b.importe - a.importe);
+        const ganadorMenosMalo = candidatosFinales.reduce((mejor, c) => (!mejor || (c.yieldActual || 0) > (
+            mejor.yieldActual || 0)) ? c : mejor, null);
+        return {
+            reparto: repartoMinimo, liquidez: Math.max(0, importeTotal - MINIMO_MES_TOTAL),
+            avisoNadaAtractivo: '🔒 Nada llega al ' + UMBRAL_RETORNO_MINIMO.toFixed(1) +
+                '% mínimo exigido (referencia ' + TASA_LIQUIDEZ_TR.toFixed(1) + '% + ' + MARGEN_SOBRE_LIQUIDEZ
+                .toFixed(1) + 'pp de margen) — mejor yield disponible: ' + mejorYieldDisponible.toFixed(1) +
+                '%. Cubrimos solo los ' + fe(MINIMO_MES_TOTAL, 0) + ' del hábito, la opción menos mala es ' +
+                (ganadorMenosMalo ? ganadorMenosMalo.nombre : '—') + '. El resto se queda en liquidez ganando el ' +
+                TASA_LIQUIDEZ_TR.toFixed(1) + '% en TR.'
+        };
+    }
+
+    const UMBRAL_NADA_ATRACTIVO = 34;
+
+    const importesPorCandidato = _distribuirSueloYCompetitivo(candidatosETF, accionesGanadoras, importeTotal);
+    const totalDesplegado = candidatosFinales.reduce((s, c) => s + importesPorCandidato[c.isin], 0);
+    const liquidezSobrante = Math.max(0, importeTotal - totalDesplegado);
+
+    const importesSinAcciones = _distribuirSueloYCompetitivo(candidatosETF, [], importeTotal);
+
+    const repartoFinal = candidatosFinales.map(c => ({
+        nombre: c.nombre, isin: c.isin, importe: importesPorCandidato[c.isin],
+        peso: totalDesplegado ? (importesPorCandidato[c.isin] / totalDesplegado * 100) : 0,
+        pctRango52: c.pctRango52, distTrampaPct: c.distTrampaPct, atractivo: c.score >= 50,
+        esAccion: accionesGanadoras.includes(c), pa: c.pa, score: c.score, yieldActual: c.yieldActual,
+        explicacion: explicacionesAccion[c.isin] || null
+    })).sort((a, b) => b.importe - a.importe);
+
+    const avisoAccion = accionesGanadoras.length ?
+        accionesGanadoras.map(a => {
+            const recibido = importesPorCandidato[a.isin];
+            if (recibido < 0.5) {
+                return '🎯 ' + a.nombre + ' (' + a.score.toFixed(0) +
+                    'pts) puntúa por encima de los ETF, pero no recibe nada este mes: con ' + fe(importeTotal, 0) +
+                    ' de presupuesto, el suelo mínimo de los ETF (' + fe(Math.min(50, importeTotal), 0) +
+                    ') se lleva prácticamente todo. Sube el presupuesto para que también compita por dinero.';
+            }
+            const detalleETF = candidatosETF.map(etf => etf.nombre + ': ' + fe(importesPorCandidato[etf.isin], 0) +
+                ' (sin ' + a.nombre + ' habría recibido ' + fe(importesSinAcciones[etf.isin], 0) + ')').join(' · ');
+            return '🎯 ' + a.nombre + ' (' + a.score.toFixed(0) + 'pts) entra en el reparto y recibe ' + fe(
+                recibido, 0) + '. ' + detalleETF + '.';
+        }).join(' ') + ' Presupuesto usado: ' + fe(importeTotal, 0) + (techoActivado ?
+            ' (techo especial activado)' : '') + ' · Liquidez: ' + fe(liquidezSobrante, 0) + '.' : '';
+
+    return { reparto: repartoFinal, liquidez: liquidezSobrante, techoActivado, presupuestoUsado: importeTotal, avisoAccion };
+}
+
+const ISIN_REALTY_INCOME = 'US7561091049';
+function avisoOrdenTrampaActiva(isin, importeAsignado, tipoBloque) {
+    if ((tipoBloque || '').toUpperCase().trim() === 'REDONDEO' && isin === ISIN_REALTY_INCOME) return null;
+    const t = TRAMPAS_GS.find(r => r[15] === isin);
+    if (!t || t[11] !== true) return null;
+
+    const trampa = cn(t[3]);
+    const acciones = cn(t[6]);
+    const nombre = t[0];
+    const pos = posicionesVivas().find(p => p.isin === isin);
+    const pa = pos ? precioDe(pos) : cn(t[4]);
+    const detalleOrden = nombre + ' tiene orden de trampa activa a ' + fe(trampa) + ' (' + (acciones ?
+        acciones + ' acciones' : 'acciones sin dato') + ').';
+
+    if (importeAsignado > 0.5) {
+        return '⚠️ ' + detalleOrden + ' Si compras esto por goteo, elimina o reduce la orden para no comprar dos veces.';
+    }
+    if (pa && trampa) {
+        const distPct = Math.abs((pa - trampa) / trampa * 100);
+        if (distPct <= 3) {
+            return '⚠️ ' + detalleOrden +
+                ' Está cerca de su trampa: si la orden se ejecuta y además el goteo le asigna dinero, compras dos veces.';
+        }
+    }
+    return null;
+}
+
+function analizarGrupoRecurrente(importe, universoCSV) {
+    if (GOTEO_OVERRIDE_MENSUAL !== null) importe = GOTEO_OVERRIDE_MENSUAL;
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+    const oportunidades = detectarOportunidadesExcepcionales();
+
+    const disparadasDeVerdad = oportunidades.filter(o => o.yaDisparada);
+    if (disparadasDeVerdad.length) {
+        const automatizables = disparadasDeVerdad.filter(o => o.automatizable);
+        if (automatizables.length) {
+            const elegido = automatizables[0];
+            return {
+                tipo: 'pausa', destino: elegido, importe,
+                motivo: '🚨 PAUSA LOS ETF ESTE MES: ' + elegido.nombre + ' (' + elegido.prioridad +
+                    ') ' + elegido.motivo + '. Dejar pasar esto para seguir el plan automático sería un error — redirige los ' +
+                    fe(importe, 0) + ' completos aquí.'
+            };
+        }
+        const avisoManual = automatizables[0] || disparadasDeVerdad[0];
+        const resultadoETF1 = calcularRepartoConAcciones(importe, universo);
+        return {
+            tipo: 'normal_con_aviso', avisoManual, reparto: resultadoETF1.reparto,
+            liquidez: resultadoETF1.liquidez, avisoNadaAtractivo: resultadoETF1.avisoNadaAtractivo,
+            techoActivado: resultadoETF1.techoActivado, avisoAccion: resultadoETF1.avisoAccion,
+            motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
+                ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
+        };
+    }
+
+    if (oportunidades.length) {
+        const resultadoETF2 = calcularRepartoConAcciones(importe, universo);
+        const yaGanaPlaza = isin => resultadoETF2.reparto.some(r => r.isin === isin && r.esAccion);
+        const masCerca = oportunidades.find(o => !yaGanaPlaza(o.isin));
+        if (!masCerca) {
+            return {
+                tipo: 'normal', reparto: resultadoETF2.reparto, liquidez: resultadoETF2.liquidez,
+                avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo, techoActivado: resultadoETF2.techoActivado,
+                avisoAccion: resultadoETF2.avisoAccion
+            };
+        }
+        return {
+            tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
+            liquidez: resultadoETF2.liquidez, avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo,
+            techoActivado: resultadoETF2.techoActivado, avisoAccion: resultadoETF2.avisoAccion,
+            motivoAviso: '👀 A vigilar: ' + masCerca.nombre + ' ' + masCerca.motivo +
+                '. Aún no ha tocado la trampa de verdad, así que los ETF siguen su reparto normal — si la toca, se pausarán.'
+        };
+    }
+
+    const resultadoETF3 = calcularRepartoConAcciones(importe, universo);
+    return {
+        tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez,
+        avisoNadaAtractivo: resultadoETF3.avisoNadaAtractivo, techoActivado: resultadoETF3.techoActivado,
+        avisoAccion: resultadoETF3.avisoAccion
+    };
+}
+
+function calcularScoreActivo(isin) {
+    const pos = posicionesVivas();
+    const p = pos.find(x => x.isin === isin);
+    const trampaFila = TRAMPAS_GS.find(r => r[15] === isin);
+    const pa = p ? precioDe(p) : (trampaFila ? cn(trampaFila[4]) : 0);
+    const nombre = p ? p.n : (trampaFila ? trampaFila[0] : isin);
+    if (!pa) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null };
+
+    if (!trampaFila) return { nombre, isin, score: 50, pctRango52: null, distTrampaPct: null, pa, yieldActual: 0,
+        sinDatosReales: true };
+
+    const trampa = trampaFila ? cn(trampaFila[3]) : 0;
+    const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
+    const min52 = trampaFila ? cn(trampaFila[16]) : 0,
+        max52 = trampaFila ? cn(trampaFila[17]) : 0;
+    const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
+    const puntosRango = 100 - pctRango52;
+
+    const puntosTrampa = distTrampaPct !== null ? Math.max(0, 100 - Math.max(0, distTrampaPct) * 3) : 50;
+
+    const rentActualPct = (p && p.pm) ? ((pa - p.pm) / p.pm * 100) : 0;
+    const puntosDescuento = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
+
+    const puntosDividendo = calcularPuntosDividendo(isin);
+
+    const score = puntosTrampa * 0.51 + puntosRango * 0.205 + puntosDescuento * 0.205 + puntosDividendo * 0.08;
+    const divAcc = trampaFila ? cn(trampaFila[8]) : 0;
+    const yieldActual = (pa && divAcc) ? (divAcc / pa * 100) : 0;
+    return { nombre, isin, score, pctRango52, distTrampaPct, pa, puntosDividendo, yieldActual };
+}
+
+function calcularPuntosDividendo(isin) {
+    const info = calcularProximoCorte(isin);
+    if (!info) return 50;
+    const VENTANA_OPORTUNIDAD = 20;
+    if (info.dias <= VENTANA_OPORTUNIDAD) {
+        return 60 + (VENTANA_OPORTUNIDAD - info.dias) / VENTANA_OPORTUNIDAD * 40;
+    }
+    const penalizacionFrecuencia = info.numPagosAlAnio <= 2 ? 1.5 : 1;
+    return Math.max(10, 50 - (info.dias - VENTANA_OPORTUNIDAD) * 0.3 * penalizacionFrecuencia);
+}
+
+function detectarOportunidadesExcepcionales() {
+    const pos = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever'));
+    const oportunidades = [];
+    pos.forEach(p => {
+        const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
+        if (!trampaFila) return;
+        const prioridad = (trampaFila[2] || '').trim();
+        if (prioridad !== 'A+' && prioridad !== 'A') return;
+
+        const notaTrampaLower = (trampaFila[14] || '').toLowerCase();
+        if (notaTrampaLower.includes('escalonado')) return;
+
+        const pa = precioDe(p);
+        const trampa = cn(trampaFila[3]);
+        if (!pa || !trampa) return;
+        const distPct = (pa - trampa) / trampa * 100;
+        const min52 = cn(trampaFila[16]),
+            max52 = cn(trampaFila[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
+            null;
+
+        const yaDisparada = distPct <= 0;
+        const cercaYBarata = Math.abs(distPct) <= 5 && pctRango52 !== null && pctRango52 <= 20;
+
+        if (yaDisparada || cercaYBarata) {
+            oportunidades.push({
+                nombre: p.n, isin: p.isin, precioActual: pa, prioridad, distPct, pctRango52,
+                automatizable: trampaFila[18] !== false, yaDisparada,
+                motivo: (yaDisparada ?
+                    'ya ha tocado su propia trampa (' + fe(trampa) + '), el precio que decidiste con calma' :
+                    'está a solo ' + Math.abs(distPct).toFixed(1) + '% de su trampa (' + fe(trampa) +
+                    ') Y en el ' + pctRango52.toFixed(0) +
+                    '% más bajo de su rango de 52 semanas — dos señales confirmándose a la vez') +
+                    ' · precio ahora: ' + fe(pa) + ' €'
+            });
+        }
+    });
+    oportunidades.sort((a, b) => (b.yaDisparada - a.yaDisparada) || (a.pctRango52 - b.pctRango52));
+    return oportunidades;
+}
+
+function sugerirDestinoFlexible(excluirIsin, universoCSV) {
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
+    const esAutomatizable = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        return !t || t[18] !== false;
+    };
+    const tieneTrampaEscalonada = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        if (!t) return false;
+        return ((t[14] || '').toLowerCase()).includes('escalonado');
+    };
+    const esCalidadSuficiente = isin => {
+        const t = TRAMPAS_GS.find(r => r[15] === isin);
+        const prioridad = t ? (t[2] || '').trim() : '';
+        return prioridad === 'A+' || prioridad === 'A';
+    };
+    const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
+        .isin !== excluirIsin && (!universo || universo.includes(p.isin)) && esCalidadSuficiente(p.isin));
+    const posNoAutomatizables = posTodas.filter(p => !esAutomatizable(p.isin));
+    const pos = posTodas.filter(p => esAutomatizable(p.isin));
+    const hoy = new Date();
+
+    let ganadorEstrategico = null;
+    for (const obj of OBJETIVOS_GS) {
+        if (!obj.multiplo || !obj.fechaLimite) continue;
+        if (universo && !universo.includes(obj.isin)) continue;
+        const fechaLim = new Date(obj.fechaLimite);
+        if (fechaLim < hoy) continue;
+        const posObj = pos.find(p => p.isin === obj.isin);
+        if (!posObj) continue;
+        const siguienteMultiplo = Math.ceil((posObj.sh + 0.001) / obj.multiplo) * obj.multiplo;
+        const accionesQueFaltan = siguienteMultiplo - posObj.sh;
+        const mesesRestantes = (fechaLim - hoy) / (1000 * 60 * 60 * 24 * 30.44);
+        if (accionesQueFaltan <= obj.multiplo * 0.3 && mesesRestantes >= 1) {
+            ganadorEstrategico = {
+                isin: posObj.isin,
+                explicacionObjetivo: '🎯 Objetivo estratégico: te faltan ' + accionesQueFaltan.toFixed(2) +
+                    ' acciones para completar el siguiente bloque de ' + obj.multiplo + ' antes de ' + obj
+                    .fechaLimite + ' (' + obj.beneficio + ').'
+            };
+            break;
+        }
+    }
+
+    const calendarioPorISINAsesor = {};
+    (CALENDARIO_DIVIDENDOS_GS || []).forEach(c => { if (c.isin) calendarioPorISINAsesor[c.isin] = c.meses; });
+    const mesActualAsesor = hoy.getMonth() + 1;
+
+    const candidatos = pos.map(p => {
+        const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
+        const pa = precioDe(p);
+        if (!trampaFila || !pa) return null;
+
+        const trampa = cn(trampaFila[3]);
+        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : 999;
+        const min52 = cn(trampaFila[16]),
+            max52 = cn(trampaFila[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
+            50;
+        const prioridad = (trampaFila[2] || 'B').trim();
+        const puntosPrioridad = prioridad === 'A+' ? 100 : prioridad === 'A' ? 80 : prioridad === 'A-' ? 65 : 45;
+        const yieldActual = pa ? (cn(trampaFila[8]) / pa * 100) : 0;
+
+        const mesesPago = calendarioPorISINAsesor[p.isin] || [];
+        const numPagos12m = mesesPago.length;
+        let mesesHastaPrimerPago = 12;
+        if (mesesPago.length) {
+            const futuros = mesesPago.map(m => (m - mesActualAsesor + 12) % 12).sort((a, b) => a - b);
+            mesesHastaPrimerPago = futuros[0];
+        }
+        const puntosDividendoCamino = Math.max(0, Math.min(100, numPagos12m * 8 - mesesHastaPrimerPago * 3));
+        const puntosTrampa = tieneTrampaEscalonada(p.isin) ? 50 : Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
+        const puntosRango52 = 100 - pctRango52;
+
+        const rentActualPct = p.pm ? ((pa - p.pm) / p.pm * 100) : 0;
+        const puntosDescuentoCoste = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
+
+        const puntuacionTotal = puntosDescuentoCoste * 0.25 + puntosRango52 * 0.20 +
+            Math.min(100, yieldActual * 15) * 0.25 + puntosDividendoCamino * 0.30;
+
+        return {
+            nombre: p.n, isin: p.isin, precioActual: pa, puntuacionTotal, distTrampaPct, pctRango52, prioridad,
+            yieldActual, numPagos12m, mesesHastaPrimerPago, rentActualPct
+        };
+    }).filter(Boolean).sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
+
+    if (!candidatos.length) return null;
+
+    let top3 = candidatos.slice(0, 3);
+    let ganador = top3[0];
+    let explicacionExtra = '';
+    if (ganadorEstrategico) {
+        const yaEraElMejor = top3[0].isin === ganadorEstrategico.isin;
+        const candidatoEstrategico = candidatos.find(c => c.isin === ganadorEstrategico.isin);
+        if (candidatoEstrategico && !yaEraElMejor) {
+            top3 = [candidatoEstrategico, ...top3.filter(c => c.isin !== ganadorEstrategico.isin)].slice(0, 3);
+        }
+        ganador = candidatoEstrategico || top3[0];
+        explicacionExtra = ganadorEstrategico.explicacionObjetivo + ' Prioridad absoluta sobre las demás opciones. ';
+    }
+
+    if (!ganadorEstrategico) {
+        const tasaRefFlex = obtenerTasaReferencia();
+        const umbralMinimoFlex = tasaRefFlex + 2.5;
+        if (ganador.yieldActual < umbralMinimoFlex) {
+            const alternativaValida = candidatos.find(c => c.yieldActual >= umbralMinimoFlex);
+            if (!alternativaValida) {
+                return {
+                    sinDestino: true, top3,
+                    motivo: '🔒 Ninguno de tus candidatos automáticos llega al ' + umbralMinimoFlex.toFixed(1) +
+                        '% mínimo exigido (referencia ' + tasaRefFlex.toFixed(1) +
+                        '% + 2,5pp de margen) — el mejor por puntuación era ' + ganador.nombre + ' con solo ' +
+                        ganador.yieldActual.toFixed(1) + '% de yield. Mejor quedarse en liquidez esta vez.'
+                };
+            }
+            explicacionExtra += '⚠️ ' + ganador.nombre + ' puntuaba más alto, pero su yield (' + ganador.yieldActual
+                .toFixed(1) + '%) no llega al ' + umbralMinimoFlex.toFixed(1) +
+                '% mínimo exigido — se elige en su lugar la mejor opción que SÍ lo supera. ';
+            ganador = alternativaValida;
+            top3 = [alternativaValida, ...top3.filter(c => c.isin !== alternativaValida.isin)].slice(0, 3);
+        }
+    }
+
+    const explicacionNormal = ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' +
+        (ganador.rentActualPct < 0 ? 'está en ' + ganador.rentActualPct.toFixed(1) +
+            '% respecto a tu precio medio de compra (oportunidad real de promediar a la baja), ' :
+            'está en +' + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio, ') +
+        'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
+        '% de su rango de 52 semanas, prioridad ' + ganador.prioridad + ', yield ' + ganador.yieldActual.toFixed(
+            2) + '%, y ' + ganador.numPagos12m + ' pago' + (ganador.numPagos12m === 1 ? '' : 's') +
+        ' de dividendo en los próximos 12 meses' + (ganador.mesesHastaPrimerPago <= 2 ? ' (el primero muy pronto)' :
+            '') + '.';
+
+    let avisoNoAutomatizable = '';
+    if (posNoAutomatizables.length) {
+        const oportunidadesManuales = detectarOportunidadesExcepcionales().filter(o => posNoAutomatizables.some(
+            p => p.isin === o.isin));
+        if (oportunidadesManuales.length) {
+            avisoNoAutomatizable = ' ⚠️ Aparte: ' + oportunidadesManuales[0].nombre + ' ' +
+                oportunidadesManuales[0].motivo + ', pero no admite planes automáticos — cómprala tú a mano.';
+        }
+    }
+
+    return {
+        nombre: ganador.nombre, isin: ganador.isin, precioActual: ganador.precioActual,
+        esObjetivoEstrategico: !!ganadorEstrategico, top3: top3,
+        explicacion: explicacionExtra + explicacionNormal + avisoNoAutomatizable
+    };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// renderFocusGoteo — copiado 1:1 de index.html
+// ══════════════════════════════════════════════════════════════════════
+function renderFocusGoteo() {
+    const cont = document.getElementById('focus-goteo');
+    if (!cont) return;
+    if (!GOTEO_GS.length) {
+        cont.innerHTML = '<div style="padding:14px;font-size:10px;color:var(--mt)">Sin plan de goteo configurado.</div>';
+        return;
+    }
+
+    const todosSavebacks = savebacksEnVivo() || [];
+    const mediaRedondeoReal = todosSavebacks.length ? todosSavebacks.reduce((s, x) => s + x.i, 0) /
+        todosSavebacks.length : 0;
+    const iconoTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
+    const notaFrecuencia = { 'Mensual': 'día 2 de cada mes', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
+
+    cont.innerHTML = GOTEO_GS.filter(g => !['TASA_REFERENCIA', 'PRESUPUESTO_MES'].includes((g.tipo || '').toUpperCase().trim())).map(g => {
+        const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
+        const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
+        let destinoFilasHTML, esPausa = false,
+            importeMostrado = importeReal;
+
+        if (esGrupo) {
+            const analisis = analizarGrupoRecurrente(importeReal, g.universo);
+            if (analisis.tipo === 'pausa') {
+                esPausa = true;
+                destinoFilasHTML = '<div style="padding:10px 12px;margin-top:6px;background:rgba(232,90,90,0.12);border-radius:8px">' +
+                    '<div style="font-size:14px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
+                    .destino.nombre + '</div></div>';
+                importeMostrado = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : importeReal;
+            } else {
+                importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
+                destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)">' +
+                        '<span style="font-size:14px;font-weight:600">' + (r.esAccion ? '🎯 ' : '') + r.nombre +
+                        '</span>' +
+                        '<span style="font-size:16px;font-weight:800;color:var(--ac)">' + fe(r.importe, 0) +
+                        ' <span class="mt2" style="font-size:10px;font-weight:600">(' + r.peso.toFixed(0) +
+                        '%)</span></span>' +
+                        '</div>').join('') +
+                    (analisis.liquidez > 1 ? '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)"><span style="font-size:14px;font-weight:600">💶 En liquidez (2,5%)</span><span style="font-size:16px;font-weight:800;color:var(--mt)">' +
+                        fe(analisis.liquidez, 0) + '</span></div>' : '');
+            }
+        } else {
+            const sugerencia = sugerirDestinoFlexible(null, g.universo);
+            destinoFilasHTML = (sugerencia && sugerencia.sinDestino) ?
+                '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px">' +
+                '<span style="font-size:14px;font-weight:800;color:var(--ac)">🔒 Liquidez esta vez</span></div>' :
+                '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px">' +
+                '<span style="font-size:15px;font-weight:800;color:var(--ac)">➜ ' + (sugerencia ? sugerencia
+                    .nombre + (sugerencia.esObjetivoEstrategico ? ' 🎯' : '') : 'sin datos suficientes') +
+                '</span></div>';
+        }
+
+        return '<div style="padding:12px 16px;border-bottom:1px solid var(--bd);' + (esPausa ?
+                'background:rgba(232,90,90,0.08)' : '') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+            '<b style="font-size:15px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
+            '<span style="font-size:19px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
+            '</div>' +
+            '<div class="mt2" style="font-size:10px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
+            destinoFilasHTML +
+            '</div>';
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PANEL RADAR — equivalente a la parte de renderDashboard() de index.html
+// que alimenta el modo Focus: KPIs, retorno total, trampas cercanas y
+// alertas. Se ha quitado todo lo que solo alimenta las otras pestañas
+// (kg0, obj-*, heatmap, tabla de posiciones, etc.) — la lógica que SÍ
+// queda aquí es idéntica, número por número, a la de index.html.
+// ══════════════════════════════════════════════════════════════════════
+function renderFocusPanel() {
+    // Rango de fechas (opcional, cosmético)
+    const rangoEl = document.getElementById('rango');
+    if (rangoEl) {
+        const aYYYYMMDD_barras = f => {
+            const partes = (f || '').split('/');
+            return partes.length === 3 ? partes[2] + partes[1].padStart(2, '0') + partes[0].padStart(2, '0') : '';
+        };
+        const fechasInicio = posicionesVivas().map(p => p.f).filter(f => f && f !== '—').sort((a, b) =>
+            aYYYYMMDD_barras(a).localeCompare(aYYYYMMDD_barras(b)));
+        const inicio = fechasInicio.length ? fechasInicio[0] : '—';
+        const fin = ULTIMA_FECHA_CSV_GS || inicio;
+        rangoEl.textContent = inicio + ' → ' + fin;
+    }
+
+    const divTotalSinFiltro = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0);
+    const intTotalSinFiltro = interesesEnVivo().reduce((s, i) => s + i.neto, 0);
+    const numMesesInt = Math.max(1, interesesEnVivo().length);
+    const numMesesDiv = 12;
+    const intMes = intTotalSinFiltro / numMesesInt;
+    const divMes = divTotalSinFiltro / numMesesDiv;
+    const totMes = intMes + divMes + 150;
+    const pct = Math.min(100, totMes / 300 * 100);
+
+    const divsFiltrados = (divsEnVivo() || []).filter(d => fechaEnPeriodo_DDMMYYYY(d.f));
+    const divTotalReal2 = divsFiltrados.reduce((s, d) => s + d.neto_real, 0);
+
+    const pos = posicionesVivas();
+    const totCost = pos.reduce((s, p) => s + p.ct, 0);
+    let totV = 0,
+        totGP = 0;
+    pos.forEach(p => { const pa = precioDe(p) || 0; if (pa > 0) { totV += pa * p.sh;
+            totGP += pa * p.sh - p.ct; } });
+    VALOR_CARTERA_ACTUAL = totV;
+
+    // ── Radar de variación del día ──
+    const varDia = calcularVariacionDia(totV, totCost);
+    const hoyDiaSemana = new Date().getDay();
+    const esFinDeSemana = hoyDiaSemana === 0 || hoyDiaSemana === 6;
+    let radarHtml = '';
+    if (esFinDeSemana) {
+        radarHtml = '<div class="radar-dia" style="background:rgba(112,123,147,0.16);color:var(--mt);font-size:10px">' +
+            '<span>🏳️ Cerrado</span>' +
+            '</div>' +
+            '<div style="color:var(--mt);font-size:8px;margin-top:3px">fin de semana</div>';
+    } else if (varDia) {
+        const p = varDia.variacionPct;
+        let estado, color, bg, tri, pulso;
+        if (p <= -3) {
+            estado = 'CAÍDA FUERTE'; color = 'var(--rd)'; bg = 'rgba(232,90,90,0.14)'; tri = '▼'; pulso =
+                'radar-alarma';
+        } else if (p < -0.3) {
+            estado = 'Día negativo'; color = 'var(--rd)'; bg = 'rgba(232,90,90,0.14)'; tri = '▼'; pulso = '';
+        } else if (p > 0.3) {
+            estado = 'Día positivo'; color = 'var(--gn)'; bg = 'rgba(52,199,123,0.14)'; tri = '▲'; pulso = '';
+        } else {
+            estado = 'Día neutro'; color = 'var(--am)'; bg = 'rgba(226,154,62,0.14)'; tri = '▶'; pulso = '';
+        }
+        radarHtml = '<div class="radar-dia ' + pulso + '" style="background:' + bg + ';color:' + color +
+            ';flex-direction:column;align-items:center;gap:1px;padding:9px 16px;border-radius:14px;white-space:nowrap">' +
+            '<span style="font-size:16px;font-weight:800">' + tri + ' ' + (varDia.variacion >= 0 ? '+' : '') +
+            fe(varDia.variacion) + '</span>' +
+            '<span style="font-size:12px;font-weight:700;opacity:0.85">(' + (p >= 0 ? '+' : '') + p.toFixed(2) +
+            '%)</span>' +
+            '</div>' +
+            '<div style="color:var(--mt);font-size:8px;margin-top:4px;text-align:center">' + estado + ' · hoy</div>';
+    }
+
+    document.getElementById('focus-kpis').innerHTML =
+        '<div class="kpi" style="--kc:#8FE0B4;position:relative">' +
+        (radarHtml ? '<div style="position:absolute;top:14px;right:14px;text-align:right">' + radarHtml +
+            '</div>' : '') +
+        '<div class="kl" style="font-size:11px">Valor cartera</div>' +
+        '<div class="kv" style="color:var(--gn);font-size:clamp(19px,6vw,26px)">' + (!DATOS_EN_VIVO ?
+            '<span class="mt2" style="font-size:16px">cargando…</span>' : (totV ? fe(totV) : '—')) + '</div>' +
+        (DATOS_EN_VIVO && totCost ? '<div style="font-size:15px;font-weight:700;margin-top:4px;color:var(--gn)">Invertido: ' +
+            fe(totCost) + '</div>' : '') +
+        '</div>' +
+        '<div class="kpi" style="--kc:#34C77B">' +
+        '<div class="kl" style="font-size:11px">Rentabilidad acciones</div>' +
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">' +
+        '<div style="color:#34C77B;font-size:clamp(22px,7vw,30px);font-weight:700;font-family:\'JetBrains Mono\',monospace">' +
+            (!DATOS_EN_VIVO ? '<span class="mt2" style="font-size:16px">cargando…</span>' : (totCost ? (totGP / Math.max(1e-9,totCost) * 100)
+                .toFixed(1) + '%' : '—')) + '</div>' +
+        (DATOS_EN_VIVO && totGP ? '<div style="font-size:16px;font-weight:700;color:#34C77B">Total: ' + (totGP >=
+            0 ? '+' : '') + fe(totGP) + '</div>' : '') +
+        '</div>' +
+        '</div>';
+
+    const gpRealizado = OPERACIONES_CERRADAS.reduce((s, o) => s + o.gp, 0);
+    const divTotalReal = divTotalReal2;
+    const gpCombinado = totGP + gpRealizado + divTotalReal;
+    const pctAcciones = totCost ? (totGP / totCost * 100) : 0;
+    const pctTotal = totCost ? (gpCombinado / totCost * 100) : 0;
+
+    const rentTotalEl = document.getElementById('focus-rent-total');
+    if (rentTotalEl) {
+        rentTotalEl.innerHTML = !DATOS_EN_VIVO ? '<div class="mt2" style="font-size:16px;text-align:center">cargando datos reales…</div>' :
+            '<div style="display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap">' +
+            '<div style="font-size:clamp(28px,10vw,40px);font-weight:700;color:' + (gpCombinado >= 0 ?
+                'var(--gn)' : 'var(--rd)') + ';font-family:\'JetBrains Mono\',monospace;line-height:1.1">' + (
+                gpCombinado >= 0 ? '+' : '') + fe(gpCombinado) + '</div>' +
+            '<div style="font-size:clamp(18px,6vw,24px);font-weight:700;color:#C9A24B;font-family:\'JetBrains Mono\',monospace">' +
+            (totCost ? '(' + pctTotal.toFixed(1) + '%)' : '—') + '</div>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--bd)">' +
+            '<div style="text-align:center;min-width:0"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Acciones</div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;margin-top:4px;color:' +
+            (totGP >= 0 ? 'var(--gn)' : 'var(--rd)') + ';white-space:nowrap">' + (totGP >= 0 ? '+' : '') + fe(
+                totGP) + '</div></div>' +
+            '<div style="text-align:center;min-width:0"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Ventas</div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;margin-top:4px;color:' +
+            (gpRealizado >= 0 ? 'var(--gn)' : 'var(--rd)') + ';white-space:nowrap">' + (gpRealizado >= 0 ? '+' :
+                '') + fe(gpRealizado) + '</div></div>' +
+            '<div style="text-align:center;min-width:0"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:0.5px">Dividendos</div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;margin-top:4px;color:var(--gn);white-space:nowrap">+' +
+            fe(divTotalReal) + '</div></div>' +
+            '</div>';
+    }
+
+    // ── Trampas ordenadas por cercanía ──
+    const trampasOrdenadas = [...TRAMPAS_GS]
+        .map(r => ({ n: r[0], calidad: r[1] || '', p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]),
+            acc: cn(r[6]), cap: cn(r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] ||
+            null, nota: r[14] || '', min52: cn(r[16]), max52: cn(r[17]), isin: r[15] || '' }))
+        .filter(t => t.t > 0 && t.pa > 0)
+        .sort((a, b) => {
+            const aDisparada = a.d >= 0,
+                bDisparada = b.d >= 0;
+            if (aDisparada !== bDisparada) return aDisparada ? -1 : 1;
+            if (aDisparada) return b.d - a.d;
+            return Math.abs(a.d) - Math.abs(b.d);
+        });
+
+    trampasOrdenadas.forEach(t => {
+        const dPct = t.d;
+        if (Math.abs(dPct) <= 1 && !trampasAvisadas.has(t.n)) {
+            trampasAvisadas.add(t.n);
+            notificar('🎯 ¡' + t.n + ' está a tiro!', 'Solo a ' + Math.abs(dPct).toFixed(2) +
+                '% de tu precio trampa (' + fe(t.t) + ')', 'warn');
+        }
+    });
+
+    const filaTrampa = (t, destacada, grande) => {
+        const d = t.d;
+        const ad = Math.abs(d);
+        const yaDisparada = d >= 0;
+        const enZona = yaDisparada || ad <= 1.5;
+        const pct2 = Math.max(5, Math.min(100, (1 - ad / 30) * 100));
+        const cls = ad <= 5 ? 'c' : ad <= 10 ? 'm' : 'f';
+        const esE = (t.calidad || '').toUpperCase().includes('ESPEC');
+        const pc = esE ? 'es' : t.p === 'A+' ? 'ap' : t.p === 'A' ? 'a' : t.p === 'A-' ? 'am2' : 'b';
+        const colorPct = enZona ? 'var(--rd)' : destacada ? 'var(--gn)' : cls === 'c' ? 'var(--gn)' : cls ===
+            'm' ? 'var(--am)' : 'var(--rd)';
+        const fName = grande ? (destacada ? 'clamp(18px,6vw,24px)' : 'clamp(16px,5vw,20px)') : (destacada ?
+            '13px' : '11px');
+        const fSub = grande ? '16px' : '9px';
+        const fPct = grande ? (destacada ? 'clamp(20px,6vw,28px)' : 'clamp(18px,5vw,24px)') : (destacada ?
+            '14px' : '10px');
+        const pad = grande ? '22px 22px' : '10px 16px';
+        const claseFila = enZona ? ' zona-disparo' : '';
+        const estiloExtra = enZona ? '' : (destacada ?
+            ';background:rgba(52,199,123,0.10);border-left:3px solid var(--gn)' : '');
+        let estadoOrden;
+        const fEstado = grande ? '13px' : '7.5px';
+        const padEstado = grande ? '4px 10px' : '1px 5px';
+        if (enZona && !t.op) {
+            estadoOrden = '<span class="zona-tag" style="white-space:nowrap;font-size:' + fEstado + ';padding:' +
+                padEstado + '">🚨 SIN ORDEN</span>';
+        } else if (enZona && t.op) {
+            estadoOrden =
+                '<span class="zona-tag" style="white-space:nowrap;background:rgba(52,199,123,0.25);border-color:rgba(52,199,123,0.5);color:#1F9D5C;animation:none;font-size:' +
+                fEstado + ';padding:' + padEstado + '">✅ CUBIERTA</span>';
+        } else if (t.op) {
+            estadoOrden =
+                '<span style="white-space:nowrap;font-size:' + fEstado +
+                ';font-weight:700;color:var(--gn);background:rgba(52,199,123,0.12);border:1px solid rgba(52,199,123,0.3);border-radius:4px;padding:' +
+                padEstado + '">✅ Cubierta</span>';
+        } else {
+            estadoOrden =
+                '<span style="white-space:nowrap;font-size:' + fEstado +
+                ';font-weight:700;color:var(--mt);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:' +
+                padEstado + '">○ Sin orden</span>';
+        }
+        const esLarga = esE || (t.p || '').length > 3;
+        const textoBadge = esE ? 'ESPECULATIVA' : t.p;
+        const insigniaCorta = esLarga ? '' :
+            ('<span class="pr ' + pc + '" style="flex-shrink:0' + (grande ? ';font-size:14px;padding:4px 9px' :
+                '') + '">' + textoBadge + '</span>');
+        const filaLarga = esLarga ?
+            ('<div style="margin-top:3px"><span class="pr ' + pc +
+                '" style="display:inline-block;font-size:' + (grande ? '11px' : '9px') +
+                ';padding:2px 7px">' + textoBadge + '</span></div>') : '';
+        const yieldPct = t.t ? (t.dv / t.t * 100) : 0;
+        const proy1000 = t.t ? (1000 / t.t * t.dv) : 0;
+        const bgPct = colorPct === 'var(--rd)' ? 'rgba(232,90,90,0.15)' : colorPct === 'var(--gn)' ?
+            'rgba(52,199,123,0.15)' : 'rgba(226,154,62,0.15)';
+        return '<div class="' + claseFila.trim() + '" style="padding:' + pad +
+            ';border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:2px' + estiloExtra + '">' +
+            '<div style="font-size:' + fName + ';font-weight:700">' + t.n + '</div>' +
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:2px">' +
+            '<span style="font-size:' + (grande ? '22px' : '18px') + ';font-weight:800;color:' + colorPct +
+            ';flex-shrink:0;background:' + bgPct + ';padding:2px 8px;border-radius:6px">' + (d ? d.toFixed(1) +
+                '%' : '—') + '</span>' +
+            insigniaCorta + estadoOrden + '</div>' +
+            filaLarga +
+            (grande ? '' :
+                '<div style="background:var(--bd);border-radius:2px;height:3px;overflow:hidden;margin:2px 0"><div class="tfill ' +
+                cls + '" style="width:' + pct2 + '%"></div></div>') +
+            '<div style="font-size:' + fSub + ';color:var(--mt)">' + (t.acc ? f2(t.acc) + ' acc.' :
+                '—') + (t.cap ? ' · ' + fe(t.cap, 0) + ' comprometidos' : '') + '</div>' +
+            '<div style="font-size:' + fSub + ';color:var(--mt)">Trampa ' + fe(t.t) + ' · Actual ' + fe(t.pa) +
+            ' · <span style="color:' + (t.pa - t.t <= 0 ? 'var(--gn)' : 'var(--am)') + '">Dif ' + (t.pa - t.t >=
+                0 ? '+' : '') + fe(t.pa - t.t) + '</span></div>' +
+            (t.dv ? '<div style="font-size:' + fSub + ';color:var(--gn)">Si inviertes 1.000€ a ' + fe(t.t) +
+                ': ' + fe(proy1000) + '/año bruto (' + yieldPct.toFixed(2) + '% yield)</div>' : '') +
+            (t.pAnadir ? (() => {
+                const dias = diasDesde(t.fAnadir);
+                const pctDesde = ((t.pa - t.pAnadir) / t.pAnadir * 100);
+                return '<div style="font-size:' + fSub + ';color:var(--mt)">👁️ Vista a ' + fe(t
+                    .pAnadir) + (dias !== null ? ' hace ' + dias + ' día' + (dias === 1 ? '' : 's') : '') +
+                    ' · <span style="color:' + (pctDesde <= 0 ? 'var(--gn)' : 'var(--am)') + '">' + (pctDesde >=
+                        0 ? '+' : '') + pctDesde.toFixed(1) + '% desde entonces</span></div>';
+            })() : '') +
+            (t.min52 && t.max52 ? (() => {
+                const pct52 = Math.max(0, Math.min(100, (t.pa - t.min52) / (t.max52 - t.min52) * 100));
+                const colorZona = pct52 < 33 ? 'var(--gn)' : pct52 > 75 ? 'var(--rd)' : 'var(--am)';
+                return '<div style="margin-top:4px;padding:4px 2px">' +
+                    '<div style="position:relative;height:10px">' +
+                    '<div style="position:absolute;top:3px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--gn),var(--am),var(--rd))"></div>' +
+                    '<div style="position:absolute;top:0;left:calc(' + pct52 +
+                    '% - 4px);width:8px;height:8px;background:var(--tx);border:2px solid ' + colorZona +
+                    ';border-radius:50%"></div></div>' +
+                    '<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--mt);margin-top:1px">' +
+                    '<span>' + fe(t.min52, 0) + '</span><span style="color:' + colorZona + ';font-weight:700">' +
+                    pct52.toFixed(0) + '% del rango</span><span>' + fe(t.max52, 0) + '</span></div></div>';
+            })() : '') +
+            (t.isin ? (() => {
+                const info = calcularProximoCorte(t.isin);
+                if (!info) return '';
+                const nombresMesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep',
+                    'oct', 'nov', 'dic'
+                ];
+                const fechaTxt = info.fecha.getDate() + ' ' + nombresMesesCortos[info.fecha.getMonth()];
+                const divPorPago = t.dv / info.numPagosAlAnio;
+                const importeTotal = t.dv * t.acc / info.numPagosAlAnio;
+                const precioProyectado = t.pa ? Math.max(0, t.pa - divPorPago) : 0;
+                const pocoFrecuente = info.numPagosAlAnio <= 2;
+                const colorDias = info.dias <= 2 ? 'var(--rd)' : info.dias <= (pocoFrecuente ? 15 : 7) ?
+                    'var(--am)' : 'var(--gn)';
+                const meritaEsperar = info.dias <= 15 && divPorPago > 0.005 && (divPorPago / t.pa * 100) >=
+                    0.3;
+                const muyCerca = info.dias <= 3;
+                return '<div style="margin-top:6px;padding:8px 10px;background:' + (muyCerca ?
+                        'rgba(232,90,90,0.12);border:1px solid var(--rd)' : 'var(--s2)') + ';border-radius:8px">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                    '<span style="font-size:12px;color:var(--mt)">💰 Próximo corte: ' + fechaTxt + '</span>' +
+                    '<span style="font-size:14px;font-weight:800;color:' + colorDias + '">' + (info.dias === 0 ?
+                        'HOY' : info.dias + 'd') + '</span></div>' +
+                    (muyCerca ? '<div style="font-size:11px;font-weight:800;color:var(--rd);margin-top:2px">🚨 ¡Está a punto de cortar!</div>' :
+                        '') +
+                    '<div class="mt2" style="font-size:12px;margin-top:2px">~' + fe(importeTotal) +
+                    ' bruto · ' + info.numPagosAlAnio + ' pago' + (info.numPagosAlAnio === 1 ? '' : 's') +
+                    '/año</div>' +
+                    (meritaEsperar ? '<div style="font-size:12px;margin-top:4px;color:var(--ac)">💡 Reparte ' +
+                        fe(divPorPago) + '/acc. — suele bajar sola a ~' + fe(precioProyectado) +
+                        ' en el corte, momento a vigilar</div>' : '') +
+                    '</div>';
+            })() : '') +
+            (t.nota ? '<div style="font-size:' + fSub +
+                ';color:var(--ac);font-style:italic">📝 ' + t.nota + '</div>' : '') +
+            '</div>';
+    };
+
+    document.getElementById('focus-trampa').innerHTML = trampasOrdenadas.length ?
+        trampasOrdenadas.slice(0, 6).map((t, i) => filaTrampa(t, i === 0, true)).join('') :
+        '<div style="padding:20px;text-align:center;color:var(--mt);font-size:12px">No hay trampas activas</div>';
+
+    renderFocusCortes();
+    renderFocusGoteo();
+
+    // ── ALERTAS (copiado 1:1 de index.html) ──
+    const alertas = [];
+    TRAMPAS_GS.forEach(r => {
+        const d = Math.abs(cn(r[5]));
+        if (d > 0 && d <= 1.5) alertas.push({ tipo: 'warn', icon: '🎯', msg: '¡' + r[0] + ' está a tiro! Solo a ' +
+                d.toFixed(1) + '% de su trampa' });
+        else if (d > 1.5 && d < 3) alertas.push({ tipo: 'info', icon: '📡', msg: r[0] +
+                ' entrando en el radar (' + d.toFixed(1) + '% de distancia)' });
+    });
+    const totalCost2 = pos.reduce((s, p) => s + p.ct, 0);
+    pos.forEach(p => {
+        const peso = (p.ct / totalCost2 * 100);
+        if (peso > 25) alertas.push({ tipo: 'info', icon: '📊', msg: p.n + ' supone el ' + peso.toFixed(
+                1) + '% de la cartera (más del 25%)' });
+    });
+    pos.filter(p => (p.tipo || '').toLowerCase().startsWith('especulativ')).forEach(p => {
+        const pa = precioDe(p) || 0;
+        const rentPct = (pa && p.ct) ? ((pa * p.sh - p.ct) / p.ct * 100) : 0;
+        const pico = p.isin ? (PICOS_ESPECULATIVAS_GS[p.isin] || 0) : 0;
+        const retroceso = pico - rentPct;
+
+        if (pico > 0 && retroceso >= 3) {
+            alertas.push({ tipo: 'warn', icon: '📉', msg: p.n + ' (especulativa) llegó a estar en +' + pico
+                    .toFixed(1) + '% y ahora está en +' + rentPct.toFixed(1) +
+                '% — ha retrocedido, considera vender ya en vez de esperar al 12%' });
+        } else if (rentPct >= 12) {
+            alertas.push({ tipo: 'success', icon: '💰', msg: p.n +
+                ' (especulativa) en +' + rentPct.toFixed(1) + '% — objetivo de venta alcanzado' });
+        } else if (rentPct >= 10) {
+            alertas.push({ tipo: 'warn', icon: '👀', msg: p.n +
+                ' (especulativa) en +' + rentPct.toFixed(1) + '% — vigílala, se acerca a la zona de venta (12%)' });
+        }
+    });
+    if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
+            '% de tu objetivo de 300€/mes' });
+
+    if (PLAN_PANICO_GS && PLAN_PANICO_GS.length) {
+        const CAPITAL_POR_TRAMO_ALERTA = 10000;
+        [1, 2, 3].forEach(t => {
+            const nivel = 'tramo' + t;
+            const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
+            const disparados = PLAN_PANICO_GS.filter(p => p.precioActual && p[nivel] && p.precioActual <= p[
+                nivel]).sort((a, b) => a.orden - b.orden).slice(0, 3);
+            if (disparados.length) {
+                const importeCada = Math.min(CAPITAL_POR_TRAMO_ALERTA / disparados.length, 5000);
+                alertas.push({ tipo: 'success', icon: '🚨', msg: 'PANICO: Tramo ' + t + ' (' + caidaPct +
+                        ') activado — concentrar en ' + disparados.map(d => d.nombre).join(', ') + '. Invertir ' +
+                        fe(importeCada, 0) + ' en cada una' });
+            }
+        });
+    }
+    if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
+
+    const alertasHtml = alertas.map(a =>
+        '<div class="alert-box ' + (a.tipo === 'warn' ? 'warn' : a.tipo === 'success' ? 'success' : 'info') +
+        '"><span class="icon">' + a.icon + '</span><span>' + a.msg + '</span></div>'
+    ).join('');
+    const focusAlertContainer = document.getElementById('focus-alertas');
+    if (focusAlertContainer) focusAlertContainer.innerHTML = alertasHtml;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// CARGA DE DATOS — mismo endpoint, mismos campos que index.html
+// ══════════════════════════════════════════════════════════════════════
+async function recargar() {
+    const btn = document.getElementById('btn-estado');
+    if (btn) btn.textContent = 'Sincronizando radar...';
+    try {
+        const res = await fetch(API_GS + '?nocache=' + Date.now() + '&rapido=1');
+        const data = await res.json();
+        if (!data.ok) throw new Error('Respuesta inválida');
+
+        if (data.posiciones) {
+            POSICIONES_GS = data.posiciones;
+            _cachePosicionesVivas = null;
+            DATOS_EN_VIVO = true;
+            const RMAP = {};
+            for (const [k, v] of Object.entries(MAP)) RMAP[v] = k;
+            data.posiciones.forEach(p => {
+                if (p.pActual > 0) {
+                    PA[p.nombre] = p.pActual;
+                    const trNombre = RMAP[p.nombre];
+                    if (trNombre) PA[trNombre] = p.pActual;
+                    if (p.isin) PA[p.isin] = p.pActual;
+                }
+            });
+        }
+
+        if (data.trampas && data.trampas.length) {
+            TRAMPAS_GS = data.trampas.map(t => [
+                t.nombre, t.calidad, t.prioridad, t.trampa, t.pActual, t.distancia * 100, t.acciones, t.capital,
+                t.divAcc, (t.trampa ? (t.divAcc / t.trampa * 100).toFixed(2) + '%' : '—'), t.pago,
+                t.ordenPuesta, t.precioAlAnadir, t.fechaAlAnadir, t.nota, t.isin, t.min52, t.max52, t.automatizable
+            ]);
+        }
+
+        if (data.operaciones) {
+            OPERACIONES_CERRADAS = data.operaciones;
+        }
+        if (data.comisionesAbiertas) {
+            COMISIONES_ABIERTAS = data.comisionesAbiertas;
+        }
+        if (data.cierreAnterior) {
+            CIERRE_ANTERIOR = data.cierreAnterior;
+        }
+        if (data.dividendos) {
+            DIVIDENDOS_GS = data.dividendos;
+        }
+        if (data.intereses) {
+            INTERESES_GS = data.intereses;
+        }
+        if (data.savebacks) {
+            SAVEBACKS_GS = data.savebacks;
+        }
+        if (data.planPanico) {
+            PLAN_PANICO_GS = data.planPanico;
+        }
+        if (data.goteo) {
+            GOTEO_GS = data.goteo;
+        }
+        if (data.objetivos) {
+            OBJETIVOS_GS = data.objetivos;
+        }
+        if (data.calendarioDividendos) {
+            CALENDARIO_DIVIDENDOS_GS = data.calendarioDividendos;
+        }
+        if (data.picosEspeculativas) {
+            PICOS_ESPECULATIVAS_GS = data.picosEspeculativas;
+        }
+        if (data.ultimaFechaCSV) {
+            ULTIMA_FECHA_CSV_GS = data.ultimaFechaCSV;
+        }
+        if (data.totales && data.totales.efectivoPropioTR !== undefined) {
+            EFECTIVO_PROPIO_TR = data.totales.efectivoPropioTR;
+        }
+
+        renderFocusPanel();
+        renderProximaAccion();
+
+        const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        if (btn) btn.textContent = '📡 Radar listo · ' + hora;
+
+    } catch (e) {
+        console.warn('API:', e.message);
+        if (btn) btn.textContent = '⚠️ Sin conexión — mostrando snapshot';
+        // Aun sin conexión, renderizamos con el snapshot estático D como respaldo.
+        renderFocusPanel();
+        renderProximaAccion();
+    }
+}
+
+// Primer render inmediato con el snapshot estático, mientras llega la red
+renderFocusPanel();
+renderProximaAccion();
+recargar();
+</script>
+</body>
+</html>
