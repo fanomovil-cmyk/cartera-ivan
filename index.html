@@ -2840,7 +2840,8 @@ function renderDashboard() {
                     totalesDevolucion[idx] += d.devolucion;
                     totalesBruto[idx] += d.bruto;
                     totalesIRPF[idx] += d.tax_es;
-                    historicoDetalle[idx].push({ n: d.n, monto: d.neto_final, devolucion: d.devolucion });
+                    historicoDetalle[idx].push({ n: d.n, isin: d.isin, monto: d.neto_final, devolucion: d
+                        .devolucion });
                 }
             });
         }
@@ -2915,7 +2916,7 @@ function renderDashboard() {
                     previstosNeto[mes] += netoFinal;
                     previstosDevolucion[mes] += devolucion;
                     previstosIRPF[mes] += irpf;
-                    previstosDetalle[mes].push({ n: p.n, monto: netoFinal, devolucion });
+                    previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoFinal, devolucion });
                 });
                 return; // ya resuelto, no hace falta adivinar nada más para esta posición
             }
@@ -2963,7 +2964,7 @@ function renderDashboard() {
                     previstosNeto[mes] += netoPago;
                     previstosDevolucion[mes] += devPago;
                     previstosIRPF[mes] += irpfPago;
-                    previstosDetalle[mes].push({ n: p.n, monto: netoPago, devolucion: devPago });
+                    previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoPago, devolucion: devPago });
                 }
             } else {
                 // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
@@ -2979,8 +2980,8 @@ function renderDashboard() {
                     previstosNeto[mes] += netoTrim;
                     previstosDevolucion[mes] += devTrim;
                     previstosIRPF[mes] += irpfTrim;
-                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', monto: netoTrim,
-                        devolucion: devTrim });
+                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', isin: p.isin, monto:
+                        netoTrim, devolucion: devTrim });
                 }
             }
         });
@@ -2994,8 +2995,16 @@ function renderDashboard() {
                 // Mes en curso: sumamos lo YA cobrado + lo que aún falta por cobrar de empresas que
                 // este mes todavía no han pagado (antes se perdía esto en cuanto entraba el primer
                 // cobro del mes, mostrando solo esa empresa y dejando fuera al resto).
-                const empresasYaCobradasEsteMes = new Set(historicoDetalle[idx].map(h => h.n));
-                const previstoRestante = previstosDetalle[idx].filter(p => !empresasYaCobradasEsteMes.has(p.n));
+                const normalizarNombre = s => (s || '').toLowerCase().normalize('NFD').replace(
+                    /[̀-ͯ]/g, '').trim();
+                const isinsYaCobradosEsteMes = new Set(historicoDetalle[idx].filter(h => h.isin).map(h =>
+                    isinCanonico(h.isin)));
+                const nombresYaCobradosEsteMes = new Set(historicoDetalle[idx].map(h => normalizarNombre(h.n)));
+                const previstoRestante = previstosDetalle[idx].filter(p => {
+                    if (p.isin && isinsYaCobradosEsteMes.has(isinCanonico(p.isin))) return false;
+                    if (!p.isin && nombresYaCobradosEsteMes.has(normalizarNombre(p.n))) return false;
+                    return true;
+                });
                 valor = totalesNeto[idx] + previstoRestante.reduce((s, p) => s + p.monto, 0);
                 valorDevolucion = totalesDevolucion[idx] + previstoRestante.reduce((s, p) => s + (p.devolucion ||
                     0), 0);
@@ -4167,20 +4176,32 @@ function renderGoteo() {
                 .presupuestoUsado !== undefined ? analisis.presupuestoUsado : importeReal);
             const maxSlider = 1000;
             const marcasSlider = [0, 50, 100, 200, 300, 400, 500, 750, 1000];
+            // Las marcas se colocan en su posición REAL sobre la escala 0-1000 (proporcional al
+            // valor, no repartidas a partes iguales) — si no, 50€ y 100€ se ven tan separados como
+            // 300€ y 400€, y el mando parece estar en un sitio distinto de lo que de verdad vale.
+            const marcasHTML = marcasSlider.map((m, i) => {
+                const pct = (m / maxSlider) * 100;
+                const alineacion = i === 0 ? 'left:0;transform:none' : i === marcasSlider.length - 1 ?
+                    'left:auto;right:0;transform:none' : 'left:' + pct + '%;transform:translateX(-50%)';
+                return '<span style="position:absolute;' + alineacion + ';font-size:7px;color:var(--mt);white-space:nowrap">' +
+                    m + '€</span>';
+            }).join('');
             const controlPresupuestoHTML = '<div style="margin-bottom:10px;padding:10px 12px;background:var(--s2);border-radius:8px">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
                 '<span style="font-size:10px;color:var(--mt)">💧 Presupuesto de este mes' + (GOTEO_OVERRIDE_MENSUAL !==
                     null ? ' <span style="color:var(--am);font-weight:700">(ajustado a mano)</span>' : '') + '</span>' +
-                '<span id="presupuesto-slider-valor" style="font-size:15px;font-weight:800;color:var(--ac);font-family:monospace">' +
-                fe(presupuestoEfectivo, 0) + '</span></div>' +
-                '<input type="range" min="0" max="' + maxSlider + '" step="5" value="' + presupuestoEfectivo +
-                '" list="marcas-presupuesto" oninput="document.getElementById(\'presupuesto-slider-valor\').textContent=fe(parseFloat(this.value),0)" onchange="ajustarPresupuestoGoteoMensual(this.value)" style="width:100%;margin-top:4px">' +
+                '<span style="display:flex;align-items:center;gap:4px">' +
+                '<input id="presupuesto-numero" type="number" min="0" max="' + maxSlider + '" step="5" value="' +
+                Math.round(presupuestoEfectivo) + '" style="width:64px;font-size:13px;font-weight:800;color:var(--ac);font-family:monospace;background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:2px 4px;text-align:right" ' +
+                'oninput="document.getElementById(\'presupuesto-slider-input\').value=this.value" onchange="ajustarPresupuestoGoteoMensual(this.value)">' +
+                '<span style="font-size:12px;color:var(--mt)">€</span></span></div>' +
+                '<input id="presupuesto-slider-input" type="range" min="0" max="' + maxSlider + '" step="5" value="' +
+                presupuestoEfectivo + '" list="marcas-presupuesto" oninput="document.getElementById(\'presupuesto-numero\').value=Math.round(parseFloat(this.value))" onchange="ajustarPresupuestoGoteoMensual(this.value)" style="width:100%;margin-top:6px">' +
                 '<datalist id="marcas-presupuesto">' + marcasSlider.map(m => '<option value="' + m + '"></option>')
                     .join('') + '</datalist>' +
-                '<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--mt);margin-top:1px;padding:0 1px">' +
-                marcasSlider.map(m => '<span>' + m + '€</span>').join('') + '</div>' +
+                '<div style="position:relative;height:11px;margin-top:2px">' + marcasHTML + '</div>' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
-                '<span class="mt2" style="font-size:8px">arrástralo para simular con menos (o más) dinero este mes — el número de arriba se actualiza mientras lo mueves; se recalcula el reparto al soltar</span>' +
+                '<span class="mt2" style="font-size:8px">arrastra la barra o escribe el importe exacto a la derecha — se recalcula al soltar / al confirmar</span>' +
                 (GOTEO_OVERRIDE_MENSUAL !== null ? '<button class="btn" style="font-size:9px;padding:2px 8px" onclick="resetPresupuestoGoteoMensual()">↺ normal</button>' :
                     '') + '</div></div>';
             if (analisis.tipo === 'pausa') {
