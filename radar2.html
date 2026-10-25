@@ -271,10 +271,13 @@ let GOTEO_GS = [];
 let GOTEO_OVERRIDE_MENSUAL = null;
 function ajustarPresupuestoGoteoMensual(valor) {
     GOTEO_OVERRIDE_MENSUAL = valor === '' || valor === null ? null : Math.max(0, parseFloat(valor) || 0);
+    GOTEO_AVISO_GUARDADO = '';
+    if (GOTEO_OVERRIDE_MENSUAL !== null) setTimeout(() => guardarPresupuestoMensualEnHoja(GOTEO_OVERRIDE_MENSUAL), 0);
     renderFocusGoteo();
 }
 function resetPresupuestoGoteoMensual() {
     GOTEO_OVERRIDE_MENSUAL = null;
+    GOTEO_AVISO_GUARDADO = '';
     renderFocusGoteo();
 }
 let OBJETIVOS_GS = [];
@@ -772,61 +775,233 @@ function avisoOrdenTrampaActiva(isin, importeAsignado, tipoBloque) {
     return null;
 }
 
-function analizarGrupoRecurrente(importe, universoCSV) {
-    if (GOTEO_OVERRIDE_MENSUAL !== null) importe = GOTEO_OVERRIDE_MENSUAL;
-    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
-    const oportunidades = detectarOportunidadesExcepcionales();
+// ── GOTEO v2: reglas nuevas (topes de compra, concentración, órdenes TR, renta vs crecimiento, ETF de reserva) ──
+const GOTEO_FILAS_ESPECIALES = ['TASA_REFERENCIA', 'PRESUPUESTO_MES', 'PRESUPUESTO_MENSUAL', 'TOPE_COMPRA', 'MULTIPLICADOR_REDONDEO'];
+const GOTEO_CFG = {
+    MAX_PESO_ACCION: 12,            // % máx. de la cartera en una sola acción
+    MAX_PESO_SECTOR: 25,            // % máx. de la cartera en un sector
+    DIST_TRAMPA_CRECIMIENTO: 5,     // valores de crecimiento: solo si están a ≤ este % de su trampa
+    MARGEN_YIELD_RENTA: 2.5,        // valores de renta: yield ≥ tasa de referencia + este margen
+    BARATO_RANGO_MAX: 40,           // "barato" (ETF mensual): posición en rango 52s ≤ este %
+    BARATO_DIST_MAX: 5,             // ...o a ≤ este % de su trampa
+    ISIN_RESERVA: 'IE00BYYHSQ67',   // MSCI World Quality Dividend: destino si nada es elegible
+    ISINS_EXCLUIDOS: ['IE00B4L5Y983'], // Core MSCI World: no recibe goteo (espera su trampa)
+    ISINS_RENTA: ['US7561091049', 'US0084921008', 'US9256521090'], // Realty, Agree, VICI
+    SECTOR_EXTRA: { 'US0084921008': 'Inmobiliario' }, // sector de candidatas que aún no están en CARTERA
+    MULT_REDONDEO_DEFECTO: 10,      // multiplicador del redondeo cuando el dinero va a una acción
+    N_REDONDEOS: 4
+};
+let GOTEO_AVISO_GUARDADO = '';
 
-    const disparadasDeVerdad = oportunidades.filter(o => o.yaDisparada);
-    if (disparadasDeVerdad.length) {
-        const automatizables = disparadasDeVerdad.filter(o => o.automatizable);
-        if (automatizables.length) {
-            const elegido = automatizables[0];
-            return {
-                tipo: 'pausa', destino: elegido, importe,
-                motivo: '🚨 PAUSA LOS ETF ESTE MES: ' + elegido.nombre + ' (' + elegido.prioridad +
-                    ') ' + elegido.motivo + '. Dejar pasar esto para seguir el plan automático sería un error — redirige los ' +
-                    fe(importe, 0) + ' completos aquí.'
-            };
+function tipoCap(t) { t = String(t || '').trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''; }
+function esFilaEspecialGoteo(g) { return GOTEO_FILAS_ESPECIALES.includes((g.tipo || '').toUpperCase().trim()); }
+function filasGoteoVisibles() { return (GOTEO_GS || []).filter(g => !esFilaEspecialGoteo(g)); }
+function filaTrampaDe(isin) { return (TRAMPAS_GS || []).find(r => r[15] && esMismoISIN(r[15], isin)); }
+function tieneOrdenTR(isin) { const t = filaTrampaDe(isin); return !!t && t[11] === true; }
+function topeCompraDe(isin) {
+    const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'TOPE_COMPRA' && g.universo && esMismoISIN(g.universo, isin));
+    return f && f.importe > 0 ? f.importe : null;
+}
+function presupuestoMensualHoja() {
+    const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MENSUAL') ||
+        (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MES');
+    return f && f.importe > 0 ? f.importe : null;
+}
+function multiplicadorRedondeoHoja() {
+    const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'MULTIPLICADOR_REDONDEO');
+    return f && f.importe > 0 ? f.importe : GOTEO_CFG.MULT_REDONDEO_DEFECTO;
+}
+function mediaUltimosRedondeos(n) {
+    const sb = (savebacksEnVivo() || []).filter(x => x && x.i > 0).map(x => {
+        const m = String(x.f || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        return { i: x.i, t: m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0 };
+    }).sort((a, b) => a.t - b.t);
+    const u = sb.slice(-(n || GOTEO_CFG.N_REDONDEOS));
+    return { media: u.length ? u.reduce((s, x) => s + x.i, 0) / u.length : 0, n: u.length };
+}
+// Importe real de una fila del goteo. Redondeo = media de los últimos 4 redondeos × multiplicador
+// (×10 si el dinero va a una acción elegible; ×1 si va al ETF de reserva).
+function calcularImporteFila(g) {
+    const tipo = (g.tipo || '').toUpperCase().trim();
+    if (tipo === 'REDONDEO') {
+        const m = mediaUltimosRedondeos(GOTEO_CFG.N_REDONDEOS);
+        const sug = sugerirDestinoFlexible(null, g.universo);
+        const mult = (sug && !sug.sinDestino) ? sug.multiplicadorSugerido : 1;
+        return { importe: m.media * mult, mult, media: m.media, n: m.n, sug };
+    }
+    return { importe: g.importe > 0 ? g.importe : 0, mult: 1, media: 0, n: 0, sug: null };
+}
+function guardarPresupuestoMensualEnHoja(valor) {
+    GOTEO_AVISO_GUARDADO = '⏳ guardando en la hoja…';
+    fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + 'accion=presupuestoMensual&valor=' + encodeURIComponent(valor))
+        .then(r => r.json()).then(j => {
+            if (!j || !j.ok) throw new Error('sin ok');
+            const fila = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MENSUAL');
+            if (fila) fila.importe = valor; else GOTEO_GS.push({ tipo: 'PRESUPUESTO_MENSUAL', importe: valor, universo: '' });
+            GOTEO_OVERRIDE_MENSUAL = null;
+            GOTEO_AVISO_GUARDADO = '✅ guardado en la hoja (fila PRESUPUESTO_MENSUAL)';
+            if (typeof renderGoteo === 'function') renderGoteo();
+            renderFocusGoteo();
+        }).catch(() => {
+            GOTEO_AVISO_GUARDADO = '⚠️ no se pudo guardar: solo vale en esta sesión. Escribe ' + valor + ' en la fila PRESUPUESTO_MENSUAL de GOTEO.';
+            if (typeof renderGoteo === 'function') renderGoteo();
+            renderFocusGoteo();
+        });
+}
+
+function sugerirDestinoFlexible(excluirIsin, universoCSV) {
+    const C = GOTEO_CFG;
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
+    const hoy = new Date();
+    const tasaRef = obtenerTasaReferencia();
+    const umbralRenta = tasaRef + C.MARGEN_YIELD_RENTA;
+    const vivas = posicionesVivas();
+    const valorTotal = vivas.reduce((s, p) => s + (precioDe(p) || 0) * p.sh, 0) || 1;
+    const porSector = {};
+    vivas.forEach(p => { const v = (precioDe(p) || 0) * p.sh; porSector[p.sector] = (porSector[p.sector] || 0) + v; });
+    const prioridadDe = isin => { const t = filaTrampaDe(isin); return t ? (t[2] || '').trim() : ''; };
+    const esCalidad = isin => ['A+', 'A'].includes(prioridadDe(isin));
+    const esAuto = isin => { const t = filaTrampaDe(isin); return !t || t[18] !== false; };
+    const esEscalonada = isin => { const t = filaTrampaDe(isin); return !!t && ((t[14] || '').toLowerCase()).includes('escalonado'); };
+
+    // Pool: acciones/ETF Forever de tu cartera + candidatas explícitas con fila TOPE_COMPRA aunque aún no las tengas
+    const pool = vivas.filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p.isin !== excluirIsin)
+        .map(p => ({ p, enCartera: true }));
+    (GOTEO_GS || []).filter(g => (g.tipo || '').toUpperCase().trim() === 'TOPE_COMPRA' && g.universo).forEach(g => {
+        const isin = g.universo.trim().toUpperCase();
+        if (isin === excluirIsin || pool.some(x => esMismoISIN(x.p.isin, isin))) return;
+        const t = filaTrampaDe(isin);
+        if (!t) return;
+        pool.push({ p: { n: t[0], isin, tipo: 'Forever', sh: 0, pm: 0, sector: C.SECTOR_EXTRA[isin] || 'Sin clasificar' }, enCartera: false });
+    });
+
+    const evaluados = [], excluidas = [];
+    pool.forEach(({ p, enCartera }) => {
+        if (universo && !universo.includes(p.isin)) return;
+        if (!esCalidad(p.isin) || !esAuto(p.isin)) return; // calidad/automatizable: no se listan (son demasiadas)
+        const t = filaTrampaDe(p.isin);
+        const pa = enCartera ? precioDe(p) : cn(t[4]);
+        if (!t || !pa) return;
+        const trampa = cn(t[3]);
+        const distTrampaPct = trampa ? (pa - trampa) / trampa * 100 : 999;
+        const min52 = cn(t[16]), max52 = cn(t[17]);
+        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
+        const yieldActual = cn(t[8]) / pa * 100;
+        const esETF = (p.sector || '') === 'Diversificado';
+        const renta = C.ISINS_RENTA.includes(p.isin);
+        const peso = enCartera ? pa * p.sh / valorTotal * 100 : 0;
+        const pesoSector = (porSector[p.sector] || 0) / valorTotal * 100;
+        const tope = topeCompraDe(p.isin);
+        const motivos = [];
+        if (C.ISINS_EXCLUIDOS.includes(p.isin)) motivos.push('excluido del goteo hasta su trampa (' + trampa + ' €)');
+        if (t[11] === true) motivos.push('orden activa en TR');
+        if (tope && pa > tope) motivos.push('precio ' + f2(pa) + ' € > tope de compra ' + f2(tope) + ' €');
+        if (!esETF && peso > C.MAX_PESO_ACCION) motivos.push('pesa ' + peso.toFixed(1) + '% (máx. ' + C.MAX_PESO_ACCION + '%)');
+        if (!esETF && pesoSector > C.MAX_PESO_SECTOR) motivos.push('sector ' + p.sector + ' al ' + pesoSector.toFixed(1) + '% (máx. ' + C.MAX_PESO_SECTOR + '%)');
+        let regla = '';
+        if (renta) {
+            if (yieldActual < umbralRenta) motivos.push('yield ' + yieldActual.toFixed(1) + '% < suelo de renta ' + umbralRenta.toFixed(1) + '%');
+            else regla = 'cumple el suelo de renta (yield ' + yieldActual.toFixed(1) + '% ≥ ' + umbralRenta.toFixed(1) + '%)';
+        } else {
+            if (distTrampaPct > C.DIST_TRAMPA_CRECIMIENTO) motivos.push('a ' + distTrampaPct.toFixed(1) + '% de su trampa (crecimiento: máx. ' + C.DIST_TRAMPA_CRECIMIENTO + '%)');
+            else regla = 'está a ' + distTrampaPct.toFixed(1) + '% de su trampa (≤ ' + C.DIST_TRAMPA_CRECIMIENTO + '%)';
         }
-        const avisoManual = automatizables[0] || disparadasDeVerdad[0];
-        const resultadoETF1 = calcularRepartoConAcciones(importe, universo);
+        const prioridad = prioridadDe(p.isin);
+        const rentActualPct = (enCartera && p.pm) ? (pa - p.pm) / p.pm * 100 : null;
+        const puntosDescuentoCoste = rentActualPct === null ? 50 : Math.max(0, Math.min(100, 50 - rentActualPct * 2));
+        const puntuacionTotal = (puntosDescuentoCoste * 0.25 + (100 - pctRango52) * 0.20 + Math.min(100, yieldActual * 15) * 0.25) / 0.70;
+        const c = { nombre: p.n, isin: p.isin, precioActual: pa, puntuacionTotal, distTrampaPct, pctRango52, prioridad,
+            yieldActual, rentActualPct, enCartera, regla, motivos };
+        (motivos.length ? excluidas : evaluados).push(c);
+    });
+    // Valores A+/A con orden activa en TR que no están en la cartera: nunca fueron candidatos, se dejan a la vista
+    (TRAMPAS_GS || []).filter(t => t[11] === true && t[15] && ['A+', 'A'].includes((t[2] || '').trim())).forEach(t => {
+        if (evaluados.concat(excluidas).some(c => esMismoISIN(c.isin, t[15]))) return;
+        if (universo && !universo.includes(t[15])) return;
+        excluidas.push({ nombre: t[0], isin: t[15], motivos: ['orden activa en TR' + (vivas.some(p => esMismoISIN(p.isin, t[15])) ? '' : ' (y no está en tu cartera)')] });
+    });
+
+    const candidatos = evaluados.sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
+
+    // Objetivo estratégico (solo si sigue siendo elegible)
+    let ganadorEstrategico = null;
+    for (const obj of OBJETIVOS_GS) {
+        if (!obj.multiplo || !obj.fechaLimite) continue;
+        if (universo && !universo.includes(obj.isin)) continue;
+        const fechaLim = new Date(obj.fechaLimite);
+        if (fechaLim < hoy) continue;
+        const posObj = vivas.find(p => p.isin === obj.isin);
+        if (!posObj || !candidatos.some(c => c.isin === obj.isin)) continue;
+        const sig = Math.ceil((posObj.sh + 0.001) / obj.multiplo) * obj.multiplo;
+        const faltan = sig - posObj.sh;
+        const meses = (fechaLim - hoy) / (1000 * 60 * 60 * 24 * 30.44);
+        if (faltan <= obj.multiplo * 0.3 && meses >= 1) {
+            ganadorEstrategico = { isin: posObj.isin, explicacionObjetivo: '🎯 Objetivo estratégico: te faltan ' + faltan.toFixed(2) +
+                ' acciones para completar el siguiente bloque de ' + obj.multiplo + ' antes de ' + obj.fechaLimite + ' (' + obj.beneficio + ').' };
+            break;
+        }
+    }
+
+    if (candidatos.length) {
+        let top3 = candidatos.slice(0, 3);
+        let ganador = top3[0];
+        let extra = '';
+        if (ganadorEstrategico) {
+            const ce = candidatos.find(c => c.isin === ganadorEstrategico.isin);
+            if (ce) { ganador = ce; top3 = [ce, ...top3.filter(c => c.isin !== ce.isin)].slice(0, 3);
+                extra = ganadorEstrategico.explicacionObjetivo + ' Prioridad absoluta sobre las demás opciones. '; }
+        }
+        const vsCoste = ganador.rentActualPct === null ? 'aún no la tienes en cartera, ' :
+            ganador.rentActualPct <= -2 ? 'está en ' + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio de compra (puede ayudar a promediar a la baja), ' :
+            'está en ' + (ganador.rentActualPct >= 0 ? '+' : '') + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio, ';
         return {
-            tipo: 'normal_con_aviso', avisoManual, reparto: resultadoETF1.reparto,
-            liquidez: resultadoETF1.liquidez, avisoNadaAtractivo: resultadoETF1.avisoNadaAtractivo,
-            techoActivado: resultadoETF1.techoActivado, avisoAccion: resultadoETF1.avisoAccion,
-            motivoAviso: '⚠️ ' + avisoManual.nombre + ' ' + avisoManual.motivo +
-                ', pero no admite planes automáticos — cómprala tú a mano si quieres aprovecharlo. Los ETF siguen su reparto normal.'
+            nombre: ganador.nombre, isin: ganador.isin, precioActual: ganador.precioActual,
+            esObjetivoEstrategico: !!ganadorEstrategico, esReserva: false, multiplicadorSugerido: multiplicadorRedondeoHoja(),
+            top3, excluidas,
+            explicacion: extra + ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' + vsCoste +
+                'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
+                '% de su rango de 52 semanas, prioridad ' + ganador.prioridad + ', yield ' + ganador.yieldActual.toFixed(2) + '%; ' + ganador.regla + '.'
         };
     }
 
-    if (oportunidades.length) {
-        const resultadoETF2 = calcularRepartoConAcciones(importe, universo);
-        const yaGanaPlaza = isin => resultadoETF2.reparto.some(r => r.isin === isin && r.esAccion);
-        const masCerca = oportunidades.find(o => !yaGanaPlaza(o.isin));
-        if (!masCerca) {
-            return {
-                tipo: 'normal', reparto: resultadoETF2.reparto, liquidez: resultadoETF2.liquidez,
-                avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo, techoActivado: resultadoETF2.techoActivado,
-                avisoAccion: resultadoETF2.avisoAccion
-            };
-        }
-        return {
-            tipo: 'normal_con_aviso', avisoManual: masCerca, reparto: resultadoETF2.reparto,
-            liquidez: resultadoETF2.liquidez, avisoNadaAtractivo: resultadoETF2.avisoNadaAtractivo,
-            techoActivado: resultadoETF2.techoActivado, avisoAccion: resultadoETF2.avisoAccion,
-            motivoAviso: '👀 A vigilar: ' + masCerca.nombre + ' ' + masCerca.motivo +
-                '. Aún no ha tocado la trampa de verdad, así que los ETF siguen su reparto normal — si la toca, se pausarán.'
-        };
+    // Nada elegible → ETF de reserva (si él mismo no tiene orden activa)
+    const tr = filaTrampaDe(C.ISIN_RESERVA);
+    const posR = vivas.find(p => esMismoISIN(p.isin, C.ISIN_RESERVA));
+    const paR = posR ? precioDe(posR) : (tr ? cn(tr[4]) : 0);
+    const nombreR = tr ? tr[0] : (posR ? posR.n : 'MSCI World Quality Dividend');
+    if (!tr || !paR || tr[11] === true) {
+        return { sinDestino: true, top3: [], excluidas, motivo: '🔒 Ninguna acción cumple las reglas hoy y el ETF de reserva (' + nombreR +
+            ') ' + (tr && tr[11] === true ? 'tiene orden activa en TR' : 'no tiene datos') + ': el dinero se queda en liquidez esta vez.' };
     }
-
-    const resultadoETF3 = calcularRepartoConAcciones(importe, universo);
     return {
-        tipo: 'normal', reparto: resultadoETF3.reparto, liquidez: resultadoETF3.liquidez,
-        avisoNadaAtractivo: resultadoETF3.avisoNadaAtractivo, techoActivado: resultadoETF3.techoActivado,
-        avisoAccion: resultadoETF3.avisoAccion
+        nombre: nombreR, isin: C.ISIN_RESERVA, precioActual: paR, esObjetivoEstrategico: false, esReserva: true, multiplicadorSugerido: 1,
+        top3: [], excluidas,
+        explicacion: 'Ninguna acción cumple hoy las reglas (tope de compra, órdenes activas en TR, concentración ≤' + C.MAX_PESO_ACCION + '% por acción y ≤' +
+            C.MAX_PESO_SECTOR + '% por sector, suelo de renta ' + umbralRenta.toFixed(1) + '% / crecimiento a ≤' + C.DIST_TRAMPA_CRECIMIENTO +
+            '% de su trampa). El dinero va al ETF de reserva y el redondeo se queda en ×1.'
     };
 }
+
+// MENSUAL: solo ETF del universo de la fila, reparto igual, presupuesto = el que fijas tú (sin valor por defecto).
+function analizarGrupoRecurrente(importe, universoCSV) {
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+    const presupuesto = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : presupuestoMensualHoja();
+    if (presupuesto === null || presupuesto <= 0) return { tipo: 'sinPresupuesto', reparto: [], liquidez: 0, presupuestoUsado: 0, excluidosOrden: [] };
+    const info = universo.map(isin => calcularScoreActivo(isin));
+    const elegibles = info.filter(e => !tieneOrdenTR(e.isin));
+    const excluidosOrden = info.filter(e => tieneOrdenTR(e.isin)).map(e => e.nombre);
+    const n = elegibles.length;
+    const reparto = elegibles.map(e => ({
+        nombre: e.nombre, isin: e.isin, importe: presupuesto / n, peso: 100 / n, esAccion: false,
+        atractivo: !e.sinDatosReales && ((e.pctRango52 !== null && e.pctRango52 <= GOTEO_CFG.BARATO_RANGO_MAX) ||
+            (e.distTrampaPct !== null && e.distTrampaPct <= GOTEO_CFG.BARATO_DIST_MAX)),
+        pa: e.pa, pctRango52: e.pctRango52, distTrampaPct: e.distTrampaPct, yieldActual: e.yieldActual, score: e.score,
+        explicacion: 'Reparto igual entre ' + n + ' ETF.'
+    }));
+    return { tipo: 'normal', reparto, liquidez: n ? 0 : presupuesto, presupuestoUsado: presupuesto, excluidosOrden,
+        avisoNadaAtractivo: null, techoActivado: false, avisoAccion: null, motivoAviso: null };
+}
+
 
 function calcularScoreActivo(isin) {
     const pos = posicionesVivas();
@@ -911,155 +1086,6 @@ function detectarOportunidadesExcepcionales() {
     return oportunidades;
 }
 
-function sugerirDestinoFlexible(excluirIsin, universoCSV) {
-    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
-    const esAutomatizable = isin => {
-        const t = TRAMPAS_GS.find(r => r[15] === isin);
-        return !t || t[18] !== false;
-    };
-    const tieneTrampaEscalonada = isin => {
-        const t = TRAMPAS_GS.find(r => r[15] === isin);
-        if (!t) return false;
-        return ((t[14] || '').toLowerCase()).includes('escalonado');
-    };
-    const esCalidadSuficiente = isin => {
-        const t = TRAMPAS_GS.find(r => r[15] === isin);
-        const prioridad = t ? (t[2] || '').trim() : '';
-        return prioridad === 'A+' || prioridad === 'A';
-    };
-    const posTodas = posicionesVivas().filter(p => (p.tipo || '').toLowerCase().startsWith('forever') && p
-        .isin !== excluirIsin && (!universo || universo.includes(p.isin)) && esCalidadSuficiente(p.isin));
-    const posNoAutomatizables = posTodas.filter(p => !esAutomatizable(p.isin));
-    const pos = posTodas.filter(p => esAutomatizable(p.isin));
-    const hoy = new Date();
-
-    let ganadorEstrategico = null;
-    for (const obj of OBJETIVOS_GS) {
-        if (!obj.multiplo || !obj.fechaLimite) continue;
-        if (universo && !universo.includes(obj.isin)) continue;
-        const fechaLim = new Date(obj.fechaLimite);
-        if (fechaLim < hoy) continue;
-        const posObj = pos.find(p => p.isin === obj.isin);
-        if (!posObj) continue;
-        const siguienteMultiplo = Math.ceil((posObj.sh + 0.001) / obj.multiplo) * obj.multiplo;
-        const accionesQueFaltan = siguienteMultiplo - posObj.sh;
-        const mesesRestantes = (fechaLim - hoy) / (1000 * 60 * 60 * 24 * 30.44);
-        if (accionesQueFaltan <= obj.multiplo * 0.3 && mesesRestantes >= 1) {
-            ganadorEstrategico = {
-                isin: posObj.isin,
-                explicacionObjetivo: '🎯 Objetivo estratégico: te faltan ' + accionesQueFaltan.toFixed(2) +
-                    ' acciones para completar el siguiente bloque de ' + obj.multiplo + ' antes de ' + obj
-                    .fechaLimite + ' (' + obj.beneficio + ').'
-            };
-            break;
-        }
-    }
-
-    const calendarioPorISINAsesor = {};
-    (CALENDARIO_DIVIDENDOS_GS || []).forEach(c => { if (c.isin) calendarioPorISINAsesor[c.isin] = c.meses; });
-    const mesActualAsesor = hoy.getMonth() + 1;
-
-    const candidatos = pos.map(p => {
-        const trampaFila = TRAMPAS_GS.find(r => r[15] === p.isin);
-        const pa = precioDe(p);
-        if (!trampaFila || !pa) return null;
-
-        const trampa = cn(trampaFila[3]);
-        const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : 999;
-        const min52 = cn(trampaFila[16]),
-            max52 = cn(trampaFila[17]);
-        const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
-            50;
-        const prioridad = (trampaFila[2] || 'B').trim();
-        const puntosPrioridad = prioridad === 'A+' ? 100 : prioridad === 'A' ? 80 : prioridad === 'A-' ? 65 : 45;
-        const yieldActual = pa ? (cn(trampaFila[8]) / pa * 100) : 0;
-
-        const mesesPago = calendarioPorISINAsesor[p.isin] || [];
-        const numPagos12m = mesesPago.length;
-        let mesesHastaPrimerPago = 12;
-        if (mesesPago.length) {
-            const futuros = mesesPago.map(m => (m - mesActualAsesor + 12) % 12).sort((a, b) => a - b);
-            mesesHastaPrimerPago = futuros[0];
-        }
-        const puntosDividendoCamino = Math.max(0, Math.min(100, numPagos12m * 8 - mesesHastaPrimerPago * 3));
-        const puntosTrampa = tieneTrampaEscalonada(p.isin) ? 50 : Math.max(0, 100 - Math.abs(distTrampaPct) * 4);
-        const puntosRango52 = 100 - pctRango52;
-
-        const rentActualPct = p.pm ? ((pa - p.pm) / p.pm * 100) : 0;
-        const puntosDescuentoCoste = Math.max(0, Math.min(100, 50 - rentActualPct * 2));
-
-        const puntuacionTotal = puntosDescuentoCoste * 0.25 + puntosRango52 * 0.20 +
-            Math.min(100, yieldActual * 15) * 0.25 + puntosDividendoCamino * 0.30;
-
-        return {
-            nombre: p.n, isin: p.isin, precioActual: pa, puntuacionTotal, distTrampaPct, pctRango52, prioridad,
-            yieldActual, numPagos12m, mesesHastaPrimerPago, rentActualPct
-        };
-    }).filter(Boolean).sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
-
-    if (!candidatos.length) return null;
-
-    let top3 = candidatos.slice(0, 3);
-    let ganador = top3[0];
-    let explicacionExtra = '';
-    if (ganadorEstrategico) {
-        const yaEraElMejor = top3[0].isin === ganadorEstrategico.isin;
-        const candidatoEstrategico = candidatos.find(c => c.isin === ganadorEstrategico.isin);
-        if (candidatoEstrategico && !yaEraElMejor) {
-            top3 = [candidatoEstrategico, ...top3.filter(c => c.isin !== ganadorEstrategico.isin)].slice(0, 3);
-        }
-        ganador = candidatoEstrategico || top3[0];
-        explicacionExtra = ganadorEstrategico.explicacionObjetivo + ' Prioridad absoluta sobre las demás opciones. ';
-    }
-
-    if (!ganadorEstrategico) {
-        const tasaRefFlex = obtenerTasaReferencia();
-        const umbralMinimoFlex = tasaRefFlex + 2.5;
-        if (ganador.yieldActual < umbralMinimoFlex) {
-            const alternativaValida = candidatos.find(c => c.yieldActual >= umbralMinimoFlex);
-            if (!alternativaValida) {
-                return {
-                    sinDestino: true, top3,
-                    motivo: '🔒 Ninguno de tus candidatos automáticos llega al ' + umbralMinimoFlex.toFixed(1) +
-                        '% mínimo exigido (referencia ' + tasaRefFlex.toFixed(1) +
-                        '% + 2,5pp de margen) — el mejor por puntuación era ' + ganador.nombre + ' con solo ' +
-                        ganador.yieldActual.toFixed(1) + '% de yield. Mejor quedarse en liquidez esta vez.'
-                };
-            }
-            explicacionExtra += '⚠️ ' + ganador.nombre + ' puntuaba más alto, pero su yield (' + ganador.yieldActual
-                .toFixed(1) + '%) no llega al ' + umbralMinimoFlex.toFixed(1) +
-                '% mínimo exigido — se elige en su lugar la mejor opción que SÍ lo supera. ';
-            ganador = alternativaValida;
-            top3 = [alternativaValida, ...top3.filter(c => c.isin !== alternativaValida.isin)].slice(0, 3);
-        }
-    }
-
-    const explicacionNormal = ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' +
-        (ganador.rentActualPct < 0 ? 'está en ' + ganador.rentActualPct.toFixed(1) +
-            '% respecto a tu precio medio de compra (oportunidad real de promediar a la baja), ' :
-            'está en +' + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio, ') +
-        'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
-        '% de su rango de 52 semanas, prioridad ' + ganador.prioridad + ', yield ' + ganador.yieldActual.toFixed(
-            2) + '%, y ' + ganador.numPagos12m + ' pago' + (ganador.numPagos12m === 1 ? '' : 's') +
-        ' de dividendo en los próximos 12 meses' + (ganador.mesesHastaPrimerPago <= 2 ? ' (el primero muy pronto)' :
-            '') + '.';
-
-    let avisoNoAutomatizable = '';
-    if (posNoAutomatizables.length) {
-        const oportunidadesManuales = detectarOportunidadesExcepcionales().filter(o => posNoAutomatizables.some(
-            p => p.isin === o.isin));
-        if (oportunidadesManuales.length) {
-            avisoNoAutomatizable = ' ⚠️ Aparte: ' + oportunidadesManuales[0].nombre + ' ' +
-                oportunidadesManuales[0].motivo + ', pero no admite planes automáticos — cómprala tú a mano.';
-        }
-    }
-
-    return {
-        nombre: ganador.nombre, isin: ganador.isin, precioActual: ganador.precioActual,
-        esObjetivoEstrategico: !!ganadorEstrategico, top3: top3,
-        explicacion: explicacionExtra + explicacionNormal + avisoNoAutomatizable
-    };
-}
 
 // ══════════════════════════════════════════════════════════════════════
 // renderFocusGoteo — copiado 1:1 de index.html
@@ -1067,65 +1093,46 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
 function renderFocusGoteo() {
     const cont = document.getElementById('focus-goteo');
     if (!cont) return;
-    if (!GOTEO_GS.length) {
+    const filas = filasGoteoVisibles();
+    if (!filas.length) {
         cont.innerHTML = '<div style="padding:14px;font-size:10px;color:var(--mt)">Sin plan de goteo configurado.</div>';
         return;
     }
-
-    const todosSavebacks = savebacksEnVivo() || [];
-    const mediaRedondeoReal = todosSavebacks.length ? todosSavebacks.reduce((s, x) => s + x.i, 0) /
-        todosSavebacks.length : 0;
     const iconoTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
-    const notaFrecuencia = { 'Mensual': 'día 2 de cada mes', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
+    const notaFrecuencia = { 'Mensual': 'día 2 de cada mes · reparto igual entre ETF', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
+    const caja = (txt, color) => '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px"><span style="font-size:13px;font-weight:800;color:' + (color || 'var(--ac)') + '">' + txt + '</span></div>';
 
-    cont.innerHTML = GOTEO_GS.filter(g => !['TASA_REFERENCIA', 'PRESUPUESTO_MES'].includes((g.tipo || '').toUpperCase().trim())).map(g => {
-        const importeReal = g.importe > 0 ? g.importe : (g.tipo === 'Redondeo' ? mediaRedondeoReal : 0);
+    cont.innerHTML = filas.map(g => {
+        const tipo = tipoCap(g.tipo);
         const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
-        let destinoFilasHTML, esPausa = false,
-            importeMostrado = importeReal;
-
+        let cuerpo, importeMostrado = 0, nota = notaFrecuencia[tipo] || '';
         if (esGrupo) {
-            const analisis = analizarGrupoRecurrente(importeReal, g.universo);
-            if (analisis.tipo === 'pausa') {
-                esPausa = true;
-                destinoFilasHTML = '<div style="padding:10px 12px;margin-top:6px;background:rgba(232,90,90,0.12);border-radius:8px">' +
-                    '<div style="font-size:14px;font-weight:800;color:var(--rd)">🚨 PAUSA — todo a ' + analisis
-                    .destino.nombre + '</div></div>';
-                importeMostrado = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : importeReal;
+            const a = analizarGrupoRecurrente(0, g.universo);
+            if (a.tipo === 'sinPresupuesto') {
+                cuerpo = caja('⚠️ Fija el presupuesto mensual en Goteo', 'var(--am)');
             } else {
-                importeMostrado = analisis.reparto.reduce((s, r) => s + r.importe, 0);
-                destinoFilasHTML = analisis.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)">' +
-                        '<span style="font-size:14px;font-weight:600">' + (r.esAccion ? '🎯 ' : '') + r.nombre +
-                        '</span>' +
-                        '<span style="font-size:16px;font-weight:800;color:var(--ac)">' + fe(r.importe, 0) +
-                        ' <span class="mt2" style="font-size:10px;font-weight:600">(' + r.peso.toFixed(0) +
-                        '%)</span></span>' +
-                        '</div>').join('') +
-                    (analisis.liquidez > 1 ? '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)"><span style="font-size:14px;font-weight:600">💶 En liquidez (2,5%)</span><span style="font-size:16px;font-weight:800;color:var(--mt)">' +
-                        fe(analisis.liquidez, 0) + '</span></div>' : '');
+                importeMostrado = a.reparto.reduce((s, r) => s + r.importe, 0);
+                cuerpo = a.reparto.map(r => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)">' +
+                    '<span style="font-size:14px;font-weight:600">' + (r.atractivo ? '🎯 ' : '') + r.nombre + '</span>' +
+                    '<span style="font-size:16px;font-weight:800;color:var(--ac)">' + fe(r.importe, 0) + '</span></div>').join('') +
+                    (a.liquidez > 1 ? '<div style="padding:8px 0;border-top:1px solid var(--bd);font-size:12px;color:var(--mt)">💶 En liquidez: ' + fe(a.liquidez, 0) + '</div>' : '');
             }
         } else {
-            const sugerencia = sugerirDestinoFlexible(null, g.universo);
-            destinoFilasHTML = (sugerencia && sugerencia.sinDestino) ?
-                '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px">' +
-                '<span style="font-size:14px;font-weight:800;color:var(--ac)">🔒 Liquidez esta vez</span></div>' :
-                '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px">' +
-                '<span style="font-size:15px;font-weight:800;color:var(--ac)">➜ ' + (sugerencia ? sugerencia
-                    .nombre + (sugerencia.esObjetivoEstrategico ? ' 🎯' : '') : 'sin datos suficientes') +
-                '</span></div>';
+            const c = calcularImporteFila(g);
+            const s = c.sug || sugerirDestinoFlexible(null, g.universo);
+            importeMostrado = c.importe;
+            if (tipo === 'Redondeo') nota += ' · media ' + c.n + ' últimos ' + fe(c.media) + ' × ' + c.mult;
+            cuerpo = (s && s.sinDestino) ? caja('🔒 Liquidez esta vez') :
+                caja('➜ ' + (s ? s.nombre + (s.esReserva ? ' (reserva)' : '') + (s.esObjetivoEstrategico ? ' 🎯' : '') : 'sin datos suficientes'));
         }
-
-        return '<div style="padding:12px 16px;border-bottom:1px solid var(--bd);' + (esPausa ?
-                'background:rgba(232,90,90,0.08)' : '') + '">' +
+        return '<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
-            '<b style="font-size:15px">' + (iconoTipo[g.tipo] || '💧') + ' ' + g.tipo + '</b>' +
-            '<span style="font-size:19px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span>' +
-            '</div>' +
-            '<div class="mt2" style="font-size:10px;margin-top:2px">' + (notaFrecuencia[g.tipo] || '') + '</div>' +
-            destinoFilasHTML +
-            '</div>';
+            '<b style="font-size:15px">' + (iconoTipo[tipo] || '💧') + ' ' + tipo + '</b>' +
+            '<span style="font-size:19px;font-weight:800;color:var(--gn)">' + fe(importeMostrado, 0) + '</span></div>' +
+            '<div class="mt2" style="font-size:10px;margin-top:2px">' + nota + '</div>' + cuerpo + '</div>';
     }).join('');
 }
+
 
 // ══════════════════════════════════════════════════════════════════════
 // PANEL RADAR — equivalente a la parte de renderDashboard() de index.html
@@ -1140,11 +1147,12 @@ const PANICO_CFG = {
     TOPE_POR_TRAMO: 2000,        // máx. € por activo y tramo
     TOPE_ACUMULADO: 3000,        // máx. € por activo entre los 3 tramos
     MIN_DISPARADOS: 3,           // amplitud: nº de activos en su nivel para activar el tramo
-    CAIDA_INDICE_PCT: [15, 15, 15], // caída (%) del índice desde su máximo de 52s que activa cada tramo
+    CAIDA_INDICE_PCT: [15, 22, 30], // caída (%) del índice desde su máximo de 52s que activa cada tramo (escalonado)
     FACTOR_NIVEL: [1, 0.975, 0.9375], // nivel de disparo = TRAMPA × factor (T1, T2, T3)
     CERCA_DE_TRAMPA_PCT: 10,     // en activación por índice: activos a ≤ este % por encima de su TRAMPA
     ISIN_INDICE: 'IE00B4L5Y983', // Core MSCI World (el índice de referencia)
-    TOPE_INDICE_POR_TRAMO: 2000, // máx. € al índice por tramo (mismo criterio que el resto)
+    TOPE_INDICE_POR_TRAMO: 3000, // máx. € al índice (Core MSCI World) por tramo
+    TOPE_ACUMULADO_INDICE: 6000, // máx. € al índice entre los 3 tramos
     AVISO_CAIDA_REF_PCT: 20      // aviso informativo si un activo está ≥ este % bajo su referencia manual
 };
 
@@ -1216,6 +1224,8 @@ function calcularPlanPanico() {
             motivo = 'no activo';
         }
         const idsReceptores = new Set(receptores.map(r => r.a.isin));
+        // En el camino del índice, los receptores son los activos cercanos a su TRAMPA: su orden ya cuenta dentro de su importe
+        if (caminoIndice) activos.filter(a => a.distTrampaPct <= C.CERCA_DE_TRAMPA_PCT).forEach(a => idsReceptores.add(a.isin));
 
         // Órdenes reales de TR de activos del plan que NO reciben dinero ahora: su dinero ya está comprometido (solo Tramo 1,
         // porque la orden está en el nivel TRAMPA = nivel del Tramo 1)
@@ -1223,7 +1233,7 @@ function calcularPlanPanico() {
             activos.filter(a => a.ordenTR && !idsReceptores.has(a.isin)).reduce((s, a) => s + a.capitalOrden, 0) : 0;
         const capEfectivo = Math.max(0, C.CAPITAL_TRAMO - ordenesNoReceptoras);
 
-        const sala = isin => Math.max(0, C.TOPE_ACUMULADO - (acum[isin] || 0));
+        const sala = isin => Math.max(0, (isin === C.ISIN_INDICE ? C.TOPE_ACUMULADO_INDICE : C.TOPE_ACUMULADO) - (acum[isin] || 0));
         const lineas = [], sinSala = [];
         const asignar = (a, importeBruto, via, topeTramo) => {
             const importe = Math.max(0, Math.min(topeTramo, importeBruto, sala(a.isin)));
