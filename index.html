@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -419,6 +420,11 @@ html.light .badge-orden.venta{color:#B33A3A}
 <!-- ═══ TRAMPAS ═══ -->
 <div class="tp" id="t2">
   <div class="kg" id="kg2"></div>
+  <div class="card">
+    <div class="ch"><h3>📊 Distancia a la trampa</h3><span class="mt2" style="font-size:9px" id="n-grafico-trampas">—</span></div>
+    <div class="mt2" style="font-size:9px;padding:0 4px 6px">La línea dorada (0) es tu TRAMPA. Barra hacia abajo = el precio aún está por encima (cuanto más corta, más cerca); barra hacia arriba = ya ha tocado la trampa. Solo se muestran las que están a menos de un 20%.</div>
+    <div style="position:relative;height:300px"><canvas id="chart-trampas"></canvas></div>
+  </div>
   <div class="card">
     <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
@@ -883,6 +889,23 @@ const ISIN_ALIAS = {
 const isinCanonico = isin => ISIN_ALIAS[isin] || isin;
 const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinCanonico(isinPosicion);
 
+// Retención en origen para ESTIMAR cobros futuros: si ese valor ya ha pagado alguna vez (con bruto >= 1€ para
+// evitar ruido de céntimos), usamos la retención REAL del último pago; si no, la tasa por país.
+function tasaOrigenEstimada(isin, pais) {
+    const porPais = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+    if (!isin) return porPais;
+    const pagos = (divsEnVivo() || []).filter(d => d.isin && esMismoISIN(d.isin, isin) && d.bruto >= 1);
+    if (!pagos.length) return porPais;
+    const ultimo = pagos.reduce((a, b) => {
+        const [da, ma, ya] = a.f.split('/'), [db, mb, yb] = b.f.split('/');
+        return new Date(+ya, ma - 1, +da) >= new Date(+yb, mb - 1, +db) ? a : b;
+    });
+    const real = (ultimo.ret_origen || 0) / ultimo.bruto;
+    const conocidas = [0, 0.128, 0.15, 0.25];
+    const cercana = conocidas.reduce((a, b) => Math.abs(b - real) < Math.abs(a - real) ? b : a);
+    return Math.abs(cercana - real) <= 0.015 ? cercana : real;
+}
+
 // ── MAPEO ──
 const MAP = {
     'Abbott Labs': 'Abbott Laboratories',
@@ -1092,7 +1115,7 @@ function proximosCobrosEnVivo() {
         }
 
         const importePorPago = numPagosReal ? anualTotal / numPagosReal : anualTotal;
-        const origenRate = p.pais === 'FRA' ? 0.128 : p.pais === 'USA' ? 0.15 : 0;
+        const origenRate = tasaOrigenEstimada(p.isin, p.pais);
         const retOEst = importePorPago * origenRate;
         const subtotalEst = importePorPago - retOEst;
         const taxEsEst = subtotalEst * 0.19;
@@ -2871,8 +2894,8 @@ function renderDashboard() {
 
         // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
         // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
-        const brutoAneto = (bruto, pais) => {
-            const origenRate = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+        const brutoAneto = (bruto, pais, isin) => {
+            const origenRate = tasaOrigenEstimada(isin, pais);
             const retOrigen = bruto * origenRate;
             const subtotal = bruto - retOrigen;
             const irpf = subtotal * 0.19;
@@ -2909,7 +2932,7 @@ function renderDashboard() {
             if (mesesManual && mesesManual.length) {
                 const importePorPago = divPorAccionReal ? divPorAccionReal * p.sh : anualTotal / mesesManual
                     .length;
-                const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais);
+                const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais, p.isin);
                 mesesManual.forEach(m => {
                     const mes = m - 1; // la hoja usa 1=enero..12=diciembre
                     previstos[mes] += importePorPago;
@@ -2956,7 +2979,7 @@ function renderDashboard() {
                 const pasoMeses = 12 / numPagosAnio;
                 const importePorPago = anualTotal / numPagosAnio;
                 const { netoFinal: netoPago, devolucion: devPago, irpf: irpfPago } = brutoAneto(importePorPago, p
-                    .pais);
+                    .pais, p.isin);
                 const mesInicio = fechas[0].mes;
                 for (let i = 0; i < numPagosAnio; i++) {
                     const mes = Math.round(mesInicio + i * pasoMeses) % 12;
@@ -2972,7 +2995,7 @@ function renderDashboard() {
                 // que viene, en vez de amontonarlo todo de golpe en diciembre.
                 const importeTrimestral = anualTotal / 4;
                 const { netoFinal: netoTrim, devolucion: devTrim, irpf: irpfTrim } = brutoAneto(importeTrimestral,
-                    p.pais);
+                    p.pais, p.isin);
                 const mesInicioEstimado = (mesActual + 1) % 12;
                 for (let i = 0; i < 4; i++) {
                     const mes = (mesInicioEstimado + i * 3) % 12;
@@ -3173,22 +3196,8 @@ function renderDashboard() {
     if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
             '% de tu objetivo de 300€/mes' });
 
-    // ── Plan de Pánico: avisar en cuanto cualquier activo cruce cualquier tramo (concentrado en los 3 mejores) ──
-    if (PLAN_PANICO_GS && PLAN_PANICO_GS.length) {
-        const CAPITAL_POR_TRAMO_ALERTA = 10000;
-        [1, 2, 3].forEach(t => {
-            const nivel = 'tramo' + t;
-            const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
-            const disparados = PLAN_PANICO_GS.filter(p => p.precioActual && p[nivel] && p.precioActual <= p[
-                nivel]).sort((a, b) => a.orden - b.orden).slice(0, 3);
-            if (disparados.length) {
-                const importeCada = Math.min(CAPITAL_POR_TRAMO_ALERTA / disparados.length, 5000);
-                alertas.push({ tipo: 'success', icon: '🚨', msg: 'PANICO: Tramo ' + t + ' (' + caidaPct +
-                        ') activado — concentrar en ' + disparados.map(d => d.nombre).join(', ') + '. Invertir ' +
-                        fe(importeCada, 0) + ' en cada una' });
-            }
-        });
-    }
+    // ── Plan de Pánico (v2): cálculo compartido con el panel ──
+    alertasPlanPanico().forEach(al => alertas.push(al));
     if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
 
     const alertasHtml = alertas.map(a =>
@@ -3767,7 +3776,7 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
 
     const posEncontrada = posicionesVivas().find(p => p.isin === isin);
     const pais = posEncontrada ? posEncontrada.pais : '—';
-    const origenRate = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+    const origenRate = tasaOrigenEstimada(isin, pais);
 
     const nuevasAcciones = capital / precioActual;
     const numPagosAlAnio = calItem.meses.length;
@@ -4512,6 +4521,196 @@ function renderMiniProyeccion(proy) {
         '</div>';
 }
 
+// ── PLAN DE PÁNICO v2: niveles = columna TRAMPA, activación por amplitud o por caída del índice, topes de diversificación ──
+const PANICO_CFG = {
+    CAPITAL_TRAMO: 10000,        // € por tramo (3 tramos)
+    TOPE_POR_TRAMO: 2000,        // máx. € por activo y tramo
+    TOPE_ACUMULADO: 3000,        // máx. € por activo entre los 3 tramos
+    MIN_DISPARADOS: 3,           // amplitud: nº de activos en su nivel para activar el tramo
+    CAIDA_INDICE_PCT: [15, 15, 15], // caída (%) del índice desde su máximo de 52s que activa cada tramo
+    FACTOR_NIVEL: [1, 0.975, 0.9375], // nivel de disparo = TRAMPA × factor (T1, T2, T3)
+    CERCA_DE_TRAMPA_PCT: 10,     // en activación por índice: activos a ≤ este % por encima de su TRAMPA
+    ISIN_INDICE: 'IE00B4L5Y983', // Core MSCI World (el índice de referencia)
+    TOPE_INDICE_POR_TRAMO: 2000, // máx. € al índice por tramo (mismo criterio que el resto)
+    AVISO_CAIDA_REF_PCT: 20      // aviso informativo si un activo está ≥ este % bajo su referencia manual
+};
+
+function calcularPlanPanico() {
+    const C = PANICO_CFG;
+    const trampas = (typeof TRAMPAS_GS !== 'undefined' && TRAMPAS_GS) ? TRAMPAS_GS : [];
+    const filaDe = isin => trampas.find(r => r[15] && esMismoISIN(r[15], isin));
+
+    // 1) Activos del plan con fila en TRAMPAS (el nivel sale de tu columna TRAMPA, no de una referencia aparte)
+    const activos = [], excluidos = [];
+    (PLAN_PANICO_GS || []).slice().sort((a, b) => a.orden - b.orden).forEach(p => {
+        const f = filaDe(p.isin);
+        const trampa = f ? cn(f[3]) : 0;
+        const precio = p.precioActual || (f ? cn(f[4]) : 0);
+        if (!trampa || !precio) { excluidos.push(p.nombre); return; }
+        activos.push({
+            nombre: p.nombre, isin: p.isin, orden: p.orden, precio, trampa,
+            niveles: C.FACTOR_NIVEL.map(k => trampa * k),
+            refManual: p.precioRef || 0,
+            caidaVsRefPct: p.precioRef ? (precio / p.precioRef - 1) * 100 : null,
+            distTrampaPct: (precio - trampa) / trampa * 100,
+            ordenTR: f[11] === true,
+            capitalOrden: f[11] === true ? trampa * cn(f[6]) : 0 // lo ya comprometido en la orden real de TR
+        });
+    });
+
+    // 2) Índice: caída desde su máximo real de 52 semanas en euros (hoja, histórico propio y precio actual: el mayor)
+    let indice = null;
+    const filaIdx = filaDe(C.ISIN_INDICE);
+    if (filaIdx) {
+        const precio = cn(filaIdx[4]);
+        let maxHist = 0;
+        if (typeof HISTORICO_PRECIOS_POSICIONES_GS !== 'undefined' && HISTORICO_PRECIOS_POSICIONES_GS) {
+            Object.values(HISTORICO_PRECIOS_POSICIONES_GS).forEach(dia => {
+                const v = dia && dia[C.ISIN_INDICE];
+                if (v > maxHist) maxHist = v;
+            });
+        }
+        const maximo = Math.max(cn(filaIdx[17]), maxHist, precio);
+        if (precio > 0 && maximo > 0) {
+            indice = {
+                nombre: filaIdx[0], isin: C.ISIN_INDICE, precio, maximo,
+                caidaPct: (precio / maximo - 1) * 100,
+                capitalOrden: filaIdx[11] === true ? cn(filaIdx[3]) * cn(filaIdx[6]) : 0
+            };
+        }
+    }
+
+    // 3) Tramo a tramo (el acumulado por activo se arrastra de uno a otro)
+    const acum = {};
+    const tramos = [];
+    for (let t = 0; t < 3; t++) {
+        const disparados = activos.filter(a => a.precio <= a.niveles[t]);
+        const porAmplitud = disparados.length >= C.MIN_DISPARADOS;
+        const porIndice = !!(indice && indice.caidaPct <= -C.CAIDA_INDICE_PCT[t]);
+        const activo = porAmplitud || porIndice;
+        const caminoIndice = activo && !disparados.length; // solo el índice lo activa y nadie ha disparado
+
+        // Candidatos que pueden recibir dinero este tramo
+        let receptores = [];
+        let motivo;
+        if (activo && disparados.length) {
+            receptores = disparados.map(a => ({ a, via: 'disparo' }));
+            motivo = porAmplitud ? 'amplitud (' + disparados.length + ' de ' + activos.length + ' en su nivel)' :
+                'caída del índice ' + indice.caidaPct.toFixed(1) + '%';
+        } else if (caminoIndice) {
+            motivo = 'caída del índice ' + indice.caidaPct.toFixed(1) + '% sin activos en su nivel';
+        } else {
+            motivo = 'no activo';
+        }
+        const idsReceptores = new Set(receptores.map(r => r.a.isin));
+
+        // Órdenes reales de TR de activos del plan que NO reciben dinero ahora: su dinero ya está comprometido (solo Tramo 1,
+        // porque la orden está en el nivel TRAMPA = nivel del Tramo 1)
+        const ordenesNoReceptoras = t === 0 ?
+            activos.filter(a => a.ordenTR && !idsReceptores.has(a.isin)).reduce((s, a) => s + a.capitalOrden, 0) : 0;
+        const capEfectivo = Math.max(0, C.CAPITAL_TRAMO - ordenesNoReceptoras);
+
+        const sala = isin => Math.max(0, C.TOPE_ACUMULADO - (acum[isin] || 0));
+        const lineas = [], sinSala = [];
+        const asignar = (a, importeBruto, via, topeTramo) => {
+            const importe = Math.max(0, Math.min(topeTramo, importeBruto, sala(a.isin)));
+            const orden = t === 0 ? (a.capitalOrden || 0) : 0;
+            if (importe < 0.5) { if (sala(a.isin) < 0.5) sinSala.push(a.nombre); return; }
+            const exposicion = Math.max(importe, orden); // si la orden de TR ya supera el plan, manda la orden
+            lineas.push({
+                nombre: a.nombre, isin: a.isin, orden: a.orden, via,
+                importePlan: importe, ordenYaPuesta: Math.min(orden, importe),
+                nuevo: Math.max(0, importe - orden), exposicion,
+                ordenExcede: orden > importe + 0.5
+            });
+            acum[a.isin] = (acum[a.isin] || 0) + exposicion;
+        };
+
+        if (receptores.length) {
+            const sumaW = receptores.reduce((s, r) => s + 1 / r.a.orden, 0);
+            receptores.forEach(r => asignar(r.a, capEfectivo * (1 / r.a.orden) / sumaW, 'disparo', C.TOPE_POR_TRAMO));
+        } else if (caminoIndice && indice) {
+            // Primero al Core MSCI World; lo que sobre, a los activos a ≤10% de su TRAMPA; si no hay ninguno, reservado
+            const topeIdx = C.TOPE_INDICE_POR_TRAMO;
+            const importeIdx = Math.max(0, Math.min(topeIdx, capEfectivo, sala(indice.isin)));
+            if (importeIdx > 0) {
+                const orden = t === 0 ? indice.capitalOrden : 0;
+                lineas.push({
+                    nombre: indice.nombre, isin: indice.isin, orden: 0, via: 'indice',
+                    importePlan: importeIdx, ordenYaPuesta: Math.min(orden, importeIdx),
+                    nuevo: Math.max(0, importeIdx - orden), exposicion: Math.max(importeIdx, orden),
+                    ordenExcede: orden > importeIdx + 0.5
+                });
+                acum[indice.isin] = (acum[indice.isin] || 0) + Math.max(importeIdx, orden);
+            }
+            const sobra = capEfectivo - importeIdx;
+            const cerca = activos.filter(a => a.distTrampaPct <= C.CERCA_DE_TRAMPA_PCT);
+            if (sobra > 0.5 && cerca.length) {
+                const sumaW = cerca.reduce((s, a) => s + 1 / a.orden, 0);
+                cerca.forEach(a => asignar(a, sobra * (1 / a.orden) / sumaW, 'cerca', C.TOPE_POR_TRAMO));
+            }
+        }
+
+        const gastoPlan = lineas.reduce((s, l) => s + l.exposicion, 0);
+        tramos.push({
+            t: t + 1, activo, porAmplitud, porIndice, motivo, disparados, lineas, sinSala,
+            ordenesNoReceptoras,
+            ordenesEnReceptoras: lineas.reduce((s, l) => s + l.ordenYaPuesta, 0),
+            nuevoAColocar: lineas.reduce((s, l) => s + l.nuevo, 0),
+            gastoPlan, capEfectivo,
+            reservado: Math.max(0, C.CAPITAL_TRAMO - gastoPlan - ordenesNoReceptoras)
+        });
+    }
+
+    // 4) Avisos informativos (sin dinero del plan)
+    const avisos = [];
+    const reciben = new Set();
+    tramos.forEach(tr => tr.lineas.forEach(l => reciben.add(l.isin)));
+    activos.forEach(a => {
+        if (reciben.has(a.isin)) return;
+        if (a.caidaVsRefPct !== null && a.caidaVsRefPct <= -C.AVISO_CAIDA_REF_PCT) {
+            avisos.push({
+                nombre: a.nombre, tipo: 'aislada',
+                msg: a.nombre + ': ' + a.caidaVsRefPct.toFixed(1) + '% sobre su referencia manual (' + a.refManual.toFixed(0) +
+                    ' €). Su TRAMPA está en ' + a.trampa.toFixed(0) + ' € (' + (a.distTrampaPct >= 0 ? '+' : '') +
+                    a.distTrampaPct.toFixed(1) + '%): caída aislada, sin dinero del plan de pánico' +
+                    (a.ordenTR ? ' (ya tiene orden puesta en TR).' : '.')
+            });
+        } else if (a.precio <= a.niveles[0]) {
+            avisos.push({
+                nombre: a.nombre, tipo: 'aislada',
+                msg: a.nombre + ' está en su nivel de TRAMPA (' + a.trampa.toFixed(0) + ' €) pero el plan no se activa (' +
+                    disparadosTexto(tramos[0], activos.length, indice) + '): sin dinero del plan.'
+            });
+        }
+    });
+
+    return { activos, excluidos, indice, tramos, avisos, cfg: C };
+}
+
+function disparadosTexto(tramo1, nActivos, indice) {
+    return 'amplitud ' + tramo1.disparados.length + ' de ' + nActivos + ' (mín. ' + PANICO_CFG.MIN_DISPARADOS + ')' +
+        (indice ? ' · índice ' + indice.caidaPct.toFixed(1) + '% (mín. −' + PANICO_CFG.CAIDA_INDICE_PCT[0] + '%)' : '');
+}
+
+// Alertas para Dashboard y Radar (mismo cálculo en los tres sitios)
+function alertasPlanPanico() {
+    const alertas = [];
+    if (!PLAN_PANICO_GS || !PLAN_PANICO_GS.length) return alertas;
+    const plan = calcularPlanPanico();
+    plan.tramos.forEach(tr => {
+        if (!tr.lineas.length) return;
+        alertas.push({
+            tipo: 'success', icon: '🚨',
+            msg: 'PANICO: Tramo ' + tr.t + ' activado por ' + tr.motivo + ' — ' + tr.lineas.map(l => l.nombre + ' ' +
+                fe(l.importePlan, 0) + (l.ordenYaPuesta > 0.5 ? ' (' + fe(l.ordenYaPuesta, 0) + ' ya en orden TR)' : '')).join(
+                ', ') + '. Nuevo a colocar: ' + fe(tr.nuevoAColocar, 0) + ' · reservado: ' + fe(tr.reservado, 0)
+        });
+    });
+    plan.avisos.forEach(av => alertas.push({ tipo: 'info', icon: 'ℹ️', msg: 'PANICO: ' + av.msg }));
+    return alertas;
+}
+
 function renderPlanPanico() {
     const cont = document.getElementById('plan-panico-container');
     if (!cont) return;
@@ -4519,101 +4718,85 @@ function renderPlanPanico() {
         cont.innerHTML = '<div class="mt2" style="font-size:11px">Aún no has creado la hoja PANICO — en cuanto la rellenes, aquí aparecerá el plan listo para ejecutar.</div>';
         return;
     }
-    const CAPITAL_POR_TRAMO = 10000;
+    const plan = calcularPlanPanico();
+    const C = plan.cfg;
+    const nAct = plan.activos.length;
+    const algunoActivo = plan.tramos.some(t => t.activo);
+    const t1 = plan.tramos[0];
+    const idx = plan.indice;
+    const gastoTotal = plan.tramos.reduce((s, t) => s + t.gastoPlan, 0);
+    const enOrdenesTotal = plan.tramos.reduce((s, t) => s + t.ordenesNoReceptoras, 0);
+    const reservadoTotal = plan.tramos.reduce((s, t) => s + t.reservado, 0);
 
-    // Para cada tramo, qué activos ya han disparado (precio actual <= precio del tramo)
-    const MAX_ACTIVOS_POR_TRAMO = 3; // concentrar en los mejores, no diluir entre todos los que disparen
-    const disparadosPorTramo = { 1: [], 2: [], 3: [] };
-    PLAN_PANICO_GS.forEach(p => {
-        if (p.precioActual && p.tramo1 && p.precioActual <= p.tramo1) disparadosPorTramo[1].push(p);
-        if (p.precioActual && p.tramo2 && p.precioActual <= p.tramo2) disparadosPorTramo[2].push(p);
-        if (p.precioActual && p.tramo3 && p.precioActual <= p.tramo3) disparadosPorTramo[3].push(p);
-    });
-    // Nos quedamos solo con los 3 de mayor prioridad (menor "orden") de cada tramo, aunque hayan
-    // disparado más — así el capital se concentra en calidad, en vez de diluirse entre 8-10 activos.
-    [1, 2, 3].forEach(t => {
-        disparadosPorTramo[t] = disparadosPorTramo[t].sort((a, b) => a.orden - b.orden).slice(0,
-            MAX_ACTIVOS_POR_TRAMO);
-    });
+    const banner = '<div style="background:' + (algunoActivo ? 'rgba(52,199,123,0.12)' : 'var(--s2)') + ';border:1px solid ' +
+        (algunoActivo ? 'var(--gn)' : 'var(--bd)') + ';border-radius:8px;padding:10px;margin-bottom:8px">' +
+        '<b style="font-size:11px">' + (algunoActivo ? '🚨 Plan de pánico ACTIVO' : '⏸ Plan de pánico en espera — no hay pánico de mercado') + '</b>' +
+        '<div class="mt2" style="font-size:10px;margin-top:4px">' +
+        'Amplitud: <b>' + t1.disparados.length + ' de ' + nAct + '</b> activos en su nivel (mínimo ' + C.MIN_DISPARADOS + ') · ' +
+        (idx ? idx.nombre + ': <b>' + idx.caidaPct.toFixed(1) + '%</b> desde su máximo de 52 semanas (' + fe(idx.maximo) +
+            ') — se activa a −' + C.CAIDA_INDICE_PCT[0] + '%' : 'índice sin datos') + '<br>' +
+        'Gastado por el plan: <b>' + fe(gastoTotal, 0) + '</b> · en órdenes de TR: <b>' + fe(enOrdenesTotal, 0) +
+        '</b> · reservado: <b>' + fe(reservadoTotal, 0) + '</b> de ' + fe(C.CAPITAL_TRAMO * 3, 0) + '</div>' +
+        '<div class="mt2" style="font-size:9px;margin-top:4px">Los niveles salen de tu columna TRAMPA (Tramo 1 = TRAMPA · Tramo 2 = TRAMPA −' +
+        ((1 - C.FACTOR_NIVEL[1]) * 100).toFixed(1).replace('.', ',') + '% · Tramo 3 = TRAMPA −' +
+        ((1 - C.FACTOR_NIVEL[2]) * 100).toFixed(2).replace('.', ',').replace(/0$/, '') + '%). La referencia manual de la hoja PANICO solo se usa como dato informativo, no para disparar.' +
+        (plan.excluidos.length ? '<br>Sin fila en TRAMPAS (fuera del panel): ' + plan.excluidos.join(', ') + '.' : '') + '</div></div>';
 
-    const TOPE_MAXIMO_POR_ACTIVO = 5000; // aunque solo dispare 1, no meter más de esto en un único activo
+    const avisosHtml = plan.avisos.map(av => '<div class="mt2" style="font-size:10px;background:var(--s2);border-left:3px solid var(--am);border-radius:6px;padding:6px 8px;margin-bottom:6px">ℹ️ ' + av.msg + '</div>').join('');
 
-    const resumenTramos = [1, 2, 3].map(t => {
-        const disparados = disparadosPorTramo[t];
-        const importeSinTope = disparados.length ? CAPITAL_POR_TRAMO / disparados.length : 0;
-        const importePorActivo = Math.min(importeSinTope, TOPE_MAXIMO_POR_ACTIVO);
-        const capitalUsado = importePorActivo * disparados.length;
-        const capitalReservado = CAPITAL_POR_TRAMO - capitalUsado;
-        const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
-        return '<div style="background:' + (disparados.length ? 'rgba(52,199,123,0.12)' : 'var(--s2)') +
-            ';border:1px solid ' + (disparados.length ? 'var(--gn)' : 'var(--bd)') +
-            ';border-radius:8px;padding:10px;margin-bottom:8px">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center">' +
-            '<b style="font-size:11px">Tramo ' + t + ' (' + caidaPct + ') — ' + fe(CAPITAL_POR_TRAMO, 0) +
-            '</b>' +
-            (disparados.length ? '<span style="color:var(--gn);font-weight:800;font-size:11px">🟢 ' +
-                disparados.length + ' activo' + (disparados.length === 1 ? '' : 's') + ' a tiro</span>' :
-                '<span class="mt2" style="font-size:10px">Esperando</span>') +
-            '</div>' +
-            (disparados.length ? '<div class="mt2" style="font-size:10px;margin-top:6px">Concentrado en los ' +
-                disparados.length + ' mejores — invertir ' + fe(importePorActivo, 0) + ' en cada uno de: ' +
-                disparados.map(d => d.nombre).join(', ') +
-                (capitalReservado > 0.5 ? '<br><span style="color:var(--am)">⏳ ' + fe(capitalReservado, 0) +
-                    ' reservados por si dispara otro poco después (tope de ' + fe(TOPE_MAXIMO_POR_ACTIVO, 0) +
-                    '€ por activo)</span>' : '') + '</div>' : '') +
-            '</div>';
+    const tramosHtml = plan.tramos.map(tr => {
+        const cabecera = '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:11px">Tramo ' + tr.t + ' — ' +
+            fe(C.CAPITAL_TRAMO, 0) + '</b>' + (tr.activo ? '<span style="color:var(--gn);font-weight:800;font-size:11px">🟢 activo · ' + tr.motivo + '</span>' :
+            '<span class="mt2" style="font-size:10px">Esperando</span>') + '</div>';
+        let cuerpo = '';
+        if (tr.lineas.length) {
+            cuerpo += '<div class="mt2" style="font-size:10px;margin-top:6px">' + tr.lineas.map(l =>
+                '<b>' + l.nombre + '</b>: ' + fe(l.importePlan, 0) + (l.ordenYaPuesta > 0.5 ? ' (' + fe(l.ordenYaPuesta, 0) + ' ya en tu orden de TR → nuevo ' + fe(l.nuevo, 0) + ')' : '') +
+                (l.via === 'indice' ? ' · vía índice' : l.via === 'cerca' ? ' · a ≤' + C.CERCA_DE_TRAMPA_PCT + '% de su TRAMPA' : '') +
+                (l.ordenExcede ? ' <span style="color:var(--am)">⚠️ tu orden de TR supera lo que asigna el plan</span>' : '')).join('<br>') + '</div>';
+            cuerpo += '<div class="mt2" style="font-size:10px;margin-top:4px">Nuevo a colocar: <b>' + fe(tr.nuevoAColocar, 0) + '</b>' +
+                (tr.ordenesEnReceptoras > 0.5 ? ' · ya en órdenes de esos activos: ' + fe(tr.ordenesEnReceptoras, 0) : '') +
+                (tr.ordenesNoReceptoras > 0.5 ? ' · en órdenes de otros activos del plan: ' + fe(tr.ordenesNoReceptoras, 0) : '') +
+                ' · <span style="color:var(--am)">⏳ reservado: ' + fe(tr.reservado, 0) + '</span></div>';
+        } else if (tr.activo) {
+            cuerpo += '<div class="mt2" style="font-size:10px;margin-top:6px"><span style="color:var(--am)">⏳ Activo, pero ningún candidato recibe dinero (nadie en su nivel ni a ≤' + C.CERCA_DE_TRAMPA_PCT + '% de su TRAMPA): todo reservado.</span></div>';
+        } else if (tr.t === 1 && tr.ordenesNoReceptoras > 0.5) {
+            cuerpo += '<div class="mt2" style="font-size:10px;margin-top:6px">Comprometido en órdenes de TR de activos del plan: ' + fe(tr.ordenesNoReceptoras, 0) +
+                ' · libre para el plan: ' + fe(tr.capEfectivo, 0) + '</div>';
+        }
+        if (tr.sinSala.length) cuerpo += '<div class="mt2" style="font-size:9px;margin-top:4px;color:var(--am)">Tope acumulado de ' + fe(C.TOPE_ACUMULADO, 0) + ' ya alcanzado: ' + tr.sinSala.join(', ') + '</div>';
+        return '<div style="background:' + (tr.activo ? 'rgba(52,199,123,0.12)' : 'var(--s2)') + ';border:1px solid ' + (tr.activo ? 'var(--gn)' : 'var(--bd)') +
+            ';border-radius:8px;padding:10px;margin-bottom:8px">' + cabecera + cuerpo + '</div>';
     }).join('');
 
-    const totalActivosPlan = PLAN_PANICO_GS.length;
-
-    // Distancia mínima al Tramo 1 entre todos los activos (para decidir si merece la pena abrir el
-    // detalle solo, sin que el usuario tenga que tocar nada)
-    const distanciasATramo1 = PLAN_PANICO_GS.filter(p => p.precioActual && p.tramo1).map(p => (p.precioActual -
-        p.tramo1) / p.tramo1 * 100);
-    const distanciaMinima = distanciasATramo1.length ? Math.min(...distanciasATramo1) : 999;
-    const hayAlgoDisparado = disparadosPorTramo[1].length || disparadosPorTramo[2].length || disparadosPorTramo[
-        3].length;
-    const cercaDeVerdad = distanciaMinima <= 10; // dentro del 10% por encima del Tramo 1, o ya disparado
-
+    const distanciaMinima = plan.activos.length ? Math.min(...plan.activos.map(a => a.distTrampaPct)) : 999;
+    const cercaDeVerdad = distanciaMinima <= 10;
     if (typeof window.PANICO_EXPANDIDO === 'undefined') window.PANICO_EXPANDIDO = null; // null = automático
-    const expandido = window.PANICO_EXPANDIDO === null ? (hayAlgoDisparado || cercaDeVerdad) : window
-        .PANICO_EXPANDIDO;
+    const expandido = window.PANICO_EXPANDIDO === null ? (algunoActivo || cercaDeVerdad) : window.PANICO_EXPANDIDO;
 
-    const tablaActivos = expandido ? ('<div class="mt2" style="font-size:8px;padding:0 0 8px">El importe en gris (con ~) es una referencia si se repartiera entre las 10, antes de disparar. En verde es el importe real a invertir ahora mismo, repartido solo entre las que ya han disparado ese tramo.</div><div class="sc"><table class="dt"><thead><tr><th>#</th><th style="text-align:left">Activo</th><th>Precio hoy</th><th>Tramo 1</th><th>Tramo 2</th><th>Tramo 3</th></tr></thead><tbody>' +
-        PLAN_PANICO_GS.slice().sort((a, b) => a.orden - b.orden).map(p => {
-            const medalla = p.orden === 1 ? '🥇' : p.orden === 2 ? '🥈' : p.orden === 3 ? '🥉' : '#' + p.orden;
-            const celda = (nivel, num) => {
-                const cruzoElNivel = p.precioActual && p[nivel] && p.precioActual <= p[nivel];
-                const elegido = disparadosPorTramo[num].includes(p); // está entre los 3 mejores de este tramo
-                const distPct = p[nivel] ? ((p.precioActual - p[nivel]) / p[nivel] * 100) : 0;
-                const nDisparadosEsteTramo = disparadosPorTramo[num].length;
-                const importeVivo = elegido ? Math.min(CAPITAL_POR_TRAMO / nDisparadosEsteTramo,
-                    TOPE_MAXIMO_POR_ACTIVO) : (CAPITAL_POR_TRAMO / totalActivosPlan); // si aún no ha disparado nadie, referencia aproximada (reparto entre todos)
-                if (elegido) {
-                    return '<td style="color:var(--gn);font-weight:800;background:rgba(52,199,123,0.1)">' + fe(p[
-                            nivel], 0) + ' 🟢<div style="font-size:10px;font-weight:800;color:var(--gn)">' + fe(
-                            importeVivo, 0) + '</div></td>';
-                }
-                if (cruzoElNivel) {
-                    // Ha cruzado el precio, pero se ha quedado fuera del top 3 de ese tramo — se avisa
-                    // igualmente (para que no parezca que no ha pasado nada), pero sin importe asignado.
-                    return '<td style="color:var(--am);font-weight:700">' + fe(p[nivel], 0) +
-                        ' ⚪<div style="font-size:8px;color:var(--mt)">Fuera del top 3</div></td>';
-                }
-                return '<td style="color:var(--mt)">' + fe(p[nivel], 0) + '<div class="mt2" style="font-size:8px">' +
-                    (distPct >= 0 ? '+' : '') + distPct.toFixed(0) + '% · ~' + fe(importeVivo, 0) + '</div></td>';
+    const tablaActivos = expandido ? ('<div class="sc"><table class="dt"><thead><tr><th>#</th><th style="text-align:left">Activo</th><th>Precio hoy</th><th>Frente a su referencia manual</th><th>Tramo 1 (TRAMPA)</th><th>Tramo 2</th><th>Tramo 3</th></tr></thead><tbody>' +
+        plan.activos.map(a => {
+            const medalla = a.orden === 1 ? '🥇' : a.orden === 2 ? '🥈' : a.orden === 3 ? '🥉' : '#' + a.orden;
+            const celda = i => {
+                const lin = plan.tramos[i].lineas.find(l => l.isin === a.isin);
+                const nivel = a.niveles[i];
+                const dist = (a.precio - nivel) / nivel * 100;
+                if (lin) return '<td style="color:var(--gn);font-weight:800;background:rgba(52,199,123,0.1)">' + fe(nivel, 0) + ' 🟢<div style="font-size:10px">' + fe(lin.importePlan, 0) + '</div></td>';
+                if (a.precio <= nivel) return '<td style="color:var(--am);font-weight:700">' + fe(nivel, 0) + ' ⚪<div style="font-size:8px;color:var(--mt)">En su nivel, sin dinero</div></td>';
+                return '<td style="color:var(--mt)">' + fe(nivel, 0) + '<div class="mt2" style="font-size:8px">+' + dist.toFixed(0) + '%</div></td>';
             };
-            return '<tr><td style="font-weight:800;font-size:13px;text-align:center">' + medalla + '</td><td style="font-weight:700;font-size:11px">' + p.nombre + '</td>' +
-                '<td style="font-family:monospace">' + fe(p.precioActual, 0) + '</td>' +
-                celda('tramo1', 1) + celda('tramo2', 2) + celda('tramo3', 3) +
-                '</tr>';
-        }).join('') + '</tbody></table></div>') : '';
+            return '<tr><td style="font-weight:800;font-size:13px;text-align:center">' + medalla + '</td><td style="font-weight:700;font-size:11px">' + a.nombre +
+                (a.ordenTR ? ' <span title="Orden puesta en TR" style="font-size:9px">📌</span>' : '') + '</td>' +
+                '<td style="font-family:monospace">' + fe(a.precio, 0) + '</td>' +
+                '<td class="mt2" style="font-size:9px">' + (a.caidaVsRefPct !== null ? (a.caidaVsRefPct >= 0 ? '+' : '') + a.caidaVsRefPct.toFixed(1) + '% sobre ref. ' + fe(a.refManual, 0) : '—') + '</td>' +
+                celda(0) + celda(1) + celda(2) + '</tr>';
+        }).join('') + '</tbody></table></div><div class="mt2" style="font-size:8px;padding:4px 0">📌 = tienes orden puesta en TR a su TRAMPA. En verde, lo que asigna el plan hoy.</div>') : '';
 
     const botonToggle = '<button class="btn" style="font-size:10px;margin-top:4px" onclick="window.PANICO_EXPANDIDO=' +
         (!expandido) + ';renderPlanPanico()">' + (expandido ? '▲ Ocultar detalle' :
-            '▼ Ver detalle completo (' + totalActivosPlan + ' activos)') + '</button>';
+            '▼ Ver detalle completo (' + nAct + ' activos)') + '</button>';
 
-    cont.innerHTML = resumenTramos + botonToggle + tablaActivos;
+    cont.innerHTML = banner + avisosHtml + tramosHtml + botonToggle + tablaActivos;
 }
 
 function renderSaludCartera() {
@@ -4965,6 +5148,89 @@ function renderCartera() {
 }
 
 // ── TRAMPAS ──
+// ── Gráfico de distancia a la trampa: línea 0 = TRAMPA, barras = % de distancia (solo las que están a ≤20%) ──
+function renderGraficoTrampas() {
+    const canvas = document.getElementById('chart-trampas');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const LIMITE = 20; // % máximo de distancia para mostrarla
+    const todas = TRAMPAS_GS.map(r => {
+        const trampa = cn(r[3]), pa = cn(r[4]);
+        if (!trampa || !pa) return null;
+        return { nombre: r[0], dist: (trampa - pa) / trampa * 100, trampa, pa, orden: r[11] === true };
+    }).filter(Boolean); // dist > 0: ya en o bajo la trampa · dist < 0: precio aún por encima (mismo signo que la tabla)
+    const visibles = todas.filter(x => x.dist >= -LIMITE).sort((a, b) => b.dist - a.dist);
+    const ocultas = todas.length - visibles.length;
+    const resumen = document.getElementById('n-grafico-trampas');
+    if (resumen) resumen.textContent = visibles.length + ' a la vista · ' + ocultas + ' a más del ' + LIMITE + '% (no se muestran)';
+
+    const colorDe = d => d >= 0 ? '#34C77B' : d >= -5 ? '#7BD9A5' : d >= -10 ? '#E29A3E' : '#E85A5A';
+    const maxPos = Math.max(0, ...visibles.map(x => x.dist));
+    const etiquetasValor = {
+        id: 'etiquetasValor',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.getDatasetMeta(0).data.forEach((barra, i) => {
+                const v = visibles[i].dist;
+                ctx.save();
+                ctx.fillStyle = '#9CA3AF';
+                ctx.font = '9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = v >= 0 ? 'bottom' : 'top';
+                ctx.fillText((v > 0 ? '+' : '') + v.toFixed(1) + '%', barra.x, v >= 0 ? barra.y - 2 : barra.y + 2);
+                ctx.restore();
+            });
+        }
+    };
+    if (window._chartTrampas) window._chartTrampas.destroy();
+    window._chartTrampas = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: visibles.map(x => x.nombre.length > 14 ? x.nombre.slice(0, 13) + '…' : x.nombre),
+            datasets: [{
+                data: visibles.map(x => x.dist),
+                backgroundColor: visibles.map(x => colorDe(x.dist)),
+                borderRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 4 } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: items => visibles[items[0].dataIndex].nombre,
+                        label: item => {
+                            const x = visibles[item.dataIndex];
+                            return [(x.dist > 0 ? 'Ya en trampa: ' : 'Falta ') + Math.abs(x.dist).toFixed(1) + '%',
+                                'Precio ' + f2(x.pa) + ' € · Trampa ' + f2(x.trampa) + ' €',
+                                x.orden ? 'Orden puesta en TR: sí' : 'Orden puesta en TR: no'];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    position: 'top',
+                    ticks: { color: '#9CA3AF', font: { size: 9 }, maxRotation: 90, minRotation: 60, autoSkip: false },
+                    grid: { display: false }
+                },
+                y: {
+                    min: -LIMITE,
+                    max: Math.max(5, Math.ceil(maxPos + 2)),
+                    ticks: { color: '#9CA3AF', font: { size: 9 }, callback: v => v + '%' },
+                    grid: {
+                        color: c => c.tick.value === 0 ? '#C9A24B' : 'rgba(255,255,255,0.06)',
+                        lineWidth: c => c.tick.value === 0 ? 2 : 1
+                    }
+                }
+            }
+        },
+        plugins: [etiquetasValor]
+    });
+}
+
 function renderTrampas() {
     if (!TRAMPAS_GS.length) return;
     document.getElementById('n-trampas').textContent = TRAMPAS_GS.length + ' órdenes';
@@ -5035,6 +5301,7 @@ function renderTrampas() {
             '<td class="mt2" style="font-size:8px">' + (diasEsp !== null ? diasEsp + ' días' : '—') + '</td>' +
             '</tr>';
     }).join('');
+    renderGraficoTrampas();
 }
 
 // ── DIVIDENDOS (COMPLETO PERO RESUMIDO PARA AHORRAR ESPACIO) ──
@@ -5270,7 +5537,7 @@ function renderMesEnCurso() {
         // Estimado: mismo cálculo fiscal que usa el sistema para los cobros reales
         const numPagosAlAnio = calItem.meses.length;
         const bruto = (p.divAcc * p.sh) / numPagosAlAnio;
-        const origenRate = p.pais === 'FRA' ? 0.128 : p.pais === 'USA' ? 0.15 : 0;
+        const origenRate = tasaOrigenEstimada(p.isin, p.pais);
         const retOrigen = bruto * origenRate;
         const subtotal = bruto - retOrigen;
         const irpf = subtotal * 0.19;
