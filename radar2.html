@@ -776,7 +776,7 @@ function avisoOrdenTrampaActiva(isin, importeAsignado, tipoBloque) {
 }
 
 // ── GOTEO v2: reglas nuevas (topes de compra, concentración, órdenes TR, renta vs crecimiento, ETF de reserva) ──
-const GOTEO_FILAS_ESPECIALES = ['TASA_REFERENCIA', 'PRESUPUESTO_MES', 'PRESUPUESTO_MENSUAL', 'TOPE_COMPRA', 'MULTIPLICADOR_REDONDEO'];
+const GOTEO_FILAS_ESPECIALES = ['TASA_REFERENCIA', 'PRESUPUESTO_MES', 'PRESUPUESTO_MENSUAL', 'TOPE_COMPRA', 'MULTIPLICADOR_REDONDEO', 'PRESUPUESTO_REDONDEO_MES', 'DIVIDENDO_ACTUAL'];
 const GOTEO_CFG = {
     MAX_PESO_ACCION: 12,            // % máx. de la cartera en una sola acción
     MAX_PESO_SECTOR: 25,            // % máx. de la cartera en un sector
@@ -811,6 +811,31 @@ function multiplicadorRedondeoHoja() {
     const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'MULTIPLICADOR_REDONDEO');
     return f && f.importe > 0 ? f.importe : GOTEO_CFG.MULT_REDONDEO_DEFECTO;
 }
+function presupuestoRedondeoMes() {
+    const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_REDONDEO_MES');
+    return f && f.importe > 0 ? f.importe : null;
+}
+// Multiplicador que cumple el presupuesto MENSUAL del redondeo (el redondeo es semanal: semanal = mensual × 12 / 52);
+// mayor entero que no lo supera. Sin fila, el defecto.
+function multiplicadorSugeridoRedondeo() {
+    const pres = presupuestoRedondeoMes(), media = mediaUltimosRedondeos(GOTEO_CFG.N_REDONDEOS).media;
+    if (!pres || !media) return { mult: multiplicadorRedondeoHoja(), presupuesto: pres, semanal: null };
+    const semanal = pres * 12 / 52;
+    return { mult: Math.max(1, Math.floor(semanal / media)), presupuesto: pres, semanal };
+}
+// Dividendo ANUAL por acción con el pago actual: fila DIVIDENDO_ACTUAL (universo=ISIN, importe=€/acción/año) >
+// último pago real cobrado × nº de pagos al año del calendario > dividendo de la columna de TRAMPAS.
+function dividendoActualAnual(isin) {
+    const f = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'DIVIDENDO_ACTUAL' && g.universo && esMismoISIN(g.universo, isin));
+    if (f && f.importe > 0) return { valor: f.importe, fuente: 'fila DIVIDENDO_ACTUAL' };
+    const cal = (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin && esMismoISIN(c.isin, isin));
+    const pagos = ((typeof divsEnVivo === 'function' ? divsEnVivo() : null) || []).filter(d => d.isin && esMismoISIN(d.isin, isin) && d.sh > 0 && d.bruto > 0)
+        .map(d => { const m = String(d.f || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return { t: m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0, ps: d.bruto / d.sh }; })
+        .sort((a, b) => a.t - b.t);
+    if (pagos.length && cal && cal.meses && cal.meses.length) return { valor: pagos[pagos.length - 1].ps * cal.meses.length, fuente: 'último pago × ' + cal.meses.length };
+    const t = filaTrampaDe(isin);
+    return { valor: t ? cn(t[8]) : 0, fuente: 'columna de TRAMPAS' };
+}
 function mediaUltimosRedondeos(n) {
     const sb = (savebacksEnVivo() || []).filter(x => x && x.i > 0).map(x => {
         const m = String(x.f || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -826,16 +851,21 @@ function calcularImporteFila(g) {
     if (tipo === 'REDONDEO') {
         const m = mediaUltimosRedondeos(GOTEO_CFG.N_REDONDEOS);
         const sug = sugerirDestinoFlexible(null, g.universo);
-        const mult = (sug && !sug.sinDestino) ? sug.multiplicadorSugerido : 1;
+        const mult = (sug && !sug.sinDestino) ? sug.multiplicadorSugerido : (presupuestoRedondeoMes() ? multiplicadorSugeridoRedondeo().mult : 1);
         return { importe: m.media * mult, mult, media: m.media, n: m.n, sug };
     }
     return { importe: g.importe > 0 ? g.importe : 0, mult: 1, media: 0, n: 0, sug: null };
 }
 function guardarPresupuestoMensualEnHoja(valor) {
+    let clave = '';
+    try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) { clave = (prompt('Clave de guardado del presupuesto (la que pusiste en el script):') || '').trim(); }
+    if (!clave) { GOTEO_AVISO_GUARDADO = '⚠️ sin clave: solo vale en esta sesión. Escribe ' + valor + ' en la fila PRESUPUESTO_MENSUAL de GOTEO.'; renderFocusGoteo(); if (typeof renderGoteo === 'function') renderGoteo(); return; }
     GOTEO_AVISO_GUARDADO = '⏳ guardando en la hoja…';
-    fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + 'accion=presupuestoMensual&valor=' + encodeURIComponent(valor))
+    fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + 'accion=presupuestoMensual&valor=' + encodeURIComponent(valor) + '&clave=' + encodeURIComponent(clave))
         .then(r => r.json()).then(j => {
-            if (!j || !j.ok) throw new Error('sin ok');
+            if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} } throw new Error('sin ok'); }
+            try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
             const fila = (GOTEO_GS || []).find(g => (g.tipo || '').toUpperCase().trim() === 'PRESUPUESTO_MENSUAL');
             if (fila) fila.importe = valor; else GOTEO_GS.push({ tipo: 'PRESUPUESTO_MENSUAL', importe: valor, universo: '' });
             GOTEO_OVERRIDE_MENSUAL = null;
@@ -886,7 +916,7 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         const distTrampaPct = trampa ? (pa - trampa) / trampa * 100 : 999;
         const min52 = cn(t[16]), max52 = cn(t[17]);
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
-        const yieldActual = cn(t[8]) / pa * 100;
+        const yieldActual = dividendoActualAnual(p.isin).valor / pa * 100;
         const esETF = (p.sector || '') === 'Diversificado';
         const renta = C.ISINS_RENTA.includes(p.isin);
         const peso = enCartera ? pa * p.sh / valorTotal * 100 : 0;
@@ -899,7 +929,9 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         if (!esETF && peso > C.MAX_PESO_ACCION) motivos.push('pesa ' + peso.toFixed(1) + '% (máx. ' + C.MAX_PESO_ACCION + '%)');
         if (!esETF && pesoSector > C.MAX_PESO_SECTOR) motivos.push('sector ' + p.sector + ' al ' + pesoSector.toFixed(1) + '% (máx. ' + C.MAX_PESO_SECTOR + '%)');
         let regla = '';
-        if (renta) {
+        if (tope) {
+            regla = 'precio ' + f2(pa) + ' € ≤ tope de compra ' + f2(tope) + ' € (el tope sustituye al suelo de rentabilidad; yield actual ' + yieldActual.toFixed(1) + '%)';
+        } else if (renta) {
             if (yieldActual < umbralRenta) motivos.push('yield ' + yieldActual.toFixed(1) + '% < suelo de renta ' + umbralRenta.toFixed(1) + '%');
             else regla = 'cumple el suelo de renta (yield ' + yieldActual.toFixed(1) + '% ≥ ' + umbralRenta.toFixed(1) + '%)';
         } else {
@@ -956,7 +988,7 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
             'está en ' + (ganador.rentActualPct >= 0 ? '+' : '') + ganador.rentActualPct.toFixed(1) + '% respecto a tu precio medio, ';
         return {
             nombre: ganador.nombre, isin: ganador.isin, precioActual: ganador.precioActual,
-            esObjetivoEstrategico: !!ganadorEstrategico, esReserva: false, multiplicadorSugerido: multiplicadorRedondeoHoja(),
+            esObjetivoEstrategico: !!ganadorEstrategico, esReserva: false, multiplicadorSugerido: multiplicadorSugeridoRedondeo().mult,
             top3, excluidas,
             explicacion: extra + ganador.nombre + ' (puntuación ' + ganador.puntuacionTotal.toFixed(0) + '/100): ' + vsCoste +
                 'a ' + Math.abs(ganador.distTrampaPct).toFixed(1) + '% de su trampa, al ' + ganador.pctRango52.toFixed(0) +
@@ -974,11 +1006,11 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
             ') ' + (tr && tr[11] === true ? 'tiene orden activa en TR' : 'no tiene datos') + ': el dinero se queda en liquidez esta vez.' };
     }
     return {
-        nombre: nombreR, isin: C.ISIN_RESERVA, precioActual: paR, esObjetivoEstrategico: false, esReserva: true, multiplicadorSugerido: 1,
+        nombre: nombreR, isin: C.ISIN_RESERVA, precioActual: paR, esObjetivoEstrategico: false, esReserva: true, multiplicadorSugerido: presupuestoRedondeoMes() ? multiplicadorSugeridoRedondeo().mult : 1,
         top3: [], excluidas,
         explicacion: 'Ninguna acción cumple hoy las reglas (tope de compra, órdenes activas en TR, concentración ≤' + C.MAX_PESO_ACCION + '% por acción y ≤' +
             C.MAX_PESO_SECTOR + '% por sector, suelo de renta ' + umbralRenta.toFixed(1) + '% / crecimiento a ≤' + C.DIST_TRAMPA_CRECIMIENTO +
-            '% de su trampa). El dinero va al ETF de reserva y el redondeo se queda en ×1.'
+            '% de su trampa). El dinero va al ETF de reserva' + (presupuestoRedondeoMes() ? ' y el redondeo sigue el presupuesto mensual (×' + multiplicadorSugeridoRedondeo().mult + ').' : ' y el redondeo se queda en ×1.')
     };
 }
 
