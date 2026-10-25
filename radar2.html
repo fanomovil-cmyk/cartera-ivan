@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1133,6 +1134,196 @@ function renderFocusGoteo() {
 // (kg0, obj-*, heatmap, tabla de posiciones, etc.) — la lógica que SÍ
 // queda aquí es idéntica, número por número, a la de index.html.
 // ══════════════════════════════════════════════════════════════════════
+// ── PLAN DE PÁNICO v2: niveles = columna TRAMPA, activación por amplitud o por caída del índice, topes de diversificación ──
+const PANICO_CFG = {
+    CAPITAL_TRAMO: 10000,        // € por tramo (3 tramos)
+    TOPE_POR_TRAMO: 2000,        // máx. € por activo y tramo
+    TOPE_ACUMULADO: 3000,        // máx. € por activo entre los 3 tramos
+    MIN_DISPARADOS: 3,           // amplitud: nº de activos en su nivel para activar el tramo
+    CAIDA_INDICE_PCT: [15, 15, 15], // caída (%) del índice desde su máximo de 52s que activa cada tramo
+    FACTOR_NIVEL: [1, 0.975, 0.9375], // nivel de disparo = TRAMPA × factor (T1, T2, T3)
+    CERCA_DE_TRAMPA_PCT: 10,     // en activación por índice: activos a ≤ este % por encima de su TRAMPA
+    ISIN_INDICE: 'IE00B4L5Y983', // Core MSCI World (el índice de referencia)
+    TOPE_INDICE_POR_TRAMO: 2000, // máx. € al índice por tramo (mismo criterio que el resto)
+    AVISO_CAIDA_REF_PCT: 20      // aviso informativo si un activo está ≥ este % bajo su referencia manual
+};
+
+function calcularPlanPanico() {
+    const C = PANICO_CFG;
+    const trampas = (typeof TRAMPAS_GS !== 'undefined' && TRAMPAS_GS) ? TRAMPAS_GS : [];
+    const filaDe = isin => trampas.find(r => r[15] && esMismoISIN(r[15], isin));
+
+    // 1) Activos del plan con fila en TRAMPAS (el nivel sale de tu columna TRAMPA, no de una referencia aparte)
+    const activos = [], excluidos = [];
+    (PLAN_PANICO_GS || []).slice().sort((a, b) => a.orden - b.orden).forEach(p => {
+        const f = filaDe(p.isin);
+        const trampa = f ? cn(f[3]) : 0;
+        const precio = p.precioActual || (f ? cn(f[4]) : 0);
+        if (!trampa || !precio) { excluidos.push(p.nombre); return; }
+        activos.push({
+            nombre: p.nombre, isin: p.isin, orden: p.orden, precio, trampa,
+            niveles: C.FACTOR_NIVEL.map(k => trampa * k),
+            refManual: p.precioRef || 0,
+            caidaVsRefPct: p.precioRef ? (precio / p.precioRef - 1) * 100 : null,
+            distTrampaPct: (precio - trampa) / trampa * 100,
+            ordenTR: f[11] === true,
+            capitalOrden: f[11] === true ? trampa * cn(f[6]) : 0 // lo ya comprometido en la orden real de TR
+        });
+    });
+
+    // 2) Índice: caída desde su máximo real de 52 semanas en euros (hoja, histórico propio y precio actual: el mayor)
+    let indice = null;
+    const filaIdx = filaDe(C.ISIN_INDICE);
+    if (filaIdx) {
+        const precio = cn(filaIdx[4]);
+        let maxHist = 0;
+        if (typeof HISTORICO_PRECIOS_POSICIONES_GS !== 'undefined' && HISTORICO_PRECIOS_POSICIONES_GS) {
+            Object.values(HISTORICO_PRECIOS_POSICIONES_GS).forEach(dia => {
+                const v = dia && dia[C.ISIN_INDICE];
+                if (v > maxHist) maxHist = v;
+            });
+        }
+        const maximo = Math.max(cn(filaIdx[17]), maxHist, precio);
+        if (precio > 0 && maximo > 0) {
+            indice = {
+                nombre: filaIdx[0], isin: C.ISIN_INDICE, precio, maximo,
+                caidaPct: (precio / maximo - 1) * 100,
+                capitalOrden: filaIdx[11] === true ? cn(filaIdx[3]) * cn(filaIdx[6]) : 0
+            };
+        }
+    }
+
+    // 3) Tramo a tramo (el acumulado por activo se arrastra de uno a otro)
+    const acum = {};
+    const tramos = [];
+    for (let t = 0; t < 3; t++) {
+        const disparados = activos.filter(a => a.precio <= a.niveles[t]);
+        const porAmplitud = disparados.length >= C.MIN_DISPARADOS;
+        const porIndice = !!(indice && indice.caidaPct <= -C.CAIDA_INDICE_PCT[t]);
+        const activo = porAmplitud || porIndice;
+        const caminoIndice = activo && !disparados.length; // solo el índice lo activa y nadie ha disparado
+
+        // Candidatos que pueden recibir dinero este tramo
+        let receptores = [];
+        let motivo;
+        if (activo && disparados.length) {
+            receptores = disparados.map(a => ({ a, via: 'disparo' }));
+            motivo = porAmplitud ? 'amplitud (' + disparados.length + ' de ' + activos.length + ' en su nivel)' :
+                'caída del índice ' + indice.caidaPct.toFixed(1) + '%';
+        } else if (caminoIndice) {
+            motivo = 'caída del índice ' + indice.caidaPct.toFixed(1) + '% sin activos en su nivel';
+        } else {
+            motivo = 'no activo';
+        }
+        const idsReceptores = new Set(receptores.map(r => r.a.isin));
+
+        // Órdenes reales de TR de activos del plan que NO reciben dinero ahora: su dinero ya está comprometido (solo Tramo 1,
+        // porque la orden está en el nivel TRAMPA = nivel del Tramo 1)
+        const ordenesNoReceptoras = t === 0 ?
+            activos.filter(a => a.ordenTR && !idsReceptores.has(a.isin)).reduce((s, a) => s + a.capitalOrden, 0) : 0;
+        const capEfectivo = Math.max(0, C.CAPITAL_TRAMO - ordenesNoReceptoras);
+
+        const sala = isin => Math.max(0, C.TOPE_ACUMULADO - (acum[isin] || 0));
+        const lineas = [], sinSala = [];
+        const asignar = (a, importeBruto, via, topeTramo) => {
+            const importe = Math.max(0, Math.min(topeTramo, importeBruto, sala(a.isin)));
+            const orden = t === 0 ? (a.capitalOrden || 0) : 0;
+            if (importe < 0.5) { if (sala(a.isin) < 0.5) sinSala.push(a.nombre); return; }
+            const exposicion = Math.max(importe, orden); // si la orden de TR ya supera el plan, manda la orden
+            lineas.push({
+                nombre: a.nombre, isin: a.isin, orden: a.orden, via,
+                importePlan: importe, ordenYaPuesta: Math.min(orden, importe),
+                nuevo: Math.max(0, importe - orden), exposicion,
+                ordenExcede: orden > importe + 0.5
+            });
+            acum[a.isin] = (acum[a.isin] || 0) + exposicion;
+        };
+
+        if (receptores.length) {
+            const sumaW = receptores.reduce((s, r) => s + 1 / r.a.orden, 0);
+            receptores.forEach(r => asignar(r.a, capEfectivo * (1 / r.a.orden) / sumaW, 'disparo', C.TOPE_POR_TRAMO));
+        } else if (caminoIndice && indice) {
+            // Primero al Core MSCI World; lo que sobre, a los activos a ≤10% de su TRAMPA; si no hay ninguno, reservado
+            const topeIdx = C.TOPE_INDICE_POR_TRAMO;
+            const importeIdx = Math.max(0, Math.min(topeIdx, capEfectivo, sala(indice.isin)));
+            if (importeIdx > 0) {
+                const orden = t === 0 ? indice.capitalOrden : 0;
+                lineas.push({
+                    nombre: indice.nombre, isin: indice.isin, orden: 0, via: 'indice',
+                    importePlan: importeIdx, ordenYaPuesta: Math.min(orden, importeIdx),
+                    nuevo: Math.max(0, importeIdx - orden), exposicion: Math.max(importeIdx, orden),
+                    ordenExcede: orden > importeIdx + 0.5
+                });
+                acum[indice.isin] = (acum[indice.isin] || 0) + Math.max(importeIdx, orden);
+            }
+            const sobra = capEfectivo - importeIdx;
+            const cerca = activos.filter(a => a.distTrampaPct <= C.CERCA_DE_TRAMPA_PCT);
+            if (sobra > 0.5 && cerca.length) {
+                const sumaW = cerca.reduce((s, a) => s + 1 / a.orden, 0);
+                cerca.forEach(a => asignar(a, sobra * (1 / a.orden) / sumaW, 'cerca', C.TOPE_POR_TRAMO));
+            }
+        }
+
+        const gastoPlan = lineas.reduce((s, l) => s + l.exposicion, 0);
+        tramos.push({
+            t: t + 1, activo, porAmplitud, porIndice, motivo, disparados, lineas, sinSala,
+            ordenesNoReceptoras,
+            ordenesEnReceptoras: lineas.reduce((s, l) => s + l.ordenYaPuesta, 0),
+            nuevoAColocar: lineas.reduce((s, l) => s + l.nuevo, 0),
+            gastoPlan, capEfectivo,
+            reservado: Math.max(0, C.CAPITAL_TRAMO - gastoPlan - ordenesNoReceptoras)
+        });
+    }
+
+    // 4) Avisos informativos (sin dinero del plan)
+    const avisos = [];
+    const reciben = new Set();
+    tramos.forEach(tr => tr.lineas.forEach(l => reciben.add(l.isin)));
+    activos.forEach(a => {
+        if (reciben.has(a.isin)) return;
+        if (a.caidaVsRefPct !== null && a.caidaVsRefPct <= -C.AVISO_CAIDA_REF_PCT) {
+            avisos.push({
+                nombre: a.nombre, tipo: 'aislada',
+                msg: a.nombre + ': ' + a.caidaVsRefPct.toFixed(1) + '% sobre su referencia manual (' + a.refManual.toFixed(0) +
+                    ' €). Su TRAMPA está en ' + a.trampa.toFixed(0) + ' € (' + (a.distTrampaPct >= 0 ? '+' : '') +
+                    a.distTrampaPct.toFixed(1) + '%): caída aislada, sin dinero del plan de pánico' +
+                    (a.ordenTR ? ' (ya tiene orden puesta en TR).' : '.')
+            });
+        } else if (a.precio <= a.niveles[0]) {
+            avisos.push({
+                nombre: a.nombre, tipo: 'aislada',
+                msg: a.nombre + ' está en su nivel de TRAMPA (' + a.trampa.toFixed(0) + ' €) pero el plan no se activa (' +
+                    disparadosTexto(tramos[0], activos.length, indice) + '): sin dinero del plan.'
+            });
+        }
+    });
+
+    return { activos, excluidos, indice, tramos, avisos, cfg: C };
+}
+
+function disparadosTexto(tramo1, nActivos, indice) {
+    return 'amplitud ' + tramo1.disparados.length + ' de ' + nActivos + ' (mín. ' + PANICO_CFG.MIN_DISPARADOS + ')' +
+        (indice ? ' · índice ' + indice.caidaPct.toFixed(1) + '% (mín. −' + PANICO_CFG.CAIDA_INDICE_PCT[0] + '%)' : '');
+}
+
+// Alertas para Dashboard y Radar (mismo cálculo en los tres sitios)
+function alertasPlanPanico() {
+    const alertas = [];
+    if (!PLAN_PANICO_GS || !PLAN_PANICO_GS.length) return alertas;
+    const plan = calcularPlanPanico();
+    plan.tramos.forEach(tr => {
+        if (!tr.lineas.length) return;
+        alertas.push({
+            tipo: 'success', icon: '🚨',
+            msg: 'PANICO: Tramo ' + tr.t + ' activado por ' + tr.motivo + ' — ' + tr.lineas.map(l => l.nombre + ' ' +
+                fe(l.importePlan, 0) + (l.ordenYaPuesta > 0.5 ? ' (' + fe(l.ordenYaPuesta, 0) + ' ya en orden TR)' : '')).join(
+                ', ') + '. Nuevo a colocar: ' + fe(tr.nuevoAColocar, 0) + ' · reservado: ' + fe(tr.reservado, 0)
+        });
+    });
+    plan.avisos.forEach(av => alertas.push({ tipo: 'info', icon: 'ℹ️', msg: 'PANICO: ' + av.msg }));
+    return alertas;
+}
+
 function renderFocusPanel() {
     // Rango de fechas (opcional, cosmético)
     const rangoEl = document.getElementById('rango');
@@ -1447,21 +1638,8 @@ function renderFocusPanel() {
     if (pct > 75) alertas.push({ tipo: 'success', icon: '🎯', msg: 'Estás al ' + pct.toFixed(0) +
             '% de tu objetivo de 300€/mes' });
 
-    if (PLAN_PANICO_GS && PLAN_PANICO_GS.length) {
-        const CAPITAL_POR_TRAMO_ALERTA = 10000;
-        [1, 2, 3].forEach(t => {
-            const nivel = 'tramo' + t;
-            const caidaPct = t === 1 ? '-20%' : t === 2 ? '-22%' : '-25%';
-            const disparados = PLAN_PANICO_GS.filter(p => p.precioActual && p[nivel] && p.precioActual <= p[
-                nivel]).sort((a, b) => a.orden - b.orden).slice(0, 3);
-            if (disparados.length) {
-                const importeCada = Math.min(CAPITAL_POR_TRAMO_ALERTA / disparados.length, 5000);
-                alertas.push({ tipo: 'success', icon: '🚨', msg: 'PANICO: Tramo ' + t + ' (' + caidaPct +
-                        ') activado — concentrar en ' + disparados.map(d => d.nombre).join(', ') + '. Invertir ' +
-                        fe(importeCada, 0) + ' en cada una' });
-            }
-        });
-    }
+    // Plan de Pánico (v2): mismo cálculo que el panel del dashboard
+    alertasPlanPanico().forEach(al => alertas.push(al));
     if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
 
     const alertasHtml = alertas.map(a =>
