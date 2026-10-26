@@ -5188,7 +5188,7 @@ function renderGraficoTrampas() {
     const todas = TRAMPAS_GS.map(r => {
         const trampa = cn(r[3]), pa = cn(r[4]);
         if (!trampa || !pa) return null;
-        return { nombre: r[0], dist: (trampa - pa) / trampa * 100, trampa, pa, orden: r[11] === true };
+        return { nombre: r[0], dist: (trampa - pa) / trampa * 100, trampa, pa, orden: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] || '' };
     }).filter(Boolean); // dist > 0: ya en o bajo la trampa · dist < 0: precio aún por encima (mismo signo que la tabla)
     const visibles = todas.filter(x => x.dist >= -LIMITE).sort((a, b) => b.dist - a.dist);
     const ocultas = todas.length - visibles.length;
@@ -5252,7 +5252,10 @@ function renderGraficoTrampas() {
                             const x = visibles[item.dataIndex];
                             return [(x.dist > 0 ? 'Ya en trampa: ' : 'Falta ') + Math.abs(x.dist).toFixed(1) + '%',
                                 'Precio ' + f2(x.pa) + ' € · Trampa ' + f2(x.trampa) + ' €',
-                                x.orden ? 'Orden puesta en TR: sí' : 'Orden puesta en TR: no'];
+                                x.orden ? 'Orden puesta en TR: sí' : 'Orden puesta en TR: no',
+                                x.pAnadir > 0 ? 'Visto a ' + f2(x.pAnadir) + ' €' + (x.fAnadir ? ' (' + x.fAnadir + ')' : '') + ' → ' +
+                                    ((x.pa / x.pAnadir - 1) * 100 >= 0 ? 'ha subido +' : 'ha bajado ') + ((x.pa / x.pAnadir - 1) * 100).toFixed(1) + '% (' +
+                                    (x.pa - x.pAnadir >= 0 ? '+' : '') + f2(x.pa - x.pAnadir) + ' €)' : 'Sin precio de cuando se añadió'];
                         }
                     }
                 }
