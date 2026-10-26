@@ -496,16 +496,24 @@ html.light .badge-orden.venta{color:#B33A3A}
 <!-- ═══ INTERESES ═══ -->
 <div class="tp" id="t4">
   <div class="kg" id="kg4"></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>📊 Cobros mensuales: dividendos + intereses + depósitos</h3><span class="mt2" id="n-graf-ing" style="font-size:8px"></span></div>
+    <div id="filtro-anio-ingresos" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px"></div>
+    <div style="overflow-x:auto"><div id="graf-ing-wrap" style="height:270px;position:relative"><canvas id="c-ingresos-mes"></canvas></div></div></div>
   <div class="g2">
     <div class="card"><div class="ch"><h3>🏦 Intereses mensuales TR</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Bruto €</th><th>Ret.19% €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-int"></tbody><tfoot><tr id="tf-int"><td colspan="5">—</td></tr></tfoot></table></div></div>
     <div class="card"><div class="ch"><h3>📈 Evolución</h3></div><div class="cw"><canvas id="ci"></canvas></div></div>
   </div>
+  <div class="g2" style="margin-top:12px">
+    <div class="card"><div class="ch"><h3>🏛️ Cobros por depósitos</h3><span class="mt2" style="font-size:8px">de más antiguo a más nuevo</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Entidad</th><th>Importe €</th><th>Acumulado €</th></tr></thead><tbody id="tb-dep"></tbody><tfoot><tr id="tf-dep"><td colspan="4">—</td></tr></tfoot></table></div></div>
+    <div class="card"><div class="ch"><h3>🧮 Acumulado por depósito</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Entidad</th><th>Cobros</th><th>Primer cobro</th><th>Último cobro</th><th>Total € </th></tr></thead><tbody id="tb-dep-acum"></tbody><tfoot><tr id="tf-dep-acum"><td colspan="5">—</td></tr></tfoot></table></div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>💶 Dividendos + intereses</h3><span class="mt2" style="font-size:8px">neto cobrado por mes (dividendos: neto real · intereses TR: neto · depósitos: importe cobrado)</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Dividendos €</th><th>Intereses TR €</th><th>Depósitos €</th><th>Total mes €</th><th>Acumulado €</th></tr></thead><tbody id="tb-div-int"></tbody><tfoot><tr id="tf-div-int"><td colspan="6">—</td></tr></tfoot></table></div></div>
 </div>
 
 <!-- ═══ EVOLUCIÓN ═══ -->
 <div class="tp" id="t5">
   <div class="card"><div class="ch"><h3>📅 Actividad mensual</h3></div><div class="cw" style="height:240px"><canvas id="ce"></canvas></div></div>
-  <div class="card" style="margin-top:12px"><div class="ch"><h3>📋 Detalle mensual</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Compras €</th><th>Ventas €</th><th>Dividendos €</th><th>Intereses €</th><th>Flujo neto €</th></tr></thead><tbody id="tb-evol"></tbody></table></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>📋 Detalle mensual</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Compras €</th><th>Ventas €</th><th>Dividendos €</th><th>Intereses + depósitos €</th><th>Flujo neto €</th></tr></thead><tbody id="tb-evol"></tbody></table></div></div>
 </div>
 
 <!-- ═══ PROYECCIONES ═══ -->
@@ -941,6 +949,7 @@ let COMISIONES_TOTAL = 0,
 let DIVIDENDOS_GS = null,
     RESUMEN_DIVS_GS = null,
     INTERESES_GS = null,
+    INGRESOS_GS = null,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
@@ -1138,8 +1147,36 @@ function proximosCobrosEnVivo() {
     });
 }
 
+// Cobros de depósitos (pestaña INGRESOS de la hoja: PIBANK cols A-C, ING cols F-H). Mientras no llegue la API: los conocidos.
+const INGRESOS_BASE = [
+    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-03-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-03-01' },
+    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-06-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-06-01' },
+    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-09-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-09-01' }
+];
+function ingresosEnVivo() {
+    return (INGRESOS_GS && INGRESOS_GS.length ? INGRESOS_GS : INGRESOS_BASE).slice()
+        .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.entidad).localeCompare(String(b.entidad)));
+}
+function mesClaveDe(f, formato) { // → 'yyyy-mm'
+    const x = String(f || '');
+    if (formato === 'MM/YYYY') { const [m, y] = x.split('/'); return y + '-' + m.padStart(2, '0'); }
+    if (formato === 'DD/MM/YYYY') { const [, m, y] = x.split('/'); return y + '-' + m.padStart(2, '0'); }
+    return x.slice(0, 7);
+}
+function depositosNetos(pred) { return ingresosEnVivo().filter(x => pred(x.fecha)).reduce((t, x) => t + x.importe, 0); }
+function fechaEnPeriodo_ISO(f) { return fechaEnPeriodo_MMYYYY(String(f).slice(5, 7) + '/' + String(f).slice(0, 4)); }
+// Suma mensual de TODO lo cobrado: dividendos (neto real) + intereses TR (neto) + depósitos (importe cobrado). Clave 'yyyy-mm'.
+function agregadoMensualIngresos() {
+    const meses = {};
+    const add = (k, campo, v) => { meses[k] = meses[k] || { div: 0, int: 0, dep: 0 }; meses[k][campo] += v; };
+    (divsEnVivo() || []).forEach(d => add(mesClaveDe(d.f, 'DD/MM/YYYY'), 'div', d.neto_real || 0));
+    interesesEnVivo().forEach(i => add(mesClaveDe(i.f, 'MM/YYYY'), 'int', i.neto || 0));
+    ingresosEnVivo().forEach(x => add(mesClaveDe(x.fecha), 'dep', x.importe));
+    return meses;
+}
 function interesesEnVivo() {
-    return INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses;
+    const base = INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses;
+    return base.slice().sort((a, b) => mesClaveDe(a.f, 'MM/YYYY').localeCompare(mesClaveDe(b.f, 'MM/YYYY')));
 }
 
 function savebacksEnVivo() {
@@ -1300,19 +1337,22 @@ function renderHistoricoAnual() {
     // Intereses del año seleccionado (formato fecha interesesEnVivo(): MM/YYYY)
     const intAnio = interesesEnVivo().filter(i => perteneceAnio(i.f));
     const intTotal = intAnio.reduce((s, i) => s + i.neto, 0);
+    const depAnio = ingresosEnVivo().filter(x => perteneceAnio(x.fecha));
+    const depTotal = depAnio.reduce((s, x) => s + x.importe, 0);
 
     // Ventas cerradas del año seleccionado (formato fecha: YYYY-MM-DD)
     const opsAnio = OPERACIONES_CERRADAS.filter(o => ANIO_SELECCIONADO === 'todos' || o.fecha.startsWith(
         ANIO_SELECCIONADO));
     const opsTotal = opsAnio.reduce((s, o) => s + o.gp, 0);
 
-    const totalGenerado = divsTotal + intTotal + opsTotal;
+    const totalGenerado = divsTotal + intTotal + depTotal + opsTotal;
 
     const kg9 = document.getElementById('kg9');
     if (kg9) {
         kg9.innerHTML = [
             { l: '💰 Dividendos', v: fe(divsTotal), s: divsAnio.length + ' pagos', c: '#34C77B' },
             { l: '🏦 Intereses netos', v: fe(intTotal), s: intAnio.length + ' meses', c: '#E29A3E' },
+            { l: '🏛️ Depósitos', v: fe(depTotal), s: depAnio.length + ' cobros', c: '#5B8FD9' },
             { l: '📈 Ganancia realizada (ventas)', v: (opsTotal >= 0 ? '+' : '') + fe(opsTotal), s: opsAnio.length +
                     ' operaciones', c: opsTotal >= 0 ? '#34C77B' : '#E85A5A' },
             { l: '🎯 Total generado', v: (totalGenerado >= 0 ? '+' : '') + fe(totalGenerado), s: ANIO_SELECCIONADO ===
@@ -2277,6 +2317,9 @@ async function recargar(modoRapido) {
         if (data.intereses) {
             INTERESES_GS = data.intereses;
         }
+        if (data.ingresos) {
+            INGRESOS_GS = data.ingresos;
+        }
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
         }
@@ -2482,6 +2525,7 @@ function renderDashboard() {
     const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.devolucion, 0);
     const intFiltrados = interesesEnVivo().filter(i => fechaEnPeriodo_MMYYYY(i.f));
     const intTotalReal = intFiltrados.reduce((s, i) => s + i.neto, 0);
+    const depPeriodo = depositosNetos(fechaEnPeriodo_ISO);
     const sbFiltrados = (savebacksEnVivo() || []).filter(sb => fechaEnPeriodo_DDMMYYYY(sb.f));
     const sbTotalReal = sbFiltrados.reduce((s, sb) => s + sb.i, 0);
 
@@ -2497,7 +2541,7 @@ function renderDashboard() {
         { l: 'Capital invertido', v: fe(totCost), s: '📍 Ahora mismo (no filtra)', c: '#E4C777', tab: 1 },
         { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? '📍 ' + sg(totGP) : 'Cargando', c: '#8FE0B4', tab: 1 },
         { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: divsFiltrados.length + ' pagos · neto real', c: '#34C77B', tab: 3 },
-        { l: 'Intereses TR netos', v: fe(intTotalReal), s: intFiltrados.length + ' meses', c: '#E29A3E', tab: 4 },
+        { l: 'Intereses + depósitos', v: fe(intTotalReal + depPeriodo), s: 'TR ' + fe(intTotalReal) + ' · depós. ' + fe(depPeriodo), c: '#E29A3E', tab: 4 },
         { l: 'Saveback recibido', v: fe(sbTotalReal), s: sbFiltrados.length + ' recibos', c: '#B7A6E8' },
         { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#8FE0B4', tab: 3 },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + (k.tab !== undefined ? ';cursor:pointer' : '') + '"' + (
@@ -5827,7 +5871,7 @@ function renderDividendos() {
             k.c + ';font-size:' + (k.v.length > 10 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
             '</div></div>').join('');
 
-    document.getElementById('tb-divs').innerHTML = divs.map((d, i) => {
+    document.getElementById('tb-divs').innerHTML = divs.slice().sort((a, b) => mesClaveDe(a.f, 'DD/MM/YYYY').localeCompare(mesClaveDe(b.f, 'DD/MM/YYYY')) || a.f.slice(0, 2) - b.f.slice(0, 2)).map((d, i) => {
         const bg = i % 2 ? 'background:var(--s2)' : '';
         const retPct = d.pais === 'USA' ? '15%' : d.pais === 'FRA' ? '12,8%' : '0%';
         return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + d.n +
@@ -6050,16 +6094,21 @@ function renderDividendos() {
 
 // ── INTERESES ──
 function renderIntereses() {
-    const ints = interesesEnVivo();
+    const ints = interesesEnVivo().filter(i => okAnioIng(mesClaveDe(i.f, 'MM/YYYY')));
+    const depSel = ingresosEnVivo().filter(x => okAnioIng(mesClaveDe(x.fecha)));
+    const totDepSel = depSel.reduce((t, x) => t + x.importe, 0);
+    const etiquetaAnio = anioIngresosSel() === 'todos' ? 'todo el histórico' : anioIngresosSel();
     const tot = ints.reduce((s, i) => s + i.bruto, 0);
     const totn = ints.reduce((s, i) => s + i.neto, 0);
     const ult = ints[ints.length - 1]?.bruto || 0;
 
     document.getElementById('kg4').innerHTML = [
-        { l: 'Total bruto', v: fe(tot), s: fe(totn) + ' neto', c: '#E29A3E' },
+        { l: 'Total bruto (' + etiquetaAnio + ')', v: fe(tot), s: fe(totn) + ' neto', c: '#E29A3E' },
         { l: 'Último mes bruto', v: fe(ult), s: fe(ult * (1 - 0.19)) + ' neto', c: '#34C77B' },
-        { l: 'Media mensual neta', v: fe(totn / ints.length), s: ints.length + ' meses', c: '#E4C777' },
+        { l: 'Media mensual neta', v: fe(ints.length ? totn / ints.length : 0), s: ints.length + ' meses', c: '#E4C777' },
         { l: 'Retención total 19%', v: fe(tot - totn), s: 'Hacienda ya retenido', c: '#707B93' },
+        { l: 'Depósitos cobrados', v: fe(totDepSel), s: depSel.length + ' cobros', c: '#5B8FD9' },
+        { l: 'Intereses TR + depósitos', v: fe(totn + totDepSel), s: 'neto · ' + etiquetaAnio, c: '#34C77B' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + '">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
@@ -6075,6 +6124,8 @@ function renderIntereses() {
     }).join('');
     document.getElementById('tf-int').innerHTML = '<td>TOTAL</td><td class="am">' + fe(tot) + '</td><td class="rd">-' +
         fe(tot - totn) + '</td><td class="gn">' + fe(totn) + '</td><td></td>';
+
+    renderDepositosEIngresos();
 
     const canvasInt = document.getElementById('ci');
     if (canvasInt) {
@@ -6098,9 +6149,130 @@ function renderIntereses() {
     }
 }
 
+// ── DEPÓSITOS + CUADRO DIVIDENDOS + INTERESES (todo de más antiguo a más nuevo) ──
+function renderDepositosEIngresos() {
+    const dep = ingresosEnVivo().filter(x => okAnioIng(mesClaveDe(x.fecha)));
+    const fmtF = f => { const [y, m, d] = String(f).slice(0, 10).split('-'); return d + '/' + m + '/' + y; };
+    let ac = 0;
+    const tbDep = document.getElementById('tb-dep');
+    if (tbDep) tbDep.innerHTML = dep.length ? dep.map((x, j) => {
+        ac += x.importe;
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + fmtF(x.fecha) + '</td><td>' + x.entidad +
+            '</td><td class="gn">' + fe(x.importe) + '</td><td class="mt2">' + fe(ac) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" class="mt2">Sin cobros todavía</td></tr>';
+    const totDep = dep.reduce((t, x) => t + x.importe, 0);
+    const tfDep = document.getElementById('tf-dep');
+    if (tfDep) tfDep.innerHTML = '<td>TOTAL</td><td>' + dep.length + ' cobros</td><td class="gn">' + fe(totDep) + '</td><td></td>';
+
+    const porEnt = {};
+    dep.forEach(x => { const e = porEnt[x.entidad] = porEnt[x.entidad] || { n: 0, tot: 0, ini: x.fecha, fin: x.fecha };
+        e.n++; e.tot += x.importe; if (x.fecha < e.ini) e.ini = x.fecha; if (x.fecha > e.fin) e.fin = x.fecha; });
+    const tbA = document.getElementById('tb-dep-acum');
+    if (tbA) tbA.innerHTML = Object.keys(porEnt).sort().map((k, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:700">' + k +
+        '</td><td>' + porEnt[k].n + '</td><td>' + fmtF(porEnt[k].ini) + '</td><td>' + fmtF(porEnt[k].fin) + '</td><td class="gn">' + fe(porEnt[k].tot) + '</td></tr>').join('') ||
+        '<tr><td colspan="5" class="mt2">—</td></tr>';
+    renderGraficoIngresos();
+    const tfA = document.getElementById('tf-dep-acum');
+    if (tfA) tfA.innerHTML = '<td>TOTAL</td><td>' + dep.length + '</td><td></td><td></td><td class="gn">' + fe(totDep) + '</td>';
+
+    // Cuadro conjunto por mes: dividendos (neto real) + intereses TR (neto) + depósitos
+    const meses = agregadoMensualIngresos();
+    const nomMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    let acT = 0, tD = 0, tI = 0, tP = 0;
+    const tb = document.getElementById('tb-div-int');
+    if (tb) tb.innerHTML = Object.keys(meses).sort().filter(okAnioIng).map((k, j) => {
+        const m = meses[k], tot = m.div + m.int + m.dep; acT += tot; tD += m.div; tI += m.int; tP += m.dep;
+        const [y, mm] = k.split('-');
+        const c = v => v ? fe(v) : '—';
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + nomMes[+mm - 1] + ' ' + y + '</td><td class="gn">' + c(m.div) +
+            '</td><td class="am">' + c(m.int) + '</td><td class="bl">' + c(m.dep) + '</td><td style="font-weight:700">' + fe(tot) + '</td><td class="mt2">' + fe(acT) + '</td></tr>';
+    }).join('');
+    const tf = document.getElementById('tf-div-int');
+    if (tf) tf.innerHTML = '<td>TOTAL</td><td class="gn">' + fe(tD) + '</td><td class="am">' + fe(tI) + '</td><td class="bl">' + fe(tP) + '</td><td style="font-weight:700">' + fe(tD + tI + tP) + '</td><td></td>';
+}
+
+let ANIO_INGRESOS = null;
+function anioIngresosSel() {
+    if (ANIO_INGRESOS === null) {
+        const anios = [...new Set(Object.keys(agregadoMensualIngresos()).map(k => k.slice(0, 4)))];
+        ANIO_INGRESOS = anios.includes(String(new Date().getFullYear())) ? String(new Date().getFullYear()) : 'todos';
+    }
+    return ANIO_INGRESOS;
+}
+function okAnioIng(clave) { const a = anioIngresosSel(); return a === 'todos' || String(clave).slice(0, 4) === a; }
+function seleccionarAnioIngresos(a) { ANIO_INGRESOS = a; renderIntereses(); }
+function renderGraficoIngresos() {
+    const canvas = document.getElementById('c-ingresos-mes');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const datos = agregadoMensualIngresos();
+    const claves = Object.keys(datos).sort();
+    if (!claves.length) return;
+    const anios = [...new Set(claves.map(k => k.slice(0, 4)))].sort();
+    anioIngresosSel();
+    const filtro = document.getElementById('filtro-anio-ingresos');
+    if (filtro) filtro.innerHTML = anios.map(a => '<button class="btn' + (ANIO_INGRESOS === a ? ' ac' : '') + '" onclick="seleccionarAnioIngresos(\'' + a + '\')">' + a + '</button>').join('') +
+        '<button class="btn' + (ANIO_INGRESOS === 'todos' ? ' ac' : '') + '" onclick="seleccionarAnioIngresos(\'todos\')">Todo</button>';
+    const nomMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    let lista = [];
+    if (ANIO_INGRESOS === 'todos') {
+        let [y, m] = claves[0].split('-').map(Number); const [yf, mf] = claves[claves.length - 1].split('-').map(Number);
+        while (y < yf || (y === yf && m <= mf)) { lista.push(y + '-' + String(m).padStart(2, '0')); m++; if (m > 12) { m = 1; y++; } }
+    } else for (let m = 1; m <= 12; m++) lista.push(ANIO_INGRESOS + '-' + String(m).padStart(2, '0'));
+    const v = (k, c) => Math.round(((datos[k] || {})[c] || 0) * 100) / 100;
+    const tot = k => v(k, 'div') + v(k, 'int') + v(k, 'dep');
+    const totalPeriodo = lista.reduce((t, k) => t + tot(k), 0);
+    const nota = document.getElementById('n-graf-ing');
+    if (nota) nota.textContent = (ANIO_INGRESOS === 'todos' ? 'todo el histórico' : ANIO_INGRESOS) + ' · total ' + fe(totalPeriodo);
+    const wrap = document.getElementById('graf-ing-wrap');
+    if (wrap) wrap.style.minWidth = Math.max(0, lista.length * 46 + 40) + 'px';
+    const txt = getComputedStyle(document.documentElement).getPropertyValue('--tx').trim() || '#1E293B';
+    const etiquetaTotal = {
+        id: 'etiquetaTotal',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            lista.forEach((k, i) => {
+                const t = tot(k); if (t <= 0) return;
+                const barra = chart.getDatasetMeta(2).data[i]; if (!barra) return;
+                let top = barra.y; [0, 1].forEach(d => { const b = chart.getDatasetMeta(d).data[i]; if (b && b.y < top) top = b.y; });
+                ctx.save(); ctx.fillStyle = txt; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText(Math.round(t) + '€', barra.x, top - 3); ctx.restore();
+            });
+        }
+    };
+    if (window._chartIngresos) window._chartIngresos.destroy();
+    window._chartIngresos = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: lista.map(k => nomMes[+k.slice(5) - 1] + (ANIO_INGRESOS === 'todos' ? ' ' + k.slice(2, 4) : '')),
+            datasets: [
+                { label: 'Dividendos', data: lista.map(k => v(k, 'div')), backgroundColor: '#34C77B', stack: 's' },
+                { label: 'Intereses TR', data: lista.map(k => v(k, 'int')), backgroundColor: '#E29A3E', stack: 's' },
+                { label: 'Depósitos', data: lista.map(k => v(k, 'dep')), backgroundColor: '#5B8FD9', stack: 's', borderRadius: 3 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, layout: { padding: { top: 16 } },
+            plugins: {
+                legend: { labels: { color: txt, font: { size: 10 }, boxWidth: 10 } },
+                tooltip: { callbacks: { footer: items => 'Total ' + (items[0].label) + ': ' + fe(tot(lista[items[0].dataIndex])) } }
+            },
+            scales: {
+                x: { stacked: true, ticks: { color: txt, font: { size: 10, weight: '700' } }, grid: { display: false } },
+                y: { stacked: true, ticks: { color: txt, font: { size: 9 }, callback: x => x + '€' }, grid: { color: 'rgba(128,128,128,0.15)' } }
+            }
+        },
+        plugins: [etiquetaTotal]
+    });
+}
+
 // ── EVOLUCIÓN ──
 function renderEvolucion() {
-    const ev = evolucionEnVivo() || [];
+    const evBase = evolucionEnVivo() || [];
+    const depMes = {};
+    ingresosEnVivo().forEach(x => { const k = mesClaveDe(x.fecha); depMes[k] = (depMes[k] || 0) + x.importe; });
+    const ev = evBase.map(e => ({ ...e, int: e.int + (depMes[e.mes.slice(0, 7)] || 0) }));
+    Object.keys(depMes).sort().forEach(k => { if (!ev.some(e => e.mes.slice(0, 7) === k)) ev.push({ mes: k, compras: 0, ventas: 0, divs: 0, int: depMes[k] }); });
+    ev.sort((a, b) => a.mes.localeCompare(b.mes));
     const canvasEvo = document.getElementById('ce');
     if (canvasEvo) {
         if (window._chartEvo) { window._chartEvo.destroy(); }
@@ -6111,7 +6283,7 @@ function renderEvolucion() {
                     borderRadius: 3, stack: 'a' },
                 { label: 'Dividendos', data: ev.map(e => e.divs), backgroundColor: 'rgba(16,185,129,0.65)',
                     borderRadius: 3, stack: 'b' },
-                { label: 'Intereses', data: ev.map(e => e.int), backgroundColor: 'rgba(245,158,11,0.65)',
+                { label: 'Intereses + depósitos', data: ev.map(e => e.int), backgroundColor: 'rgba(245,158,11,0.65)',
                     borderRadius: 3, stack: 'b' },
             ] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#707B93',
@@ -6435,7 +6607,8 @@ function calcularBaseAhorroAnual() {
         .reduce((s, i) => s + i.neto, 0);
     const gpAnio = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
         .reduce((s, o) => s + o.gp, 0);
-    return divsAnio + intAnio + gpAnio;
+    const depAnio = ingresosEnVivo().filter(x => x.fecha.startsWith(String(anioActual))).reduce((s, x) => s + x.importe, 0);
+    return divsAnio + intAnio + depAnio + gpAnio;
 }
 
 // Cosecha de pérdidas fiscales: si este año llevas ganancias realizadas (ventas con beneficio),
