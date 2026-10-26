@@ -3605,13 +3605,17 @@ const GOTEO_CFG = {
     ISINS_RENTA: ['US7561091049', 'US0084921008', 'US9256521090'], // Realty, Agree, VICI
     SECTOR_EXTRA: { 'US0084921008': 'Inmobiliario' }, // sector de candidatas que aún no están en CARTERA
     MULT_REDONDEO_DEFECTO: 10,      // multiplicador del redondeo cuando el dinero va a una acción
-    N_REDONDEOS: 4
+    N_REDONDEOS: 4,
+    // Plan mensual: grupo y pesos = celda "universo" de la fila MENSUAL (ISIN:peso). Esta tabla solo vale si la celda está vacía.
+    PESOS_MENSUAL: { 'IE00B3RBWM25': 1, 'IE0009BI8Z04': 3, 'IE000CVUM3N6': 1, 'IE00BYYHSQ67': 2 },
+    NOMBRES_ETF: { 'IE0009BI8Z04': 'Amundi MSCI World ex USA' },
+    MAX_IMPORTE_TECNICO: 1          // filas/redondeos de ≤ 1 € = planes técnicos (saveback), se ignoran
 };
 let GOTEO_AVISO_GUARDADO = '';
 
 function tipoCap(t) { t = String(t || '').trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''; }
 function esFilaEspecialGoteo(g) { return GOTEO_FILAS_ESPECIALES.includes((g.tipo || '').toUpperCase().trim()); }
-function filasGoteoVisibles() { return (GOTEO_GS || []).filter(g => !esFilaEspecialGoteo(g)); }
+function filasGoteoVisibles() { return (GOTEO_GS || []).filter(g => !esFilaEspecialGoteo(g) && !(g.importe > 0 && g.importe <= GOTEO_CFG.MAX_IMPORTE_TECNICO)); }
 function filaTrampaDe(isin) { return (TRAMPAS_GS || []).find(r => r[15] && esMismoISIN(r[15], isin)); }
 function tieneOrdenTR(isin) { const t = filaTrampaDe(isin); return !!t && t[11] === true; }
 function topeCompraDe(isin) {
@@ -3653,7 +3657,7 @@ function dividendoActualAnual(isin) {
     return { valor: t ? cn(t[8]) : 0, fuente: 'columna de TRAMPAS' };
 }
 function mediaUltimosRedondeos(n) {
-    const sb = (savebacksEnVivo() || []).filter(x => x && x.i > 0).map(x => {
+    const sb = (savebacksEnVivo() || []).filter(x => x && x.i > GOTEO_CFG.MAX_IMPORTE_TECNICO).map(x => {
         const m = String(x.f || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
         return { i: x.i, t: m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0 };
     }).sort((a, b) => a.t - b.t);
@@ -3697,7 +3701,7 @@ function guardarPresupuestoMensualEnHoja(valor) {
 
 function sugerirDestinoFlexible(excluirIsin, universoCSV) {
     const C = GOTEO_CFG;
-    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
+    const universo = universoCSV ? universoCSV.split(',').map(s => s.split(':')[0].trim().toUpperCase()).filter(Boolean) : null;
     const hoy = new Date();
     const tasaRef = obtenerTasaReferencia();
     const umbralRenta = tasaRef + C.MARGEN_YIELD_RENTA;
@@ -3832,21 +3836,30 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
 
 // MENSUAL: solo ETF del universo de la fila, reparto igual, presupuesto = el que fijas tú (sin valor por defecto).
 function analizarGrupoRecurrente(importe, universoCSV) {
-    const universo = universoCSV ? universoCSV.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+    const C = GOTEO_CFG;
+    const pesos = {}, orden = [];
+    (universoCSV || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => {
+        const [isin, w] = x.split(':'); const k = isin.trim().toUpperCase();
+        if (!orden.includes(k)) orden.push(k);
+        if (w && parseFloat(w) > 0) pesos[k] = parseFloat(w);
+    });
+    // La celda universo de la fila MENSUAL es la única fuente; la tabla del código solo se usa si la celda está vacía
+    if (!orden.length) Object.keys(C.PESOS_MENSUAL).forEach(k => { orden.push(k); pesos[k] = C.PESOS_MENSUAL[k]; });
+    orden.forEach(k => { if (!pesos[k]) pesos[k] = 1; });
     const presupuesto = GOTEO_OVERRIDE_MENSUAL !== null ? GOTEO_OVERRIDE_MENSUAL : presupuestoMensualHoja();
     if (presupuesto === null || presupuesto <= 0) return { tipo: 'sinPresupuesto', reparto: [], liquidez: 0, presupuestoUsado: 0, excluidosOrden: [] };
-    const info = universo.map(isin => calcularScoreActivo(isin));
+    const info = orden.map(isin => { const e = calcularScoreActivo(isin); if (C.NOMBRES_ETF[isin] && (!e.nombre || e.nombre === isin)) e.nombre = C.NOMBRES_ETF[isin]; return e; });
     const elegibles = info.filter(e => !tieneOrdenTR(e.isin));
     const excluidosOrden = info.filter(e => tieneOrdenTR(e.isin)).map(e => e.nombre);
-    const n = elegibles.length;
+    const sumaW = elegibles.reduce((t, e) => t + pesos[e.isin], 0);
     const reparto = elegibles.map(e => ({
-        nombre: e.nombre, isin: e.isin, importe: presupuesto / n, peso: 100 / n, esAccion: false,
-        atractivo: !e.sinDatosReales && ((e.pctRango52 !== null && e.pctRango52 <= GOTEO_CFG.BARATO_RANGO_MAX) ||
-            (e.distTrampaPct !== null && e.distTrampaPct <= GOTEO_CFG.BARATO_DIST_MAX)),
+        nombre: e.nombre, isin: e.isin, importe: presupuesto * pesos[e.isin] / sumaW, peso: 100 * pesos[e.isin] / sumaW, esAccion: false,
+        atractivo: !e.sinDatosReales && ((e.pctRango52 !== null && e.pctRango52 <= C.BARATO_RANGO_MAX) ||
+            (e.distTrampaPct !== null && e.distTrampaPct <= C.BARATO_DIST_MAX)),
         pa: e.pa, pctRango52: e.pctRango52, distTrampaPct: e.distTrampaPct, yieldActual: e.yieldActual, score: e.score,
-        explicacion: 'Reparto igual entre ' + n + ' ETF.'
+        explicacion: 'Peso ' + pesos[e.isin] + '/' + sumaW + ' del presupuesto' + (e.sinDatosReales ? ' · sin fila en TRAMPAS (sin precio ni trampa)' : '') + '.'
     }));
-    return { tipo: 'normal', reparto, liquidez: n ? 0 : presupuesto, presupuestoUsado: presupuesto, excluidosOrden,
+    return { tipo: 'normal', reparto, liquidez: reparto.length ? 0 : presupuesto, presupuestoUsado: presupuesto, excluidosOrden,
         avisoNadaAtractivo: null, techoActivado: false, avisoAccion: null, motivoAviso: null };
 }
 
@@ -4123,12 +4136,12 @@ function renderFocusGoteo() {
         return;
     }
     const iconoTipo = { 'Mensual': '📅', 'Semanal': '🗓️', 'Redondeo': '🔄' };
-    const notaFrecuencia = { 'Mensual': 'día 2 de cada mes · reparto igual entre ETF', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
+    const notaFrecuencia = { 'Mensual': 'día 2 de cada mes · reparto por pesos entre ETF', 'Semanal': 'cada semana', 'Redondeo': 'automático, según compras con tarjeta' };
     const caja = (txt, color) => '<div style="padding:10px 12px;margin-top:6px;background:rgba(96,165,250,0.1);border-radius:8px"><span style="font-size:13px;font-weight:800;color:' + (color || 'var(--ac)') + '">' + txt + '</span></div>';
 
     cont.innerHTML = filas.map(g => {
         const tipo = tipoCap(g.tipo);
-        const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
+        const esGrupo = (g.tipo || '').toUpperCase().trim() === 'MENSUAL' || !!(g.universo && g.universo.split(',').filter(s => s.trim()).length > 1);
         let cuerpo, importeMostrado = 0, nota = notaFrecuencia[tipo] || '';
         if (esGrupo) {
             const a = analizarGrupoRecurrente(0, g.universo);
@@ -4186,7 +4199,7 @@ function renderGoteo() {
     const tarjetas = filasGoteoVisibles().map(g => {
         const calc = calcularImporteFila(g);
         const importeReal = calc.importe;
-        const esGrupo = g.universo && g.universo.split(',').filter(s => s.trim()).length > 1;
+        const esGrupo = (g.tipo || '').toUpperCase().trim() === 'MENSUAL' || !!(g.universo && g.universo.split(',').filter(s => s.trim()).length > 1);
         let importeMostrado = importeReal; // se recalcula abajo con lo que de verdad se va a desplegar
 
         let cuerpoHTML;
@@ -4275,7 +4288,7 @@ function renderGoteo() {
                                 'rgba(226,154,62,0.2);color:var(--am)') + '">' + (meritaLaPena ?
                                 '✅ adelantar' : '⏳ esperar') + '</span>';
                     }
-                    const etiquetaTipo = r.esAccion ? '🎯 ACCIÓN' : r.atractivo ? '🎯 barato' : '⚖️ reparto igual';
+                    const etiquetaTipo = r.esAccion ? '🎯 ACCIÓN' : r.atractivo ? '🎯 barato' : '⚖️ por peso';
                     const colorEtiqueta = r.esAccion ? 'rgba(183,166,232,0.25);color:#B7A6E8' : r.atractivo ?
                         'rgba(52,199,123,0.2);color:var(--gn)' : 'rgba(226,154,62,0.2);color:var(--am)';
                     return '<div style="padding:10px 12px;margin-top:6px;background:var(--s2);border-radius:8px">' +
@@ -4368,8 +4381,7 @@ function renderGoteo() {
                 mesSiguienteNombre + '</span><br><span style="font-size:20px;font-weight:800;color:var(--gn)">' +
                 fe(importeMostrado, 0) + '</span></div>' +
                 '</div>' +
-                (esGrupo ? '<div class="mt2" style="font-size:8px;margin-top:2px">Solo ETF · reparto igual entre ' + g.universo
-                    .split(',').length + '</div>' : '') +
+                (esGrupo ? '<div class="mt2" style="font-size:8px;margin-top:2px">Solo ETF · reparto por pesos (' + (g.universo || '').split(',').filter(x => x.trim()).map(x => x.split(':')[1] || 1).join('/') || Object.values(GOTEO_CFG.PESOS_MENSUAL).join('/') + ')</div>' : '') +
                 cuerpoHTML +
                 '</div></div>'
         };
@@ -4468,7 +4480,7 @@ function renderComparativaGoteo() {
     const pos = posicionesVivas();
     const universoETFPorDefecto = (GOTEO_GS.find(g => g.tipo === 'MENSUAL' || g.tipo === 'Mensual') || {})
         .universo || '';
-    const isinsETF = universoETFPorDefecto.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const isinsETF = universoETFPorDefecto.split(',').map(s => s.split(':')[0].trim().toUpperCase()).filter(Boolean);
 
     let sumaImporteTotal = 0,
         sumaImportePorRent = 0;
@@ -5208,8 +5220,8 @@ function renderGraficoTrampas() {
             chart.getDatasetMeta(0).data.forEach((barra, i) => {
                 const v = visibles[i].dist;
                 ctx.save();
-                ctx.fillStyle = '#9CA3AF';
-                ctx.font = '9px sans-serif';
+                ctx.fillStyle = (getComputedStyle(document.documentElement).getPropertyValue('--tx').trim() || '#1E293B');
+                ctx.font = 'bold 10px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = v >= 0 ? 'bottom' : 'top';
                 ctx.fillText((v > 0 ? '+' : '') + v.toFixed(1) + '%', barra.x, v >= 0 ? barra.y - 2 : barra.y + 2);
@@ -5249,7 +5261,7 @@ function renderGraficoTrampas() {
             scales: {
                 x: {
                     position: 'top',
-                    ticks: { color: '#C4CAD6', font: { size: 10 }, maxRotation: 0, minRotation: 0, autoSkip: false },
+                    ticks: { color: (getComputedStyle(document.documentElement).getPropertyValue('--tx').trim() || '#1E293B'), font: { size: 11, weight: '700' }, maxRotation: 0, minRotation: 0, autoSkip: false },
                     grid: { display: false }
                 },
                 y: {
