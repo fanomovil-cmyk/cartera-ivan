@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -3693,7 +3692,7 @@ function guardarPresupuestoMensualEnHoja(valor) {
             if (typeof renderGoteo === 'function') renderGoteo();
             renderFocusGoteo();
         }).catch(() => {
-            GOTEO_AVISO_GUARDADO = '⚠️ no se pudo guardar: solo vale en esta sesión. Escribe ' + valor + ' en la fila PRESUPUESTO_MENSUAL de GOTEO.';
+            GOTEO_AVISO_GUARDADO = '⚠️ no se pudo guardar (¿clave incorrecta?): solo vale en esta sesión. Escribe ' + valor + ' en la fila PRESUPUESTO_MENSUAL de GOTEO.';
             if (typeof renderGoteo === 'function') renderGoteo();
             renderFocusGoteo();
         });
