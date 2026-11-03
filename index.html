@@ -303,7 +303,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="g2">
     <div class="card">
       <div class="ch"><h3>💼 Posiciones</h3><span class="mt2" style="font-size:9px" id="n-pos">14 activos</span></div>
-      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div. cobrado</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
+      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Actual</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div. cobrado</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
     </div>
     <div class="card">
       <div class="ch"><h3>🎯 Radar de trampas</h3></div>
@@ -356,7 +356,7 @@ html.light .badge-orden.venta{color:#B33A3A}
       </div>
       <div class="g2" style="margin-top:12px;gap:8px">
         <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
-          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Intereses/mes</div>
+          <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Intereses + depósitos/mes</div>
           <div class="bl" style="font-size:16px;font-weight:700;margin-top:3px" id="obj-int">—</div>
         </div>
         <div style="background:var(--s2);border-radius:8px;padding:10px 12px">
@@ -426,7 +426,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="card">
     <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th>Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th style="background:rgba(201,162,75,0.22);color:var(--tx);box-shadow:inset 0 -3px 0 #C9A24B">🎯 Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
   </div>
 </div>
 
@@ -500,9 +500,11 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div id="filtro-anio-ingresos" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px"></div>
     <div style="overflow-x:auto"><div id="graf-ing-wrap" style="height:270px;position:relative"><canvas id="c-ingresos-mes"></canvas></div></div></div>
   <div class="g2">
-    <div class="card"><div class="ch"><h3>🏦 Intereses mensuales TR</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Bruto €</th><th>Ret.19% €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-int"></tbody><tfoot><tr id="tf-int"><td colspan="5">—</td></tr></tfoot></table></div></div>
+    <div class="card"><div class="ch"><h3>🏦 Intereses mensuales TR</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes devengado</th><th>Bruto €</th><th>Ret.19% €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-int"></tbody><tfoot><tr id="tf-int"><td colspan="5">—</td></tr></tfoot></table></div></div>
     <div class="card"><div class="ch"><h3>📈 Evolución</h3></div><div class="cw"><canvas id="ci"></canvas></div></div>
   </div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>🏛️ Depósitos contratados</h3><span class="mt2" style="font-size:8px">interés = capital × nominal × meses/12 · retención 19 % · calculado desde la pestaña INGRESOS</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Entidad</th><th>Capital €</th><th>Nominal / TAE</th><th>Inicio → Fin</th><th>Pago</th><th>Bruto €</th><th>Ret. €</th><th>Neto €</th><th>Cobrado €</th><th>Pendiente €</th><th>Próximo cobro</th></tr></thead><tbody id="tb-dep-contr"></tbody><tfoot><tr id="tf-dep-contr"><td colspan="11">—</td></tr></tfoot></table></div></div>
+  <div class="card" style="margin-top:12px"><div class="ch"><h3>🗓️ Próximos cobros de depósitos</h3><span class="mt2" style="font-size:8px">previstos · aún no cuentan en los totales cobrados</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Entidad</th><th>Bruto €</th><th>Ret. 19 % €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-dep-prev"></tbody><tfoot><tr id="tf-dep-prev"><td colspan="6">—</td></tr></tfoot></table></div></div>
   <div class="g2" style="margin-top:12px">
     <div class="card"><div class="ch"><h3>🏛️ Cobros por depósitos</h3><span class="mt2" style="font-size:8px">de más antiguo a más nuevo</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Entidad</th><th>Importe €</th><th>Acumulado €</th></tr></thead><tbody id="tb-dep"></tbody><tfoot><tr id="tf-dep"><td colspan="4">—</td></tr></tfoot></table></div></div>
     <div class="card"><div class="ch"><h3>🧮 Acumulado por depósito</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Entidad</th><th>Cobros</th><th>Primer cobro</th><th>Último cobro</th><th>Total € </th></tr></thead><tbody id="tb-dep-acum"></tbody><tfoot><tr id="tf-dep-acum"><td colspan="5">—</td></tr></tfoot></table></div></div>
@@ -592,6 +594,12 @@ html.light .badge-orden.venta{color:#B33A3A}
       <div id="filtro-anio-operaciones" style="display:flex;gap:6px;flex-wrap:wrap">—</div>
     </div>
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha venta</th><th>Acciones</th><th>P.Compra</th><th>P.Venta</th><th>Coste</th><th>Ingreso</th><th>G/P €</th><th>G/P %</th></tr></thead><tbody id="tb-operaciones"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="ch"><h3>🧾 Renta del año siguiente por ventas</h3><span class="mt2" style="font-size:9px">lo que saldría a pagar en la declaración (año + 1) por lo vendido, menos la retención de dividendos a devolver</span></div>
+    <div class="cw" style="height:230px;padding:6px 12px 0"><canvas id="chart-renta-ventas"></canvas></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Ventas de</th><th>G/P ventas €</th><th>Pagar en renta €</th><th>Retención USA a devolver €</th><th style="color:var(--am)">Prevista resto del año €</th><th>Diferencia €</th><th>Con la previsión €</th><th style="text-align:left">Resultado</th></tr></thead><tbody id="tb-renta-ventas"></tbody></table></div>
+    <div class="mt2" id="nota-renta-ventas" style="font-size:9px;padding:8px 16px 12px;line-height:1.5"></div>
   </div>
 </div>
 
@@ -950,6 +958,7 @@ let DIVIDENDOS_GS = null,
     RESUMEN_DIVS_GS = null,
     INTERESES_GS = null,
     INGRESOS_GS = null,
+    DEPOSITOS_GS = null,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
@@ -1066,9 +1075,23 @@ function calcularXIRR(flujosRaw) {
     return mid * 100;
 }
 
+// El mismo cobro puede venir repetido en el extracto de TR (ej. Repsol 14 y 15-ene, mismo importe y acciones):
+// mismo valor + mismo bruto + mismas acciones en un margen de 3 días = un solo cobro.
+let _cacheDivs = { src: null, n: -1, out: null, quitados: [] };
 function divsEnVivo() {
-    return DIVIDENDOS_GS && DIVIDENDOS_GS.length ? DIVIDENDOS_GS : D.dividendos;
+    const src = DIVIDENDOS_GS && DIVIDENDOS_GS.length ? DIVIDENDOS_GS : D.dividendos;
+    if (_cacheDivs.src === src && _cacheDivs.n === src.length) return _cacheDivs.out;
+    const ts = f => { const [d, m, y] = String(f).split('/'); return new Date(+y, +m - 1, +d).getTime(); };
+    const out = [], quitados = [];
+    src.forEach(d => {
+        const dup = out.find(o => (o.isin || o.n) === (d.isin || d.n) && Math.abs(o.bruto - d.bruto) < 0.005 &&
+            Math.abs((o.sh || 0) - (d.sh || 0)) < 0.001 && Math.abs(ts(o.f) - ts(d.f)) <= 3 * 86400000);
+        if (dup) quitados.push(d); else out.push(d);
+    });
+    _cacheDivs = { src, n: src.length, out, quitados };
+    return out;
 }
+function divsDuplicadosQuitados() { divsEnVivo(); return _cacheDivs.quitados; }
 
 // ── Próximos cobros: reconstruido 100% en vivo (posiciones actuales + calendario real de pagos) ──
 function proximosCobrosEnVivo() {
@@ -1147,16 +1170,54 @@ function proximosCobrosEnVivo() {
     });
 }
 
-// Cobros de depósitos (pestaña INGRESOS de la hoja: PIBANK cols A-C, ING cols F-H). Mientras no llegue la API: los conocidos.
-const INGRESOS_BASE = [
-    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-03-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-03-01' },
-    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-06-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-06-01' },
-    { entidad: 'PIBANK', importe: 121.5, fecha: '2026-09-01' }, { entidad: 'PIBANK', importe: 48.6, fecha: '2026-09-01' }
+// Depósitos contratados (pestaña INGRESOS de la hoja: ENTIDAD, IMPORTE, TAE, NOMINAL, FECHA INICIO, FECHA FIN, PLAZO, TIPO PAGO).
+// El calendario de cobros (bruto, retención 19 %, neto) se CALCULA aquí; mientras no llegue la API se usan estos.
+const DEPOSITOS_BASE = [
+    { entidad: 'ING', importe: 20000, tae: 3.25, tin: 3.22, inicio: '2026-10-13', fin: '2027-04-13', plazo: 6, tipo: 'VENCIMIENTO', ret: 19 },
+    { entidad: 'PIBANK', importe: 42000, tae: 2.02, tin: 2, inicio: '2025-12-29', fin: '2026-12-29', plazo: 12, tipo: 'TRIMESTRAL', ret: 19 }
 ];
-function ingresosEnVivo() {
-    return (INGRESOS_GS && INGRESOS_GS.length ? INGRESOS_GS : INGRESOS_BASE).slice()
-        .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.entidad).localeCompare(String(b.entidad)));
+function _pad2(n) { return String(n).padStart(2, '0'); }
+function _isoMasMeses(iso, n) { // suma n meses a 'yyyy-mm-dd' sin salirse del mes (31 + 1 mes → 28/30)
+    const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+    const t = new Date(y, m - 1 + n, 1), dim = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    return t.getFullYear() + '-' + _pad2(t.getMonth() + 1) + '-' + _pad2(Math.min(d, dim));
 }
+function tipoPagoDeposito(t) {
+    const x = String(t || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (x.includes('MENS')) return 'MENSUAL';
+    if (x.includes('TRIM')) return 'TRIMESTRAL';
+    if (x.includes('SEM')) return 'SEMESTRAL';
+    if (x.includes('ANUAL')) return 'ANUAL';
+    return 'VENCIMIENTO';
+}
+// Calendario de un depósito: interés simple nominal (TIN) × meses del periodo / 12, menos retención.
+function calendarioDeposito(d) {
+    const r2 = v => Math.round(v * 100) / 100;
+    const plazo = d.plazo || 12;
+    const paso = { MENSUAL: 1, TRIMESTRAL: 3, SEMESTRAL: 6, ANUAL: 12 }[tipoPagoDeposito(d.tipo)] || plazo;
+    const tasa = (d.tin || d.tae || 0) / 100, ret = (d.ret == null ? 19 : d.ret) / 100;
+    const out = []; let hecho = 0;
+    while (hecho < plazo) {
+        const meses = Math.min(paso, plazo - hecho); hecho += meses;
+        const bruto = r2(d.importe * tasa * meses / 12), retencion = r2(bruto * ret);
+        out.push({ entidad: d.entidad, fecha: _isoMasMeses(d.inicio, hecho), importe: r2(bruto - retencion), bruto, retencion,
+            capital: d.importe, tipo: tipoPagoDeposito(d.tipo) });
+    }
+    return out;
+}
+let _cacheDep = { src: null, hoy: '', todos: [] };
+function _hoyISO() { const h = new Date(); return h.getFullYear() + '-' + _pad2(h.getMonth() + 1) + '-' + _pad2(h.getDate()); }
+function cobrosDepositosTodos() { // cobrados + previstos, de más antiguo a más nuevo
+    if (INGRESOS_GS && INGRESOS_GS.length && !(DEPOSITOS_GS && DEPOSITOS_GS.length)) // hoja con el formato antiguo (cobros a mano)
+        return INGRESOS_GS.map(x => ({ bruto: x.importe, retencion: 0, ...x })).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+    const src = DEPOSITOS_GS && DEPOSITOS_GS.length ? DEPOSITOS_GS : DEPOSITOS_BASE;
+    if (_cacheDep.src !== src) _cacheDep = { src, todos: [].concat(...src.map(calendarioDeposito))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.entidad.localeCompare(b.entidad)) };
+    return _cacheDep.todos;
+}
+function ingresosEnVivo() { const h = _hoyISO(); return cobrosDepositosTodos().filter(x => String(x.fecha) <= h); }   // ya cobrados
+function ingresosPrevistos() { const h = _hoyISO(); return cobrosDepositosTodos().filter(x => String(x.fecha) > h); } // aún por cobrar
+function depositosDefinidos() { return DEPOSITOS_GS && DEPOSITOS_GS.length ? DEPOSITOS_GS : DEPOSITOS_BASE; }
 function mesClaveDe(f, formato) { // → 'yyyy-mm'
     const x = String(f || '');
     if (formato === 'MM/YYYY') { const [m, y] = x.split('/'); return y + '-' + m.padStart(2, '0'); }
@@ -1174,8 +1235,33 @@ function agregadoMensualIngresos() {
     ingresosEnVivo().forEach(x => add(mesClaveDe(x.fecha), 'dep', x.importe));
     return meses;
 }
+// Ritmo mensual de cobros = media de los últimos 12 meses COMPLETOS (o los que haya de historial si son menos):
+// dividendos (neto real) + intereses TR + depósitos. Los depósitos son trimestrales/semestrales, por eso se promedian.
+function ritmoMensualIngresos() {
+    const ag = agregadoMensualIngresos();
+    const hoy = new Date();
+    const idx = (y, m) => y * 12 + (m - 1);
+    const fin = idx(hoy.getFullYear(), hoy.getMonth() + 1) - 1;       // último mes completo
+    const k2i = k => { const [y, m] = k.split('-').map(Number); return idx(y, m); };
+    const usados = Object.keys(ag).filter(k => k2i(k) <= fin && (ag[k].div + ag[k].int + ag[k].dep) > 0);
+    if (!usados.length) return { div: 0, int: 0, dep: 0, total: 0, meses: 0, mensual: 0, mDiv: 0, mInt: 0, mDep: 0, desde: '', hasta: '' };
+    const ini = Math.max(Math.min(...usados.map(k2i)), fin - 11);
+    const meses = fin - ini + 1;
+    const t = { div: 0, int: 0, dep: 0 };
+    Object.keys(ag).forEach(k => { const i = k2i(k); if (i >= ini && i <= fin) { t.div += ag[k].div; t.int += ag[k].int; t.dep += ag[k].dep; } });
+    const nom = i => { const m = (i % 12) + 1, y = Math.floor(i / 12); return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1] + ' ' + y; };
+    const total = t.div + t.int + t.dep;
+    return { ...t, total, meses, mensual: total / meses, mDiv: t.div / meses, mInt: t.int / meses, mDep: t.dep / meses, desde: nom(ini), hasta: nom(fin) };
+}
 function interesesEnVivo() {
-    const base = INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses;
+    // TR abona los intereses a mes vencido: lo que cobras en un mes lo generó el mes anterior.
+    // f = mes en que se DEVENGAN (el anterior al pago) · fPago = mes en que se cobran (para impuestos).
+    const base = (INTERESES_GS && INTERESES_GS.length ? INTERESES_GS : D.intereses).map(i => {
+        if (i.fPago) return i;
+        let [m, y] = String(i.f).split('/').map(Number);
+        m--; if (m < 1) { m = 12; y--; }
+        return { ...i, f: String(m).padStart(2, '0') + '/' + y, fPago: i.f };
+    });
     return base.slice().sort((a, b) => mesClaveDe(a.f, 'MM/YYYY').localeCompare(mesClaveDe(b.f, 'MM/YYYY')));
 }
 
@@ -1188,7 +1274,19 @@ function evolucionEnVivo() {
 }
 
 function resumenDivsEnVivo() {
-    return RESUMEN_DIVS_GS && RESUMEN_DIVS_GS.length ? RESUMEN_DIVS_GS : D.resumen_divs;
+    const base = RESUMEN_DIVS_GS && RESUMEN_DIVS_GS.length ? RESUMEN_DIVS_GS : D.resumen_divs;
+    const q = divsDuplicadosQuitados();
+    if (!q.length) return base;
+    const r2 = v => Math.round(v * 100) / 100;
+    const copia = base.map(r => ({ ...r }));
+    q.forEach(d => {
+        const anio = String(d.f).split('/')[2];
+        const r = copia.find(x => (x.isin || x.n) === (d.isin || d.n) && String(x.año) === anio);
+        if (!r) return;
+        r.pagos = Math.max(0, r.pagos - 1);
+        ['bruto', 'neto_tr', 'neto_final', 'devolucion', 'neto_real'].forEach(k => { r[k] = r2((r[k] || 0) - (d[k] || 0)); });
+    });
+    return copia.filter(r => r.pagos > 0);
 }
 
 let DATOS_EN_VIVO = false; // false = todavía mostrando el snapshot estático, no datos reales de hoy
@@ -1238,10 +1336,101 @@ function posicionesVivas() {
 // cargarOperaciones() eliminada: ahora la API_GS calcula y devuelve las operaciones
 // directamente (ver el bloque "Operaciones cerradas" dentro de recargar()).
 
+// Retención de doble imposición que aún se espera cobrar lo que queda del año en curso (meses futuros + lo que falte del mes actual)
+function devolucionPrevistaRestante() {
+    const prev = calcularPrevisionDividendosAnual();
+    const hoy = new Date(), m = hoy.getMonth(), y = hoy.getFullYear();
+    let tot = 0;
+    for (let i = m + 1; i < 12; i++) tot += prev.previstosDevolucion[i] || 0;
+    const cobradosMes = new Set((divsEnVivo() || []).filter(d => {
+        const [, mm, yy] = d.f.split('/'); return +yy === y && +mm - 1 === m;
+    }).map(d => isinCanonico(d.isin)));
+    (prev.previstosDetalle[m] || []).forEach(x => { if (!(x.isin && cobradosMes.has(isinCanonico(x.isin)))) tot += x.devolucion || 0; });
+    return tot;
+}
+
+// Renta del año siguiente por ventas: impuesto marginal de la ganancia (tramos del ahorro, sobre lo ya generado
+// ese año en dividendos + intereses + depósitos) menos la retención de dividendos a devolver (doble imposición).
+function renderRentaVentas() {
+    const tb = document.getElementById('tb-renta-ventas');
+    if (!tb) return;
+    const anios = new Set();
+    (OPERACIONES_CERRADAS || []).forEach(o => anios.add(o.fecha.slice(0, 4)));
+    (divsEnVivo() || []).forEach(d => { if (d.devolucion > 0) anios.add(d.f.split('/')[2]); });
+    const lista = [...anios].sort();
+    if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" class="mt2">Sin ventas todavía</td></tr>'; return; }
+    const hoyAnio = new Date().getFullYear();
+    const datos = lista.map(a => {
+        const gp = (OPERACIONES_CERRADAS || []).filter(o => o.fecha.startsWith(a)).reduce((t, o) => t + o.gp, 0);
+        const divsA = (divsEnVivo() || []).filter(d => d.f.endsWith('/' + a));
+        const base = divsA.reduce((t, d) => t + (d.bruto || 0), 0) +
+            interesesEnVivo().filter(i => (i.fPago || i.f).endsWith('/' + a)).reduce((t, i) => t + (i.bruto || 0), 0) +
+            ingresosEnVivo().filter(x => String(x.fecha).startsWith(a)).reduce((t, x) => t + (x.bruto || x.importe), 0);
+        const impVentas = gp > 0 ? impuestoMarginalGanancia(base, gp) : 0;
+        const devol = divsA.reduce((t, d) => t + (d.devolucion || 0), 0);
+        const prevista = +a === hoyAnio ? devolucionPrevistaRestante() : 0;
+        return { a, gp, impVentas, devol, prevista, dif: impVentas - devol, difPrev: impVentas - devol - prevista };
+    });
+    tb.innerHTML = datos.map((x, j) => {
+        const { a, gp, impVentas, devol, prevista, dif, difPrev } = x;
+        const res = dif > 0.005 ? '<span class="rd" style="font-weight:700">En ' + (+a + 1) + ' tendrás que pagar ' + fe(dif) + ' a Hacienda</span>' :
+            dif < -0.005 ? '<span class="gn" style="font-weight:700">En ' + (+a + 1) + ' Hacienda te debe ' + fe(-dif) + '</span>' : '<span class="mt2">Sin diferencia</span>';
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:700">' + a + (+a === hoyAnio ? ' <span class="mt2" style="font-size:8px">(en curso)</span>' : '') + '</td>' +
+            '<td style="color:' + gc(gp) + ';font-family:monospace;font-weight:700">' + (gp >= 0 ? '+' : '') + fe(gp) + '</td>' +
+            '<td class="rd">' + fe(impVentas) + '</td><td class="gn">' + fe(devol) + '</td>' +
+            '<td style="color:var(--am);font-weight:700">' + (prevista > 0.005 ? '+' + fe(prevista) : '—') + '</td>' +
+            '<td style="font-family:monospace;font-weight:800;color:' + (dif > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (dif > 0 ? '+' : '') + fe(dif) + '</td>' +
+            '<td style="font-family:monospace;font-weight:800;color:' + (difPrev > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (prevista > 0.005 ? (difPrev > 0 ? '+' : '') + fe(difPrev) : '—') + '</td><td>' + res + '</td></tr>';
+    }).join('');
+    const nota = document.getElementById('nota-renta-ventas');
+    if (nota) nota.textContent = 'Cálculo estimado: ganancias y pérdidas de las ventas del año se compensan entre sí; el impuesto usa los tramos del ahorro (19-30 %) sobre lo ya cobrado ese año en dividendos (bruto), intereses TR y depósitos. ' +
+        'La retención a devolver es la de doble imposición de los dividendos cobrados ese año; la barra naranja es la que aún se espera cobrar en los meses que quedan (misma previsión que el Mando) y "Con la previsión" es la diferencia si se cumple entera. Si es mayor que el impuesto total del ahorro, Hacienda no devuelve el exceso. No tiene en cuenta pérdidas de años anteriores.';
+
+    // Gráfico: por año, lo que pagarías por las ventas, lo que te devuelven y el resultado final (barra de la diferencia)
+    const canvas = document.getElementById('chart-renta-ventas');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const txt = getComputedStyle(document.documentElement).getPropertyValue('--tx').trim() || '#1E293B';
+    const etiquetas = {
+        id: 'etiquetasRenta',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((ds, di) => chart.getDatasetMeta(di).data.forEach((barra, i) => {
+                const v = ds.data[i];
+                ctx.save(); ctx.fillStyle = txt; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+                ctx.textBaseline = v >= 0 ? 'bottom' : 'top';
+                ctx.fillText(Math.round(v) + '€', barra.x, v >= 0 ? barra.y - 3 : barra.y + 3); ctx.restore();
+            }));
+        }
+    };
+    if (window._chartRentaVentas) window._chartRentaVentas.destroy();
+    window._chartRentaVentas = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: datos.map(x => 'Ventas ' + x.a + ' → renta ' + (+x.a + 1)),
+            datasets: [
+                { label: 'A pagar por ventas', data: datos.map(x => Math.round(x.impVentas * 100) / 100), backgroundColor: '#E85A5A', borderRadius: 3 },
+                { label: 'Retención USA a devolver', data: datos.map(x => Math.round(x.devol * 100) / 100), backgroundColor: '#34C77B', borderRadius: 3 },
+                { label: 'Retención prevista (resto del año)', data: datos.map(x => Math.round(x.prevista * 100) / 100), backgroundColor: '#F59E0B', borderRadius: 3 },
+                { label: 'Diferencia (+ pagas / − te devuelven)', data: datos.map(x => Math.round(x.dif * 100) / 100), backgroundColor: '#5B8FD9', borderRadius: 3 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, layout: { padding: { top: 18, bottom: 6 } },
+            plugins: { legend: { labels: { color: txt, font: { size: 10 }, boxWidth: 10 } } },
+            scales: {
+                x: { ticks: { color: txt, font: { size: 10, weight: '700' } }, grid: { display: false } },
+                y: { ticks: { color: txt, font: { size: 9 }, callback: v => v + '€' }, grid: { color: 'rgba(128,128,128,0.15)' } }
+            }
+        },
+        plugins: [etiquetas]
+    });
+}
+
 function renderOperaciones() {
     const tb = document.getElementById('tb-operaciones');
     const kg = document.getElementById('kg8');
     if (!tb) return;
+    renderRentaVentas();
 
     // Poblar el desplegable con los activos que tienen alguna operación cerrada, conservando
     // la selección actual del usuario (se repuebla cada vez por si aún no habían llegado los datos).
@@ -1949,9 +2138,7 @@ function renderProximaAccion() {
     });
 
     // Prioridad 3: objetivo mensual cerca de cumplirse
-    const rDiv = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0) / 12;
-    const rInt = interesesEnVivo().reduce((s, i) => s + i.neto, 0) / Math.max(1, interesesEnVivo().length);
-    const totMesActual = rDiv + rInt + 150;
+    const totMesActual = ritmoMensualIngresos().mensual;
     const faltaObjetivo = 300 - totMesActual;
     if (faltaObjetivo > 0 && faltaObjetivo < 30) {
         candidatas.push({
@@ -2320,6 +2507,9 @@ async function recargar(modoRapido) {
         if (data.ingresos) {
             INGRESOS_GS = data.ingresos;
         }
+        if (data.depositos) {
+            DEPOSITOS_GS = data.depositos;
+        }
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
         }
@@ -2487,6 +2677,154 @@ function proximoCobroReal(p) {
     return { mes, anio };
 }
 
+// Previsión de dividendos del año por mes (calendario manual + último pago real, retención de origen aprendida).
+// Devuelve, por mes (0=ene), bruto, neto, devolución de doble imposición e IRPF previstos. Lo usan el Mando y la Renta.
+function calcularPrevisionDividendosAnual() {
+    const pos = posicionesVivas();
+    const mesActual = new Date().getMonth();
+    // ── Previsión 100% en vivo ──
+    // Para cada empresa, calculamos la frecuencia REAL de pago mirando cuántos días pasan
+    // entre un cobro y el siguiente (no un umbral fijo de "meses distintos"), y generamos
+    // el ciclo completo de pagos del año a partir del primer mes conocido. Así, aunque solo
+    // hayamos cobrado 2 o 3 veces (como Realty Income, mensual desde mayo), se rellenan
+    // igualmente todos los meses del año (incluido agosto, que aún no hemos cobrado nunca).
+    const RMAP_LOCAL = {};
+    for (const [k, v] of Object.entries(MAP)) RMAP_LOCAL[v] = k;
+    const fechasPorISIN = {}; // ISIN → [{fecha:Date, mes:0-indexed}], ordenadas
+    const fechasPorEmpresa = {}; // nombre TR_DATOS → igual, de respaldo si no hay ISIN
+    (divsEnVivo() || []).forEach(d => {
+        const partes = d.f.split('/');
+        const fecha = new Date(+partes[2], (+partes[1]) - 1, +partes[0]);
+        const registro = { fecha, mes: (+partes[1]) - 1 };
+        if (d.isin) { (fechasPorISIN[d.isin] = fechasPorISIN[d.isin] || []).push(registro); }
+        (fechasPorEmpresa[d.n] = fechasPorEmpresa[d.n] || []).push(registro);
+    });
+
+    const previstos = Array(12).fill(0);
+    const previstosDetalle = Array.from({ length: 12 }, () => []);
+    const calendarioPorISIN = {};
+    CALENDARIO_DIVIDENDOS_GS.forEach(c => { if (c.isin) calendarioPorISIN[c.isin] = c.meses; });
+
+    // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
+    // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
+    const brutoAneto = (bruto, pais, isin) => {
+        const origenRate = tasaOrigenEstimada(isin, pais);
+        const retOrigen = bruto * origenRate;
+        const subtotal = bruto - retOrigen;
+        const irpf = subtotal * 0.19;
+        return { netoFinal: subtotal - irpf, devolucion: retOrigen, irpf };
+    };
+    const previstosNeto = Array(12).fill(0);
+    const previstosDevolucion = Array(12).fill(0);
+    const previstosIRPF = Array(12).fill(0);
+
+    // Último dividendo REAL por acción cobrado — más preciso que el promedio anual fijo
+    // (divAcc/N) para empresas que suben el pago cada vez (ej. Realty Income). LVMH queda
+    // excluida a propósito: sus 2 pagos al año (abril/diciembre) NO son iguales entre sí, así
+    // que usar "el último cobrado" como proxy del siguiente daría un número equivocado.
+    const ISIN_LVMH = 'FR0000121014';
+    const ultimoDivPorAccion = isin => {
+        if (!isin || isin === ISIN_LVMH) return null;
+        const pagos = (divsEnVivo() || []).filter(d => esMismoISIN(d.isin, isin) && d.sh > 0);
+        if (!pagos.length) return null;
+        const ultimo = pagos.reduce((a, b) => {
+            const [da, ma, ya] = a.f.split('/');
+            const [db, mb, yb] = b.f.split('/');
+            return new Date(+ya, ma - 1, +da) >= new Date(+yb, mb - 1, +db) ? a : b;
+        });
+        return ultimo.bruto / ultimo.sh;
+    };
+
+    pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
+        const divPorAccionReal = ultimoDivPorAccion(p.isin);
+        const anualTotal = divPorAccionReal ? divPorAccionReal * (calendarioPorISIN[p.isin] || []).length *
+            p.sh : p.divAcc * p.sh;
+
+        // 0) Fuente principal: calendario manual de la pestaña DIVIDENDOS — exacto, tú lo has puesto a mano.
+        const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
+        if (mesesManual && mesesManual.length) {
+            const importePorPago = divPorAccionReal ? divPorAccionReal * p.sh : anualTotal / mesesManual
+                .length;
+            const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais, p.isin);
+            mesesManual.forEach(m => {
+                const mes = m - 1; // la hoja usa 1=enero..12=diciembre
+                previstos[mes] += importePorPago;
+                previstosNeto[mes] += netoFinal;
+                previstosDevolucion[mes] += devolucion;
+                previstosIRPF[mes] += irpf;
+                previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoFinal, devolucion });
+            });
+            return; // ya resuelto, no hace falta adivinar nada más para esta posición
+        }
+
+        // 1) Cruce por ISIN (columna B de tu hoja) — exacto siempre, no depende de idioma ni traducción.
+        let fechas = p.isin ? fechasPorISIN[p.isin] : null;
+
+        // 2) Si no hay ISIN o no hay histórico con ese ISIN, caemos al cruce por nombre (menos fiable).
+        if (!fechas) {
+            const normalizar = s => (s || '').split(' ')[0].toLowerCase().normalize('NFD').replace(
+                /[\u0300-\u036f]/g, '');
+            const clavesPosibles = [p.n, RMAP_LOCAL[p.n], p.n.replace(
+                / SA$| Inc$| Corp$| PLC$| Corporation$/, '').trim()];
+            for (const clave of clavesPosibles) {
+                if (clave && fechasPorEmpresa[clave]) { fechas = fechasPorEmpresa[clave]; break; }
+            }
+            if (!fechas) {
+                const pPrimera = normalizar(p.n);
+                for (const claveDivs of Object.keys(fechasPorEmpresa)) {
+                    if (normalizar(claveDivs) === pPrimera) { fechas = fechasPorEmpresa[claveDivs]; break; }
+                }
+            }
+        }
+
+        if (fechas && fechas.length) {
+            fechas = [...fechas].sort((a, b) => a.fecha - b.fecha);
+            let numPagosAnio;
+            if (fechas.length >= 2) {
+                let sumaGaps = 0;
+                for (let i = 1; i < fechas.length; i++) sumaGaps += (fechas[i].fecha - fechas[i - 1].fecha) /
+                    86400000;
+                const gapMedio = sumaGaps / (fechas.length - 1);
+                numPagosAnio = gapMedio <= 45 ? 12 : gapMedio <= 100 ? 4 : gapMedio <= 200 ? 2 : 1;
+            } else {
+                numPagosAnio = 1; // un único pago conocido: por defecto anual (más seguro que inventar trimestres que no existen)
+            }
+            const pasoMeses = 12 / numPagosAnio;
+            const importePorPago = anualTotal / numPagosAnio;
+            const { netoFinal: netoPago, devolucion: devPago, irpf: irpfPago } = brutoAneto(importePorPago, p
+                .pais, p.isin);
+            const mesInicio = fechas[0].mes;
+            for (let i = 0; i < numPagosAnio; i++) {
+                const mes = Math.round(mesInicio + i * pasoMeses) % 12;
+                previstos[mes] += importePorPago;
+                previstosNeto[mes] += netoPago;
+                previstosDevolucion[mes] += devPago;
+                previstosIRPF[mes] += irpfPago;
+                previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoPago, devolucion: devPago });
+            }
+        } else {
+            // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
+            // ni el mes exacto, así que asumimos trimestral (lo más habitual) repartido desde el mes
+            // que viene, en vez de amontonarlo todo de golpe en diciembre.
+            const importeTrimestral = anualTotal / 4;
+            const { netoFinal: netoTrim, devolucion: devTrim, irpf: irpfTrim } = brutoAneto(importeTrimestral,
+                p.pais, p.isin);
+            const mesInicioEstimado = (mesActual + 1) % 12;
+            for (let i = 0; i < 4; i++) {
+                const mes = (mesInicioEstimado + i * 3) % 12;
+                previstos[mes] += importeTrimestral;
+                previstosNeto[mes] += netoTrim;
+                previstosDevolucion[mes] += devTrim;
+                previstosIRPF[mes] += irpfTrim;
+                previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', isin: p.isin, monto:
+                    netoTrim, devolucion: devTrim });
+            }
+        }
+    });
+
+    return { previstos, previstosDetalle, previstosNeto, previstosDevolucion, previstosIRPF };
+}
+
 function renderDashboard() {
     renderFiltroPeriodo();
     renderSaludCartera();
@@ -2509,14 +2847,11 @@ function renderDashboard() {
     }
 
     // Totales SIN filtrar (para el objetivo 300€/mes, que siempre es "el ritmo actual", no depende del periodo elegido)
-    const divTotalSinFiltro = (divsEnVivo() || []).reduce((s, d) => s + d.neto_real, 0);
-    const intTotalSinFiltro = interesesEnVivo().reduce((s, i) => s + i.neto, 0);
-    const numMesesInt = Math.max(1, interesesEnVivo().length);
-    const numMesesDiv = 12; // dividendos: media sobre 12 meses del año, no sobre el histórico completo
-
-    const intMes = intTotalSinFiltro / numMesesInt;
-    const divMes = divTotalSinFiltro / numMesesDiv;
-    const totMes = intMes + divMes + 150;
+    // Media de los últimos 12 meses completos de cobros reales (dividendos + intereses TR + depósitos)
+    const ritmo = ritmoMensualIngresos();
+    const intMes = ritmo.mInt + ritmo.mDep;   // intereses TR + depósitos
+    const divMes = ritmo.mDiv;
+    const totMes = ritmo.mensual;
     const pct = Math.min(100, totMes / 300 * 100);
 
     // Totales CON el periodo seleccionado (para los KPIs de la tarjeta de arriba)
@@ -2552,7 +2887,7 @@ function renderDashboard() {
 
     document.getElementById('obj-pct').textContent = pct.toFixed(1) + '%';
     document.getElementById('obj-bar').style.width = pct + '%';
-    document.getElementById('obj-int').textContent = fe(intMes + 150);
+    document.getElementById('obj-int').textContent = fe(intMes);
     document.getElementById('obj-div').textContent = fe(divMes);
     document.getElementById('obj-tot').textContent = fe(totMes);
     document.getElementById('obj-fal').textContent = fe(Math.max(0, 300 - totMes));
@@ -2570,10 +2905,12 @@ function renderDashboard() {
     const mesesNecesarios = faltan > 0 && netoMensual > 0 ? Math.ceil(faltan / (netoMensual * 1.03)) : 0;
     const fechaEst = new Date();
     fechaEst.setMonth(fechaEst.getMonth() + mesesNecesarios);
-    document.getElementById('obj-fecha-estimada').textContent = mesesNecesarios > 0 ?
+    document.getElementById('obj-fecha-estimada').textContent = (mesesNecesarios > 0 ?
         '📅 Estimas alcanzar el objetivo en ' + mesesNecesarios + ' meses (' + fechaEst.toLocaleDateString('es-ES') +
         ')' :
-        '✅ ¡Ya has alcanzado el objetivo!';
+        '✅ ¡Ya has alcanzado el objetivo!') +
+        ' · Media de ' + ritmo.meses + ' meses (' + ritmo.desde + ' – ' + ritmo.hasta + '): dividendos ' + fe(ritmo.mDiv) +
+        ' + TR ' + fe(ritmo.mInt) + ' + depósitos ' + fe(ritmo.mDep) + ' al mes.';
 
     const gpRealizado = OPERACIONES_CERRADAS.reduce((s, o) => s + o.gp, 0);
     const divTotalReal = divTotalReal2;
@@ -2849,6 +3186,7 @@ function renderDashboard() {
         const tipDiv = Object.keys(divAnioTip).sort().map(a => a + ': ' + fe(divAnioTip[a])).join(' · ') ||
             'Sin dividendos cobrados aún';
         return '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
+            '<td style="font-size:10px;font-weight:700;font-family:monospace">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
             '<td class="bl" style="font-size:10px">' + f2(p.pm) + ' €</td>' +
             '<td class="mt2">' + (val ? fe(val, 0) : '—') + '</td>' +
             '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700;font-size:10px">' + (rp ? (ip ? '+' :
@@ -2915,145 +3253,7 @@ function renderDashboard() {
             });
         }
 
-        // ── Previsión 100% en vivo ──
-        // Para cada empresa, calculamos la frecuencia REAL de pago mirando cuántos días pasan
-        // entre un cobro y el siguiente (no un umbral fijo de "meses distintos"), y generamos
-        // el ciclo completo de pagos del año a partir del primer mes conocido. Así, aunque solo
-        // hayamos cobrado 2 o 3 veces (como Realty Income, mensual desde mayo), se rellenan
-        // igualmente todos los meses del año (incluido agosto, que aún no hemos cobrado nunca).
-        const RMAP_LOCAL = {};
-        for (const [k, v] of Object.entries(MAP)) RMAP_LOCAL[v] = k;
-        const fechasPorISIN = {}; // ISIN → [{fecha:Date, mes:0-indexed}], ordenadas
-        const fechasPorEmpresa = {}; // nombre TR_DATOS → igual, de respaldo si no hay ISIN
-        (divsEnVivo() || []).forEach(d => {
-            const partes = d.f.split('/');
-            const fecha = new Date(+partes[2], (+partes[1]) - 1, +partes[0]);
-            const registro = { fecha, mes: (+partes[1]) - 1 };
-            if (d.isin) { (fechasPorISIN[d.isin] = fechasPorISIN[d.isin] || []).push(registro); }
-            (fechasPorEmpresa[d.n] = fechasPorEmpresa[d.n] || []).push(registro);
-        });
-
-        const previstos = Array(12).fill(0);
-        const previstosDetalle = Array.from({ length: 12 }, () => []);
-        const calendarioPorISIN = {};
-        CALENDARIO_DIVIDENDOS_GS.forEach(c => { if (c.isin) calendarioPorISIN[c.isin] = c.meses; });
-
-        // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
-        // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
-        const brutoAneto = (bruto, pais, isin) => {
-            const origenRate = tasaOrigenEstimada(isin, pais);
-            const retOrigen = bruto * origenRate;
-            const subtotal = bruto - retOrigen;
-            const irpf = subtotal * 0.19;
-            return { netoFinal: subtotal - irpf, devolucion: retOrigen, irpf };
-        };
-        const previstosNeto = Array(12).fill(0);
-        const previstosDevolucion = Array(12).fill(0);
-        const previstosIRPF = Array(12).fill(0);
-
-        // Último dividendo REAL por acción cobrado — más preciso que el promedio anual fijo
-        // (divAcc/N) para empresas que suben el pago cada vez (ej. Realty Income). LVMH queda
-        // excluida a propósito: sus 2 pagos al año (abril/diciembre) NO son iguales entre sí, así
-        // que usar "el último cobrado" como proxy del siguiente daría un número equivocado.
-        const ISIN_LVMH = 'FR0000121014';
-        const ultimoDivPorAccion = isin => {
-            if (!isin || isin === ISIN_LVMH) return null;
-            const pagos = (divsEnVivo() || []).filter(d => esMismoISIN(d.isin, isin) && d.sh > 0);
-            if (!pagos.length) return null;
-            const ultimo = pagos.reduce((a, b) => {
-                const [da, ma, ya] = a.f.split('/');
-                const [db, mb, yb] = b.f.split('/');
-                return new Date(+ya, ma - 1, +da) >= new Date(+yb, mb - 1, +db) ? a : b;
-            });
-            return ultimo.bruto / ultimo.sh;
-        };
-
-        pos.filter(p => (p.divAcc || 0) > 0 && p.sh > 0).forEach(p => {
-            const divPorAccionReal = ultimoDivPorAccion(p.isin);
-            const anualTotal = divPorAccionReal ? divPorAccionReal * (calendarioPorISIN[p.isin] || []).length *
-                p.sh : p.divAcc * p.sh;
-
-            // 0) Fuente principal: calendario manual de la pestaña DIVIDENDOS — exacto, tú lo has puesto a mano.
-            const mesesManual = p.isin ? calendarioPorISIN[p.isin] : null;
-            if (mesesManual && mesesManual.length) {
-                const importePorPago = divPorAccionReal ? divPorAccionReal * p.sh : anualTotal / mesesManual
-                    .length;
-                const { netoFinal, devolucion, irpf } = brutoAneto(importePorPago, p.pais, p.isin);
-                mesesManual.forEach(m => {
-                    const mes = m - 1; // la hoja usa 1=enero..12=diciembre
-                    previstos[mes] += importePorPago;
-                    previstosNeto[mes] += netoFinal;
-                    previstosDevolucion[mes] += devolucion;
-                    previstosIRPF[mes] += irpf;
-                    previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoFinal, devolucion });
-                });
-                return; // ya resuelto, no hace falta adivinar nada más para esta posición
-            }
-
-            // 1) Cruce por ISIN (columna B de tu hoja) — exacto siempre, no depende de idioma ni traducción.
-            let fechas = p.isin ? fechasPorISIN[p.isin] : null;
-
-            // 2) Si no hay ISIN o no hay histórico con ese ISIN, caemos al cruce por nombre (menos fiable).
-            if (!fechas) {
-                const normalizar = s => (s || '').split(' ')[0].toLowerCase().normalize('NFD').replace(
-                    /[\u0300-\u036f]/g, '');
-                const clavesPosibles = [p.n, RMAP_LOCAL[p.n], p.n.replace(
-                    / SA$| Inc$| Corp$| PLC$| Corporation$/, '').trim()];
-                for (const clave of clavesPosibles) {
-                    if (clave && fechasPorEmpresa[clave]) { fechas = fechasPorEmpresa[clave]; break; }
-                }
-                if (!fechas) {
-                    const pPrimera = normalizar(p.n);
-                    for (const claveDivs of Object.keys(fechasPorEmpresa)) {
-                        if (normalizar(claveDivs) === pPrimera) { fechas = fechasPorEmpresa[claveDivs]; break; }
-                    }
-                }
-            }
-
-            if (fechas && fechas.length) {
-                fechas = [...fechas].sort((a, b) => a.fecha - b.fecha);
-                let numPagosAnio;
-                if (fechas.length >= 2) {
-                    let sumaGaps = 0;
-                    for (let i = 1; i < fechas.length; i++) sumaGaps += (fechas[i].fecha - fechas[i - 1].fecha) /
-                        86400000;
-                    const gapMedio = sumaGaps / (fechas.length - 1);
-                    numPagosAnio = gapMedio <= 45 ? 12 : gapMedio <= 100 ? 4 : gapMedio <= 200 ? 2 : 1;
-                } else {
-                    numPagosAnio = 1; // un único pago conocido: por defecto anual (más seguro que inventar trimestres que no existen)
-                }
-                const pasoMeses = 12 / numPagosAnio;
-                const importePorPago = anualTotal / numPagosAnio;
-                const { netoFinal: netoPago, devolucion: devPago, irpf: irpfPago } = brutoAneto(importePorPago, p
-                    .pais, p.isin);
-                const mesInicio = fechas[0].mes;
-                for (let i = 0; i < numPagosAnio; i++) {
-                    const mes = Math.round(mesInicio + i * pasoMeses) % 12;
-                    previstos[mes] += importePorPago;
-                    previstosNeto[mes] += netoPago;
-                    previstosDevolucion[mes] += devPago;
-                    previstosIRPF[mes] += irpfPago;
-                    previstosDetalle[mes].push({ n: p.n, isin: p.isin, monto: netoPago, devolucion: devPago });
-                }
-            } else {
-                // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
-                // ni el mes exacto, así que asumimos trimestral (lo más habitual) repartido desde el mes
-                // que viene, en vez de amontonarlo todo de golpe en diciembre.
-                const importeTrimestral = anualTotal / 4;
-                const { netoFinal: netoTrim, devolucion: devTrim, irpf: irpfTrim } = brutoAneto(importeTrimestral,
-                    p.pais, p.isin);
-                const mesInicioEstimado = (mesActual + 1) % 12;
-                for (let i = 0; i < 4; i++) {
-                    const mes = (mesInicioEstimado + i * 3) % 12;
-                    previstos[mes] += importeTrimestral;
-                    previstosNeto[mes] += netoTrim;
-                    previstosDevolucion[mes] += devTrim;
-                    previstosIRPF[mes] += irpfTrim;
-                    previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', isin: p.isin, monto:
-                        netoTrim, devolucion: devTrim });
-                }
-            }
-        });
+        const { previstos, previstosDetalle, previstosNeto, previstosDevolucion, previstosIRPF } = calcularPrevisionDividendosAnual();
 
         const esAnioActualReal = !esAnioPrevision && anioTermoNum === anioActual;
         const maxT = Math.max(1, ...totalesNeto, ...previstosNeto);
@@ -5384,7 +5584,7 @@ function renderTrampas() {
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
             '<td class="rd">' + (tr1 ? f2(tr1) + ' €' : '—') + '</td>' +
             '<td style="font-family:monospace;color:var(--tx)">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
-            '<td class="' + dcls + '">' + (d1 ? dv.toFixed(1) + '%' : '—') + '</td>' +
+            '<td style="background:rgba(201,162,75,0.10)">' + (d1 ? '<span style="display:inline-block;min-width:50px;text-align:center;padding:3px 9px;border-radius:12px;color:#fff;font-weight:800;font-size:12px;background:' + (i < 5 ? '#E85A5A' : i < 10 ? '#E29A3E' : '#34C77B') + '">' + dv.toFixed(1) + '%</span>' : '—') + '</td>' +
             '<td class="mt2">' + (a1 || '—') + '</td>' +
             '<td class="bl">' + (cap1 ? Math.round(cap1) + ' €' : '—') + '</td>' +
             '<td class="gn">' + (divAcc > 0 ? f2(divAcc) + ' €' : '—') + '</td>' +
@@ -6109,6 +6309,8 @@ function renderIntereses() {
         { l: 'Retención total 19%', v: fe(tot - totn), s: 'Hacienda ya retenido', c: '#707B93' },
         { l: 'Depósitos cobrados', v: fe(totDepSel), s: depSel.length + ' cobros', c: '#5B8FD9' },
         { l: 'Intereses TR + depósitos', v: fe(totn + totDepSel), s: 'neto · ' + etiquetaAnio, c: '#34C77B' },
+        { l: 'Depósitos previstos', v: fe(ingresosPrevistos().reduce((t, x) => t + x.importe, 0)), s: ingresosPrevistos().length + ' cobros por llegar' + (ingresosPrevistos()[0] ? ' · próx. ' +
+            ingresosPrevistos()[0].fecha.slice(8) + '/' + ingresosPrevistos()[0].fecha.slice(5, 7) : ''), c: '#9DB8E8' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + '">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
@@ -6149,6 +6351,37 @@ function renderIntereses() {
     }
 }
 
+function renderDepositosContratados(fmtF) {
+    const hoy = _hoyISO(), todos = cobrosDepositosTodos();
+    const defs = depositosDefinidos();
+    const pc = v => (v == null ? '—' : String(v).replace('.', ',') + ' %');
+    let tB = 0, tR = 0, tN = 0, tC = 0, tP = 0;
+    const tb = document.getElementById('tb-dep-contr');
+    if (tb) tb.innerHTML = defs.map((d, j) => {
+        const cal = todos.filter(x => x.entidad === d.entidad && (x.capital === d.importe || x.capital == null));
+        const bruto = cal.reduce((t, x) => t + x.bruto, 0), ret = cal.reduce((t, x) => t + x.retencion, 0), neto = cal.reduce((t, x) => t + x.importe, 0);
+        const cob = cal.filter(x => x.fecha <= hoy).reduce((t, x) => t + x.importe, 0), pend = neto - cob;
+        const prox = cal.find(x => x.fecha > hoy);
+        tB += bruto; tR += ret; tN += neto; tC += cob; tP += pend;
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:700">' + d.entidad + '</td><td>' + fe(d.importe) +
+            '</td><td>' + pc(d.tin) + ' / ' + pc(d.tae) + '</td><td>' + fmtF(d.inicio) + ' → ' + fmtF(d.fin || _isoMasMeses(d.inicio, d.plazo)) +
+            '</td><td>' + tipoPagoDeposito(d.tipo).toLowerCase() + '</td><td class="am">' + fe(bruto) + '</td><td class="rd">-' + fe(ret) +
+            '</td><td class="gn">' + fe(neto) + '</td><td>' + fe(cob) + '</td><td style="color:#5B8FD9">' + fe(pend) + '</td><td>' +
+            (prox ? fmtF(prox.fecha) + ' · ' + fe(prox.importe) : '✅ terminado') + '</td></tr>';
+    }).join('');
+    const tf = document.getElementById('tf-dep-contr');
+    if (tf) tf.innerHTML = '<td>TOTAL</td><td>' + fe(defs.reduce((t, d) => t + d.importe, 0)) + '</td><td></td><td></td><td></td><td class="am">' + fe(tB) +
+        '</td><td class="rd">-' + fe(tR) + '</td><td class="gn">' + fe(tN) + '</td><td>' + fe(tC) + '</td><td style="color:#5B8FD9">' + fe(tP) + '</td><td></td>';
+    const prev = ingresosPrevistos(); let ac = 0;
+    const tp = document.getElementById('tb-dep-prev');
+    if (tp) tp.innerHTML = prev.length ? prev.map((x, j) => { ac += x.importe;
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + fmtF(x.fecha) + '</td><td>' + x.entidad +
+            '</td><td class="am">' + fe(x.bruto) + '</td><td class="rd">-' + fe(x.retencion) + '</td><td class="gn">' + fe(x.importe) + '</td><td class="mt2">' + fe(ac) + '</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="mt2">Sin cobros pendientes</td></tr>';
+    const tfp = document.getElementById('tf-dep-prev');
+    if (tfp) tfp.innerHTML = '<td>TOTAL</td><td>' + prev.length + ' cobros</td><td class="am">' + fe(prev.reduce((t, x) => t + x.bruto, 0)) + '</td><td class="rd">-' +
+        fe(prev.reduce((t, x) => t + x.retencion, 0)) + '</td><td class="gn">' + fe(ac) + '</td><td></td>';
+}
 // ── DEPÓSITOS + CUADRO DIVIDENDOS + INTERESES (todo de más antiguo a más nuevo) ──
 function renderDepositosEIngresos() {
     const dep = ingresosEnVivo().filter(x => okAnioIng(mesClaveDe(x.fecha)));
@@ -6172,6 +6405,7 @@ function renderDepositosEIngresos() {
         '</td><td>' + porEnt[k].n + '</td><td>' + fmtF(porEnt[k].ini) + '</td><td>' + fmtF(porEnt[k].fin) + '</td><td class="gn">' + fe(porEnt[k].tot) + '</td></tr>').join('') ||
         '<tr><td colspan="5" class="mt2">—</td></tr>';
     renderGraficoIngresos();
+    renderDepositosContratados(fmtF);
     const tfA = document.getElementById('tf-dep-acum');
     if (tfA) tfA.innerHTML = '<td>TOTAL</td><td>' + dep.length + '</td><td></td><td></td><td class="gn">' + fe(totDep) + '</td>';
 
@@ -6205,7 +6439,9 @@ function renderGraficoIngresos() {
     const canvas = document.getElementById('c-ingresos-mes');
     if (!canvas || typeof Chart === 'undefined') return;
     const datos = agregadoMensualIngresos();
-    const claves = Object.keys(datos).sort();
+    const prevMes = {}; // depósitos aún por cobrar, por mes
+    ingresosPrevistos().forEach(x => { const k = mesClaveDe(x.fecha); prevMes[k] = (prevMes[k] || 0) + x.importe; });
+    const claves = [...new Set([...Object.keys(datos), ...Object.keys(prevMes)])].sort();
     if (!claves.length) return;
     const anios = [...new Set(claves.map(k => k.slice(0, 4)))].sort();
     anioIngresosSel();
@@ -6219,8 +6455,9 @@ function renderGraficoIngresos() {
         while (y < yf || (y === yf && m <= mf)) { lista.push(y + '-' + String(m).padStart(2, '0')); m++; if (m > 12) { m = 1; y++; } }
     } else for (let m = 1; m <= 12; m++) lista.push(ANIO_INGRESOS + '-' + String(m).padStart(2, '0'));
     const v = (k, c) => Math.round(((datos[k] || {})[c] || 0) * 100) / 100;
-    const tot = k => v(k, 'div') + v(k, 'int') + v(k, 'dep');
-    const totalPeriodo = lista.reduce((t, k) => t + tot(k), 0);
+    const vp = k => Math.round((prevMes[k] || 0) * 100) / 100;
+    const tot = k => v(k, 'div') + v(k, 'int') + v(k, 'dep') + vp(k);
+    const totalPeriodo = lista.reduce((t, k) => t + v(k, 'div') + v(k, 'int') + v(k, 'dep'), 0); // solo lo ya cobrado
     const nota = document.getElementById('n-graf-ing');
     if (nota) nota.textContent = (ANIO_INGRESOS === 'todos' ? 'todo el histórico' : ANIO_INGRESOS) + ' · total ' + fe(totalPeriodo);
     const wrap = document.getElementById('graf-ing-wrap');
@@ -6233,7 +6470,7 @@ function renderGraficoIngresos() {
             lista.forEach((k, i) => {
                 const t = tot(k); if (t <= 0) return;
                 const barra = chart.getDatasetMeta(2).data[i]; if (!barra) return;
-                let top = barra.y; [0, 1].forEach(d => { const b = chart.getDatasetMeta(d).data[i]; if (b && b.y < top) top = b.y; });
+                let top = barra.y; [0, 1, 3].forEach(d => { const b = chart.getDatasetMeta(d).data[i]; if (b && b.y < top) top = b.y; });
                 ctx.save(); ctx.fillStyle = txt; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
                 ctx.fillText(Math.round(t) + '€', barra.x, top - 3); ctx.restore();
             });
@@ -6247,7 +6484,8 @@ function renderGraficoIngresos() {
             datasets: [
                 { label: 'Dividendos', data: lista.map(k => v(k, 'div')), backgroundColor: '#34C77B', stack: 's' },
                 { label: 'Intereses TR', data: lista.map(k => v(k, 'int')), backgroundColor: '#E29A3E', stack: 's' },
-                { label: 'Depósitos', data: lista.map(k => v(k, 'dep')), backgroundColor: '#5B8FD9', stack: 's', borderRadius: 3 }
+                { label: 'Depósitos', data: lista.map(k => v(k, 'dep')), backgroundColor: '#5B8FD9', stack: 's' },
+                { label: 'Depósitos previstos', data: lista.map(k => vp(k)), backgroundColor: 'rgba(91,143,217,0.30)', borderColor: '#5B8FD9', borderWidth: 1.5, borderDash: [4, 3], stack: 's', borderRadius: 3 }
             ]
         },
         options: {
@@ -6270,7 +6508,10 @@ function renderEvolucion() {
     const evBase = evolucionEnVivo() || [];
     const depMes = {};
     ingresosEnVivo().forEach(x => { const k = mesClaveDe(x.fecha); depMes[k] = (depMes[k] || 0) + x.importe; });
-    const ev = evBase.map(e => ({ ...e, int: e.int + (depMes[e.mes.slice(0, 7)] || 0) }));
+    const intMes = {}; // intereses TR por mes en que se devengan (no en el que se cobran)
+    interesesEnVivo().forEach(i => { const k = mesClaveDe(i.f, 'MM/YYYY'); intMes[k] = (intMes[k] || 0) + i.neto; });
+    const ev = evBase.map(e => ({ ...e, int: (intMes[e.mes.slice(0, 7)] || 0) + (depMes[e.mes.slice(0, 7)] || 0) }));
+    Object.keys(intMes).sort().forEach(k => { if (!ev.some(e => e.mes.slice(0, 7) === k)) ev.push({ mes: k, compras: 0, ventas: 0, divs: 0, int: intMes[k] + (depMes[k] || 0) }); });
     Object.keys(depMes).sort().forEach(k => { if (!ev.some(e => e.mes.slice(0, 7) === k)) ev.push({ mes: k, compras: 0, ventas: 0, divs: 0, int: depMes[k] }); });
     ev.sort((a, b) => a.mes.localeCompare(b.mes));
     const canvasEvo = document.getElementById('ce');
@@ -6466,7 +6707,7 @@ function renderProyecciones() {
             </div>
             <div style="background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
                 <div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">Aportación necesaria para 300€/mes</div>
-                <div style="font-size:18px;font-weight:700;color:#E85A5A">${fe(Math.max(0, 300 - netoRealMensual - 150 - (interesesEnVivo().reduce((s,i)=>s+i.neto,0)/Math.max(1,interesesEnVivo().length))))}</div>
+                <div style="font-size:18px;font-weight:700;color:#E85A5A">${fe(Math.max(0, 300 - netoRealMensual - (ritmoMensualIngresos().mInt + ritmoMensualIngresos().mDep)))}</div>
             </div>
         </div>
         <div style="margin-top:12px;background:var(--s2);border-radius:8px;padding:12px 16px;border:1px solid var(--bd)">
@@ -6553,7 +6794,7 @@ function renderProyecciones() {
         recoms.push('📊 Tus dividendos aún son modestos. Considera aumentar posiciones en REITs como Realty Income o VICI Properties para generar más flujo mensual.');
     }
 
-    const metaFalta = 300 - (interesesEnVivo().reduce((s,i)=>s+i.neto,0)/Math.max(1,interesesEnVivo().length)) - (divs2026total / Math.max(1, mesActualNum)) - 150;
+    const metaFalta = 300 - ritmoMensualIngresos().mensual;
     if (metaFalta > 0) {
         recoms.push('🎯 Para alcanzar los 300€/mes necesitas generar ' + fe(metaFalta) +
             ' adicionales al mes. Refuerza posiciones con yield >5% o aumenta aportaciones mensuales en ' +
@@ -6603,11 +6844,11 @@ function calcularBaseAhorroAnual() {
     const anioActual = new Date().getFullYear();
     const divsAnio = (divsEnVivo() || []).filter(d => d.f.includes(String(anioActual)))
         .reduce((s, d) => s + d.neto_final, 0);
-    const intAnio = interesesEnVivo().filter(i => i.f.endsWith('/' + anioActual))
+    const intAnio = interesesEnVivo().filter(i => (i.fPago || i.f).endsWith('/' + anioActual)) // impuestos: año de cobro
         .reduce((s, i) => s + i.neto, 0);
     const gpAnio = OPERACIONES_CERRADAS.filter(o => o.fecha.startsWith(String(anioActual)) && o.gp > 0)
         .reduce((s, o) => s + o.gp, 0);
-    const depAnio = ingresosEnVivo().filter(x => x.fecha.startsWith(String(anioActual))).reduce((s, x) => s + x.importe, 0);
+    const depAnio = ingresosEnVivo().filter(x => x.fecha.startsWith(String(anioActual))).reduce((s, x) => s + (x.bruto || x.importe), 0); // tributa el bruto
     return divsAnio + intAnio + depAnio + gpAnio;
 }
 
