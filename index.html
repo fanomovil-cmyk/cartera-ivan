@@ -192,6 +192,10 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .rev-ult{font-size:9.5px;color:var(--mt);line-height:1.35}
 .rev-ctl{display:flex;gap:6px}.rev-ctl select,.rev-ctl input{background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:11px;font-family:inherit;min-width:0}
 .rev-ctl select{flex:0 0 112px}.rev-ctl input{flex:1}
+.rev-banner{border:2px solid var(--rd);border-radius:var(--radius);background:linear-gradient(135deg,rgba(232,90,90,.18),rgba(232,90,90,.07));padding:16px 18px;margin-bottom:14px;animation:alertaZona 2s ease-in-out infinite;text-align:center}
+.rev-banner h2{margin:0;font-size:38px;font-weight:900;letter-spacing:5px;color:var(--rd);font-family:'Space Grotesk',sans-serif;line-height:1.1}
+.rev-banner .rv-l{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.rev-banner .rv-l span{background:var(--s1);border:1px solid var(--rd);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700}
 .avisos-card{padding:0;overflow:hidden}
 .avisos-top{padding:12px 14px 4px}
 .avisos-top>div{border-radius:var(--radius-sm)!important}
@@ -259,6 +263,7 @@ html.light .badge-orden.venta{color:#B33A3A}
       <h1 style="font-size:32px;margin-bottom:8px">📡 Radar Táctico</h1>
       <p style="color:var(--mt);font-size:14px;margin-bottom:24px;font-family:'JetBrains Mono',monospace;letter-spacing:1px">SOLO LO QUE IMPORTA</p>
     </div>
+    <div id="focus-revision"></div>
     <div id="focus-proxima-accion" style="margin-bottom:12px"></div>
     <div id="focus-alertas" style="margin-bottom:12px"></div>
     <div class="kg" id="focus-kpis" style="grid-template-columns:1fr"></div>
@@ -321,6 +326,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- ═══ DASHBOARD ═══ -->
 <div class="tp on" id="t0">
+  <div id="mando-revision"></div>
   <div class="card avisos-card" style="margin-bottom:12px">
     <div id="proxima-accion" class="avisos-top"></div>
     <div id="alertas-container" class="avisos-grid"></div>
@@ -3529,6 +3535,7 @@ function renderDashboard() {
     if (alertContainer) alertContainer.innerHTML = alertasHtml;
     const focusAlertContainer = document.getElementById('focus-alertas');
     if (focusAlertContainer) focusAlertContainer.innerHTML = alertasHtmlFocus;
+    renderBannerRevision();
 }
 
 // ── CARTERA ──
@@ -5659,7 +5666,7 @@ function renderTrampas() {
             '<td>' + cal + '</td><td><span class="pr ' + pc + '">' + prio + '</span></td>' +
             '<td class="rd">' + (tr1 ? f2(tr1) + ' €' : '—') + '</td>' +
             '<td style="font-family:monospace;color:var(--tx)">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
-            '<td style="background:rgba(201,162,75,0.10)">' + (d1 ? '<span style="display:inline-block;min-width:50px;text-align:center;padding:3px 9px;border-radius:12px;color:#fff;font-weight:800;font-size:12px;background:' + (i < 5 ? '#E85A5A' : i < 10 ? '#E29A3E' : '#34C77B') + '">' + dv.toFixed(1) + '%</span>' : '—') + '</td>' +
+            '<td style="background:rgba(201,162,75,0.10)">' + (d1 ? '<span style="display:inline-block;min-width:50px;text-align:center;padding:3px 9px;border-radius:12px;color:#fff;font-weight:800;font-size:12px;background:' + (d1 >= 0 || ad <= 3 ? '#E85A5A' : ad <= 5 ? '#E29A3E' : '#34C77B') + '">' + dv.toFixed(1) + '%</span>' : '—') + '</td>' +
             '<td class="mt2">' + (a1 || '—') + '</td>' +
             '<td class="bl">' + (cap1 ? Math.round(cap1) + ' €' : '—') + '</td>' +
             '<td class="gn">' + (divAcc > 0 ? f2(divAcc) + ' €' : '—') + '</td>' +
@@ -7382,6 +7389,16 @@ if (esMovilInit) {
 
 
 
+
+
+// ── Banner gigante «REVISIÓN»: trampas con el precio a ≤1 % de la trampa o ya por debajo ──
+function renderBannerRevision() {
+    const items = (TRAMPAS_GS || []).map(r => ({ n: r[0], d: cn(r[5]), tr: cn(r[3]), pa: cn(r[4]), orden: r[11] === true }))
+        .filter(x => x.tr > 0 && x.pa > 0 && x.d >= -1).sort((a, b) => b.d - a.d);
+    const html = items.length ? '<div class="rev-banner"><h2>🔔 REVISIÓN</h2><div style="font-size:12px;color:var(--mt);margin-top:4px">' + items.length + (items.length === 1 ? ' activo a ' : ' activos a ') + '≤ 1 % de su trampa o por debajo</div><div class="rv-l">' +
+        items.map(x => '<span>' + revEsc(x.n) + ' · ' + (x.d >= 0 ? 'ya por debajo ' : 'a ') + Math.abs(x.d).toFixed(1).replace('.', ',') + '%' + (x.d >= 0 ? '' : ' de la trampa') + ' · ' + (x.orden ? '✅ orden puesta' : '🚨 sin orden') + '</span>').join('') + '</div></div>' : '';
+    ['focus-revision', 'mando-revision'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+}
 
 // ══════════ SALUD DE LOS DATOS ══════════
 function auditoriaDatos() {
