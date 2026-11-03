@@ -196,6 +196,9 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .rev-banner h2{margin:0;font-size:38px;font-weight:900;letter-spacing:5px;color:var(--rd);font-family:'Space Grotesk',sans-serif;line-height:1.1}
 .rev-banner .rv-l{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
 .rev-banner .rv-l span{background:var(--s1);border:1px solid var(--rd);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700}
+.ord-th{cursor:pointer;user-select:none;white-space:nowrap}
+.ord-th:hover{color:var(--tx)}
+.ord-th.on{color:var(--ac);font-weight:800}
 .avisos-card{padding:0;overflow:hidden}
 .avisos-top{padding:12px 14px 4px}
 .avisos-top>div{border-radius:var(--radius-sm)!important}
@@ -345,7 +348,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="g2">
     <div class="card">
       <div class="ch"><h3>💼 Posiciones</h3><span class="mt2" style="font-size:9px" id="n-pos">14 activos</span></div>
-      <table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>P.Actual</th><th>P.Compra</th><th>Valor</th><th>Rent.</th><th>€ Rent.</th><th>Div. cobrado</th></tr></thead><tbody id="tb-dash-pos"></tbody></table>
+      <div style="overflow-x:auto"><table class="dt"><thead><tr id="th-dash-pos"></tr></thead><tbody id="tb-dash-pos"></tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><h3>🎯 Radar de trampas</h3></div>
@@ -1084,6 +1087,7 @@ let VALOR_CARTERA_ACTUAL = 0;
 let PERIODO_SELECCIONADO = 'todo'; // 'mes' | un año concreto (string) | 'todo'
 let ANIO_TERMO = null; // null = año actual por defecto; también puede ser 'prevision' o un año pasado (string)
 let HISTORICO_CIERRES = [];
+let POS_ORDEN = { k: 'orig', dir: 1 }; // orden de la tabla Posiciones del Mando
 let HISTORICO_PRECIOS = {};
 
 function calcularVariacionDia(valorActual, costeActual) {
@@ -3249,7 +3253,8 @@ function renderDashboard() {
     });
 
     const tbody = document.getElementById('tb-dash-pos');
-    if (tbody) tbody.innerHTML = pos.map(p => {
+    const valorTotalDash = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
+    if (tbody) window._posDashFilas = pos.map(p => {
         const pa = precioDe(p) || 0;
         const val = pa ? pa * p.sh : 0;
         const gpEuros = pa && p.ct ? (val - p.ct) : 0;
@@ -3259,17 +3264,20 @@ function renderDashboard() {
         const divAnioTip = p.isin ? (divsPorISINyAnioDash[p.isin] || {}) : {};
         const tipDiv = Object.keys(divAnioTip).sort().map(a => a + ': ' + fe(divAnioTip[a])).join(' · ') ||
             'Sin dividendos cobrados aún';
-        return '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
+        const pesoP = val / valorTotalDash * 100;
+        return { n: p.n, rent: rp, peso: pesoP, valor: val, gp: gpEuros, html: '<tr><td><div style="font-weight:600;font-size:11px">' + p.n + '</div></td>' +
             '<td style="font-size:10px;font-weight:700;font-family:monospace">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
             '<td class="bl" style="font-size:10px">' + f2(p.pm) + ' €</td>' +
             '<td class="mt2">' + (val ? fe(val, 0) : '—') + '</td>' +
+            '<td class="mt2" style="font-size:10px;font-family:monospace">' + (val ? pesoP.toFixed(1).replace('.', ',') + '%' : '—') + '</td>' +
             '<td style="color:' + gc(rp) + ';font-family:monospace;font-weight:700;font-size:10px">' + (rp ? (ip ? '+' :
                 '') + f1(rp) + '%' : '—') + '</td>' +
             '<td style="color:' + gc(gpEuros) + ';font-family:monospace;font-weight:700;font-size:10px">' + (gpEuros ? (
                 gpEuros >= 0 ? '+' : '') + fe(gpEuros) : '—') + '</td>' +
             '<td class="gn" style="font-size:10px;cursor:help" title="' + tipDiv + '">' + (divReal ? fe(divReal) +
-                ' 🛈' : '—') + '</td></tr>';
-    }).join('');
+                ' 🛈' : '—') + '</td></tr>' };
+    });
+    pintarPosicionesDash();
 
     const tlist = document.getElementById('dash-trampas');
     if (tlist && trampasOrdenadas.length) {
@@ -7390,6 +7398,22 @@ if (esMovilInit) {
 
 
 
+
+
+// ── Posiciones del Mando: ordenar por nombre, rentabilidad, peso, valor o € de rentabilidad ──
+function ordenarPosDash(k) {
+    POS_ORDEN = POS_ORDEN.k === k ? { k, dir: -POS_ORDEN.dir } : { k, dir: k === 'n' ? 1 : -1 }; // texto A→Z; números de mayor a menor
+    pintarPosicionesDash();
+}
+function pintarPosicionesDash() {
+    const filas = (window._posDashFilas || []).slice(), tb = document.getElementById('tb-dash-pos'), th = document.getElementById('th-dash-pos');
+    if (!tb || !th) return;
+    const { k, dir } = POS_ORDEN;
+    if (k !== 'orig') filas.sort((a, b) => k === 'n' ? dir * a.n.localeCompare(b.n, 'es') : dir * ((a[k] || 0) - (b[k] || 0)));
+    const cab = (key, txt, izq) => '<th class="ord-th' + (k === key ? ' on' : '') + '"' + (izq ? ' style="text-align:left"' : '') + ' onclick="ordenarPosDash(\'' + key + '\')" title="Ordenar">' + txt + (k === key ? (dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
+    th.innerHTML = cab('n', 'Activo', true) + '<th>P.Actual</th><th>P.Compra</th>' + cab('valor', 'Valor') + cab('peso', 'Peso') + cab('rent', 'Rent.') + cab('gp', '€ Rent.') + '<th>Div. cobrado</th>';
+    tb.innerHTML = filas.map(f => f.html).join('');
+}
 
 // ── Banner gigante «REVISIÓN»: trampas con el precio a ≤1 % de la trampa o ya por debajo ──
 function renderBannerRevision() {
