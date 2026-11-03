@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -69,7 +70,12 @@ body{
 .btn.alert{color:var(--am);border-color:var(--am);animation:pulse 2s infinite}
 
 /* ── Pestañas ── */
-.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:20px;overflow-x:auto;gap:4px;padding-bottom:2px}
+.tabs-wrap{position:sticky;top:0;z-index:50;background:var(--bg);margin:0 -2px 20px;padding:4px 2px 0}
+.tabs-wrap::after{content:'';position:absolute;right:0;top:0;bottom:1px;width:28px;background:linear-gradient(90deg,transparent,var(--bg));pointer-events:none}
+.tabs{display:flex;align-items:center;border-bottom:1px solid var(--bd);overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;padding-right:28px}
+.tabs::-webkit-scrollbar{display:none}
+.tg{font-size:7.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mt);opacity:.7;font-weight:700;margin:0 2px 0 6px;white-space:nowrap}
+.tsep{width:1px;height:18px;background:var(--bd);margin:0 6px;flex-shrink:0}
 .tb{padding:9px 15px;font-size:11px;font-weight:600;color:var(--mt);background:none;border:none;border-radius:20px;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:all 0.18s ease;letter-spacing:0.1px;-webkit-tap-highlight-color:transparent}
 .tb:hover{color:var(--tx);background:var(--s2)}
 .tb.on{color:#1A1206;background:linear-gradient(135deg,var(--ac2),var(--ac));font-weight:700;box-shadow:0 4px 14px -4px rgba(201,162,75,0.5)}
@@ -83,7 +89,7 @@ body{
 .kpi:hover{transform:translateY(-2px);box-shadow:0 10px 24px -8px rgba(0,0,0,0.5);border-color:color-mix(in srgb, var(--kc,var(--ac)) 45%, var(--bd))}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--ac));opacity:0.9}
 .kl{font-size:8.5px;color:var(--mt);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}
-.kv{font-size:19px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;letter-spacing:-0.3px}
+.kv{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;letter-spacing:-0.3px}
 .ks{font-size:9px;color:var(--mt);margin-top:5px}
 
 /* ── Tarjetas ── */
@@ -172,6 +178,27 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .tfill.m{background:linear-gradient(90deg,var(--am),#F0BC7A)}
 .tfill.f{background:linear-gradient(90deg,var(--rd),#F09090)}
 .highlight{background:rgba(52,199,123,0.08)}
+.rev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;padding:12px 16px 16px}
+.rev-c{background:var(--s2);border:1px solid var(--bd);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
+.rev-c.dec{border-color:var(--ac)}
+.rev-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rev-n{font-weight:700;font-size:13px}.rev-t{font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--mt)}
+.rev-m{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rev-m div{background:var(--s1);border-radius:8px;padding:5px 6px;text-align:center}
+.rev-m b{display:block;font-family:'JetBrains Mono',monospace;font-size:11px}.rev-m i{font-style:normal;font-size:7.5px;color:var(--mt);text-transform:uppercase;letter-spacing:.6px}
+.rev-peso{height:5px;border-radius:3px;background:var(--bd);position:relative;overflow:hidden}.rev-peso>span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.rev-f{display:flex;gap:4px;flex-wrap:wrap}.rev-f span{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
+.rev-f .w{background:rgba(232,90,90,.14);color:var(--rd)}.rev-f .i{background:rgba(226,154,62,.15);color:var(--am)}.rev-f .g{background:rgba(52,199,123,.14);color:var(--gn)}
+.rev-ult{font-size:9.5px;color:var(--mt);line-height:1.35}
+.rev-ctl{display:flex;gap:6px}.rev-ctl select,.rev-ctl input{background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:11px;font-family:inherit;min-width:0}
+.rev-ctl select{flex:0 0 112px}.rev-ctl input{flex:1}
+.avisos-card{padding:0;overflow:hidden}
+.avisos-top{padding:12px 14px 4px}
+.avisos-top>div{border-radius:var(--radius-sm)!important}
+.avisos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:8px;padding:8px 14px 14px}
+.avisos-grid:empty{display:none}
+.avisos-grid .alert-box{margin:0;padding:8px 12px;font-size:11.5px}
+.avisos-top .alert-box{margin:0}
 .alert-box{background:rgba(232,90,90,0.08);border:1px solid var(--rd);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;min-width:0}
 .alert-box .icon{font-size:16px;flex-shrink:0}
 .alert-box span:not(.icon){flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word}
@@ -204,6 +231,9 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 
 .notification{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--ac);border-radius:var(--radius);padding:20px 26px;z-index:1000;max-width:420px;min-width:300px;box-shadow:0 14px 34px -8px rgba(0,0,0,0.55);animation:slideUp 0.4s ease}
 @keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
+.notification.compacta{padding:12px 18px;min-width:240px;max-width:320px;bottom:16px;right:16px}
+.notification.compacta .desc{font-size:11px;margin-top:4px}
+.notification.compacta .title{font-size:13px}
 .notification .title{font-weight:700;font-size:16px;font-family:'Space Grotesk',sans-serif}
 .notification .desc{font-size:13px;color:var(--mt);margin-top:8px;line-height:1.4}
 .notification .close-btn{position:absolute;top:12px;right:14px;cursor:pointer;color:var(--mt);font-size:16px}
@@ -269,26 +299,31 @@ html.light .badge-orden.venta{color:#B33A3A}
 </div>
 
 <!-- TABS -->
-<div class="tabs">
+<div class="tabs-wrap"><div class="tabs">
+  <span class="tg">Cartera</span>
   <button class="tb on" data-tab="0" onclick="sw(0)">📊 Mando</button>
   <button class="tb" data-tab="1" onclick="sw(1)">💼 Flota</button>
   <button class="tb" data-tab="2" onclick="sw(2)">🎯 Trampas</button>
+  <button class="tb" data-tab="11" onclick="sw(11)">💧 Goteo</button>
+  <span class="tsep"></span><span class="tg">Cobros</span>
   <button class="tb" data-tab="3" onclick="sw(3)">💰 Dividendos</button>
   <button class="tb" data-tab="4" onclick="sw(4)">🏦 Intereses</button>
   <button class="tb" data-tab="5" onclick="sw(5)">📅 Temporal</button>
+  <span class="tsep"></span><span class="tg">Análisis</span>
   <button class="tb" data-tab="6" onclick="sw(6)">🔮 Simular</button>
   <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analítica</button>
-  <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
   <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Anual</button>
+  <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
   <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle</button>
-  <button class="tb" data-tab="11" onclick="sw(11)">💧 Goteo</button>
-</div>
+  <span class="tsep"></span><span class="tg">Revisión</span>
+  <button class="tb" data-tab="12" onclick="sw(12)">🧾 Semestral</button>
+</div></div>
 
 <!-- ═══ DASHBOARD ═══ -->
 <div class="tp on" id="t0">
-  <div class="g2" style="margin-bottom:12px;align-items:start">
-    <div id="proxima-accion"></div>
-    <div id="alertas-container"></div>
+  <div class="card avisos-card" style="margin-bottom:12px">
+    <div id="proxima-accion" class="avisos-top"></div>
+    <div id="alertas-container" class="avisos-grid"></div>
   </div>
   <div class="card" style="margin-bottom:12px" id="salud-cartera-card">
     <div class="ch"><h3>🩺 Salud de la cartera</h3><span class="mt2" style="font-size:8px">afecta a dividendos, intereses, saveback y devolución</span></div>
@@ -296,6 +331,7 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div style="padding:14px 16px" id="salud-cartera-container"></div>
   </div>
   <div class="kg" id="kg0"></div>
+  <div class="card" id="tir-card" style="margin-bottom:12px;display:none"></div>
   <div class="card" style="margin-bottom:12px">
     <div class="ch"><h3>📈 Evolución del patrimonio</h3><span class="mt2" style="font-size:8px">cierres diarios guardados</span></div>
     <div class="cw" style="height:220px"><canvas id="cEvolucionPatrimonio"></canvas></div>
@@ -499,6 +535,10 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="card" style="margin-bottom:12px"><div class="ch"><h3>📊 Cobros mensuales: dividendos + intereses + depósitos</h3><span class="mt2" id="n-graf-ing" style="font-size:8px"></span></div>
     <div id="filtro-anio-ingresos" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px"></div>
     <div style="overflow-x:auto"><div id="graf-ing-wrap" style="height:270px;position:relative"><canvas id="c-ingresos-mes"></canvas></div></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🗓️ Calendario de cobros: próximos 12 meses</h3><span class="mt2" style="font-size:8px" id="n-cal-cobros">dividendos e intereses estimados · depósitos exactos</span></div>
+    <div id="cal-vencimientos" style="padding:0 16px"></div>
+    <div style="overflow-x:auto"><div style="height:250px;position:relative;min-width:620px"><canvas id="c-cal-cobros"></canvas></div></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes</th><th>Dividendos €</th><th>Intereses TR €</th><th>Depósitos €</th><th>Total €</th><th style="text-align:left">Detalle</th></tr></thead><tbody id="tb-cal-cobros"></tbody><tfoot><tr id="tf-cal-cobros"><td colspan="6">—</td></tr></tfoot></table></div></div>
   <div class="g2">
     <div class="card"><div class="ch"><h3>🏦 Intereses mensuales TR</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Mes devengado</th><th>Bruto €</th><th>Ret.19% €</th><th>Neto €</th><th>Acumulado €</th></tr></thead><tbody id="tb-int"></tbody><tfoot><tr id="tf-int"><td colspan="5">—</td></tr></tfoot></table></div></div>
     <div class="card"><div class="ch"><h3>📈 Evolución</h3></div><div class="cw"><canvas id="ci"></canvas></div></div>
@@ -636,6 +676,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 
 <!-- ═══ DETALLE DE ACTIVO ═══ -->
 <div class="tp" id="t10">
+  <div class="card" id="datos-salud-card" style="margin-bottom:12px"></div>
   <div class="card">
     <div class="ch"><h3>🔍 Elige un activo</h3></div>
     <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px" id="detalle-activo-botones">—</div>
@@ -644,6 +685,18 @@ html.light .badge-orden.venta{color:#B33A3A}
 </div>
 
 <!-- ═══ ESTRATEGIA DE GOTEO ═══ -->
+<!-- ═══ REVISIÓN SEMESTRAL ═══ -->
+<div class="tp" id="t12">
+  <div class="kg" id="kg12"></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión semestral de la cartera</h3><span class="mt2" style="font-size:8px">cada 6 meses: ¿sigue valiendo la pena cada activo? · las decisiones se guardan en la hoja REVISIONES</span></div>
+    <div id="rev-aviso" style="padding:10px 16px 0"></div>
+    <div id="rev-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
+    <div id="rev-lista" class="rev-grid"></div>
+    <div id="rev-guardar" style="padding:0 16px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
+  </div>
+  <div class="card"><div class="ch"><h3>📜 Historial de revisiones</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Activo</th><th>Decisión</th><th style="text-align:left">Nota</th><th>Peso</th><th>Rentab.</th></tr></thead><tbody id="tb-rev-hist"></tbody></table></div></div>
+</div>
+
 <div class="tp" id="t11">
   <div class="card">
     <div class="ch"><h3>💧 Estrategia de Goteo</h3><span class="mt2" style="font-size:8px">aportaciones mensuales con reglas de reducción, cruzadas con Forever/trampas/peso</span></div>
@@ -690,9 +743,14 @@ function diasDesde(fechaStr) {
 }
 
 function sw(i) {
-    document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11'].forEach((id, j) => document
-        .getElementById(id).classList.toggle('on', i === j));
+    document.querySelectorAll('.tb').forEach(b => {
+        const on = Number(b.dataset.tab) === i; b.classList.toggle('on', on);
+        if (on && b.scrollIntoView) { try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {} }
+    });
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12'].forEach((id, j) => { const el = document
+        .getElementById(id); if (el) el.classList.toggle('on', i === j); });
+    if (i === 12 && typeof renderRevisionSemestral === 'function') renderRevisionSemestral();
+    if (i === 10 && typeof renderSaludDatos === 'function') renderSaludDatos();
 }
 
 function pcsv(text) {
@@ -755,7 +813,7 @@ function exportarCSV() {
 function notificar(titulo, desc, tipo = 'info') {
     const cont = document.getElementById('notif-container');
     const el = document.createElement('div');
-    el.className = 'notification';
+    el.className = 'notification' + (tipo === 'success' ? ' compacta' : '');
     const color = tipo === 'success' ? 'var(--gn)' : tipo === 'warn' ? 'var(--rd)' : 'var(--ac)';
     el.style.borderColor = color;
     const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -769,7 +827,7 @@ function notificar(titulo, desc, tipo = 'info') {
         <div style="font-size:9px;color:var(--mt);margin-top:9px;font-family:'JetBrains Mono',monospace;letter-spacing:0.4px">SEÑAL RECIBIDA · ${hora}</div>
     `;
     cont.appendChild(el);
-    setTimeout(() => { if (el.parentElement) el.remove(); }, 8000);
+    setTimeout(() => { if (el.parentElement) el.remove(); }, tipo === 'success' ? 3000 : 8000);
 }
 
 // ── DATOS ──
@@ -959,6 +1017,7 @@ let DIVIDENDOS_GS = null,
     INTERESES_GS = null,
     INGRESOS_GS = null,
     DEPOSITOS_GS = null,
+    REVISIONES_GS = [],
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
@@ -1164,6 +1223,7 @@ function proximosCobrosEnVivo() {
 
         return {
             n: p.n, pais: p.pais, freq: freqTexto, sh: p.sh, ultimo_cobro: ultimoCobro, _prox: prox,
+            _meses: mesesPago0 ? mesesPago0.map(m => m + 1) : null, isin: p.isin,
             bruto_est: r2(importePorPago), ret_o_est: r2(retOEst), neto_tr_est: r2(subtotalEst),
             dev_est: r2(retOEst), neto_real_est: r2(netoRealEst), ya_cobrado_2026: r2(yaCobradoAnio)
         };
@@ -2166,6 +2226,7 @@ function renderProximaAccion() {
 
     candidatas.sort((a, b) => a.prioridad - b.prioridad);
     const elegida = candidatas[0];
+    window._accionElegidaTexto = elegida ? elegida.texto : '';
 
     const html = !elegida ?
         '<div class="alert-box success"><span class="icon">✅</span><span style="font-weight:600">Todo en orden — no hay ninguna acción urgente pendiente hoy.</span></div>' :
@@ -2510,6 +2571,9 @@ async function recargar(modoRapido) {
         if (data.depositos) {
             DEPOSITOS_GS = data.depositos;
         }
+        if (data.revisiones) {
+            REVISIONES_GS = data.revisiones;
+        }
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
         }
@@ -2843,7 +2907,10 @@ function renderDashboard() {
         const inicio = fechasInicio.length ? fechasInicio[0] : '—';
         const fin = ULTIMA_FECHA_CSV_GS || inicio;
 
-        rangoEl.textContent = inicio + ' → ' + fin;
+        let hace = '';
+        const pf = String(fin).split('/');
+        if (pf.length === 3) { const dd = Math.round((new Date() - new Date(+pf[2], +pf[1] - 1, +pf[0])) / 86400000); hace = dd > 0 ? ' (hace ' + dd + ' d)' : ' (hoy)'; }
+        rangoEl.textContent = inicio + ' → ' + fin + (hace ? ' · hace ' + hace.replace(/[^0-9]/g, '') + ' d' : ''); rangoEl.title = 'Fecha del último movimiento registrado en Trade Republic';
     }
 
     // Totales SIN filtrar (para el objetivo 300€/mes, que siempre es "el ritmo actual", no depende del periodo elegido)
@@ -2873,18 +2940,19 @@ function renderDashboard() {
     VALOR_CARTERA_ACTUAL = totV;
 
     document.getElementById('kg0').innerHTML = [
-        { l: 'Capital invertido', v: fe(totCost), s: '📍 Ahora mismo (no filtra)', c: '#E4C777', tab: 1 },
-        { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? '📍 ' + sg(totGP) : 'Cargando', c: '#8FE0B4', tab: 1 },
+        { l: 'Capital invertido', v: fe(totCost), s: '📍 Ahora mismo (no filtra)', c: '#C9A24B', tab: 1 },
+        { l: 'Valor actual cartera', v: totV ? fe(totV) : 'GS...', s: totGP ? (totGP >= 0 ? '▲ ' : '▼ ') + sg(totGP) + ' · ' + (totCost ? (totGP / totCost * 100).toFixed(1).replace('.', ',') : '0') + ' %' : 'Cargando', c: '#2FB6A3', sc: totGP >= 0 ? 'var(--gn)' : 'var(--rd)', tab: 1 },
         { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: divsFiltrados.length + ' pagos · neto real', c: '#34C77B', tab: 3 },
         { l: 'Intereses + depósitos', v: fe(intTotalReal + depPeriodo), s: 'TR ' + fe(intTotalReal) + ' · depós. ' + fe(depPeriodo), c: '#E29A3E', tab: 4 },
         { l: 'Saveback recibido', v: fe(sbTotalReal), s: sbFiltrados.length + ' recibos', c: '#B7A6E8' },
-        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#8FE0B4', tab: 3 },
+        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#5B8FD9', tab: 3 },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + (k.tab !== undefined ? ';cursor:pointer' : '') + '"' + (
             k.tab !== undefined ? ' onclick="sw(' + k.tab + ')"' : '') + '><div class="kl">' + k.l +
         '</div><div class="kv" style="color:' +
-            k.c + ';font-size:' + (k.v.length > 10 ? '14px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
+            k.c + ';white-space:nowrap">' + k.v + '</div><div class="ks"' + (k.sc ? ' style="color:' + k.sc + ';font-weight:700"' : '') + '>' + k.s +
             '</div></div>').join('');
 
+    renderTIR();
     document.getElementById('obj-pct').textContent = pct.toFixed(1) + '%';
     document.getElementById('obj-bar').style.width = pct + '%';
     document.getElementById('obj-int').textContent = fe(intMes);
@@ -3406,8 +3474,11 @@ function renderDashboard() {
     }
 
     const alertas = [];
+    if (typeof renderProximaAccion === 'function') renderProximaAccion(); // fija la acción elegida para no repetirla abajo
+    const textoAccion = window._accionElegidaTexto || '';
     TRAMPAS_GS.forEach(r => {
         const d = Math.abs(cn(r[5]));
+        if (d > 0 && d <= 1.5 && r[11] !== true && textoAccion.startsWith(r[0] + ' está a solo')) return; // ya es la acción principal
         if (d > 0 && d <= 1.5) alertas.push({ tipo: 'warn', icon: '🎯', msg: '¡' + r[0] + ' está a tiro! Solo a ' +
                 d.toFixed(1) + '% de su trampa' });
         else if (d > 1.5 && d < 3) alertas.push({ tipo: 'info', icon: '📡', msg: r[0] +
@@ -3444,8 +3515,12 @@ function renderDashboard() {
 
     // ── Plan de Pánico (v2): cálculo compartido con el panel ──
     alertasPlanPanico().forEach(al => alertas.push(al));
+    { let nW = 0; try { nW = auditoriaDatos().filter(x => x.n === 'w').length; } catch (e) {} if (nW) alertas.push({ solo: 'mando', tipo: 'info', icon: '🩺', msg: nW + ' aviso' + (nW === 1 ? '' : 's') + ' importante' + (nW === 1 ? '' : 's') + ' en los datos: míralos en la pestaña Detalle.' }); }
+    { const rv = estadoRevision(); if (rv.vencida) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: rv.nunca ? 'Aún no has hecho la revisión semestral de la cartera.' : 'Toca la revisión semestral de la cartera (última: ' + revFmt(rv.ultima) + ').' }); else if (rv.faltan <= 14) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: 'Revisión semestral en ' + rv.faltan + ' días (' + revFmt(rv.proxima) + ').' }); }
     if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
 
+    const htmlAlerta = a => '<div class="alert-box ' + (a.tipo === 'warn' ? 'warn' : a.tipo === 'success' ? 'success' : 'info') + '"><span class="icon">' + a.icon + '</span><span>' + a.msg + '</span></div>';
+    const alertasHtmlFocus = alertas.filter(a => a.solo !== 'mando').map(htmlAlerta).join(''); // el radar móvil: solo lo urgente
     const alertasHtml = alertas.map(a =>
         '<div class="alert-box ' + (a.tipo === 'warn' ? 'warn' : a.tipo === 'success' ? 'success' : 'info') +
         '"><span class="icon">' + a.icon + '</span><span>' + a.msg + '</span></div>'
@@ -3453,7 +3528,7 @@ function renderDashboard() {
     const alertContainer = document.getElementById('alertas-container');
     if (alertContainer) alertContainer.innerHTML = alertasHtml;
     const focusAlertContainer = document.getElementById('focus-alertas');
-    if (focusAlertContainer) focusAlertContainer.innerHTML = alertasHtml;
+    if (focusAlertContainer) focusAlertContainer.innerHTML = alertasHtmlFocus;
 }
 
 // ── CARTERA ──
@@ -6328,6 +6403,7 @@ function renderIntereses() {
         fe(tot - totn) + '</td><td class="gn">' + fe(totn) + '</td><td></td>';
 
     renderDepositosEIngresos();
+    renderCalendarioCobros();
 
     const canvasInt = document.getElementById('ci');
     if (canvasInt) {
@@ -7301,6 +7377,326 @@ if (esMovilInit) {
     renderProyecciones();
     renderAnalisis();
     renderHistoricoAnual();
+}
+
+
+
+
+
+// ══════════ SALUD DE LOS DATOS ══════════
+function auditoriaDatos() {
+    const res = []; // { n: 'w' | 'i' | 'ok', t, d }
+    const w = (t, d) => res.push({ n: 'w', t, d }), i = (t, d) => res.push({ n: 'i', t, d });
+    const hoy = Date.now(), diasDesde = f => { const [d, m, y] = String(f).split('/'); return Math.round((hoy - new Date(+y, +m - 1, +d).getTime()) / 86400000); };
+    const pos = posicionesVivas(), C = GOTEO_CFG;
+    // 1. Duplicados en el extracto
+    const dq = {}; divsDuplicadosQuitados().forEach(d => { const k = d.n + '|' + d.f; dq[k] = dq[k] || { d, n: 0 }; dq[k].n++; });
+    Object.values(dq).forEach(x => i('Cobro duplicado ignorado', x.d.n + ' ' + x.d.f + ' (' + fe(x.d.neto_real) + '): aparecía ' + (x.n + 1) + ' veces en TR y solo se cuenta una.'));
+    // 2. Última actualización de TR
+    if (ULTIMA_FECHA_CSV_GS) { const dd = diasDesde(ULTIMA_FECHA_CSV_GS); if (dd > 30) w('Extracto de TR sin movimientos', 'El último movimiento es del ' + ULTIMA_FECHA_CSV_GS + ' (hace ' + dd + ' días). Si has operado desde entonces, vuelve a pegar el CSV en TR_DATOS.'); else if (dd > 10) i('Último movimiento de TR hace ' + dd + ' días', 'Normal si no has operado; si lo has hecho, actualiza TR_DATOS.'); }
+    // 3. Posiciones sin precio / sin trampa / sin sector
+    const sinPrecio = pos.filter(p => !(precioDe(p) > 0)); if (sinPrecio.length) w('Posiciones sin precio actual', sinPrecio.map(p => p.n).join(', ') + ': revisa la fórmula de precio en CARTERA.');
+    const nombresTrampa = new Set((TRAMPAS_GS || []).map(r => r[0]));
+    const sinTrampa = pos.filter(p => !nombresTrampa.has(p.n) && !nombresTrampa.has(MAP[p.n] || p.n)); if (sinTrampa.length) i('Posiciones sin fila en TRAMPAS', sinTrampa.map(p => p.n).join(', '));
+    const sinSector = pos.filter(p => !p.sector || /sin clasificar/i.test(p.sector)); if (sinSector.length) i('Posiciones sin sector', sinSector.map(p => p.n).join(', ') + ' (afecta al límite de sector del goteo).');
+    // 4. ISIN de la posición ≠ ISIN de sus dividendos (mismo nombre)
+    pos.forEach(p => { const mios = (divsEnVivo() || []).filter(d => d.n === p.n && d.isin && p.isin && d.isin !== p.isin); if (mios.length) w('ISIN distinto en ' + p.n, 'CARTERA usa ' + p.isin + ' y sus dividendos ' + mios[0].isin + '. Puede fallar el cruce de calendario y precios.'); });
+    // 5. Dividendos sin calendario de pagos
+    const conCal = new Set((CALENDARIO_DIVIDENDOS_GS || []).map(c => c.isin));
+    const sinCal = pos.filter(p => (p.divAcc || 0) > 0 && p.isin && !conCal.has(p.isin)); if (sinCal.length) i('Pagan dividendo pero no están en la pestaña DIVIDENDOS', sinCal.map(p => p.n).join(', ') + ': el calendario de cobros los estima por el histórico.');
+    // 6. Fechas imposibles
+    const hoyISO = _hoyISO();
+    const futuras = (COMPRAS_DETALLE_GS || []).filter(c => String(c.fecha) > hoyISO); if (futuras.length) w('Compras con fecha futura', futuras.length + ' compra(s), la primera ' + futuras[0].fecha + '.');
+    const dups = {}; (COMPRAS_DETALLE_GS || []).forEach(c => { const k = [c.fecha, c.isin, c.importe].join('|'); dups[k] = (dups[k] || 0) + 1; });
+    const nd = Object.values(dups).filter(v => v > 1).length; if (nd) i('Compras idénticas el mismo día', nd + ' grupo(s) con misma fecha, activo e importe (puede ser legítimo si compraste dos veces).');
+    // 7. Meses de intereses que faltan
+    const mi = interesesEnVivo().map(x => mesClaveDe(x.f, 'MM/YYYY')).sort();
+    for (let k = 1; k < mi.length; k++) { const [y1, m1] = mi[k - 1].split('-').map(Number), [y2, m2] = mi[k].split('-').map(Number); if ((y2 * 12 + m2) - (y1 * 12 + m1) > 1) { w('Faltan meses de intereses de TR', 'Entre ' + mi[k - 1] + ' y ' + mi[k] + ' no hay datos.'); break; } }
+    // 8. Hoja GOTEO incompleta
+    const gt = (GOTEO_GS || []), hay = (tipo, uni) => gt.some(g => (g.tipo || '').toUpperCase().trim() === tipo && (!uni || String(g.universo || '').toUpperCase().includes(uni)));
+    ['US7561091049', 'US0084921008'].forEach(isin => { if (pos.some(p => p.isin === isin) || isin === 'US0084921008') { if (!hay('TOPE_COMPRA', isin)) i('Sin TOPE_COMPRA en GOTEO', (NOMBRES_BREVES[isin] || isin) + ': el goteo usa el suelo de rentabilidad en vez de un precio tope.'); } });
+    if (!hay('PRESUPUESTO_REDONDEO_MES')) i('Falta PRESUPUESTO_REDONDEO_MES en GOTEO', 'Sin esa fila no se sugiere el multiplicador del redondeo.');
+    if (!hay('DIVIDENDO_ACTUAL', 'US0084921008')) i('Falta DIVIDENDO_ACTUAL de Agree', 'La rentabilidad de Agree usa un dividendo antiguo si no lo pones.');
+    const mensual = gt.find(g => (g.tipo || '').toUpperCase().trim() === 'MENSUAL'); if (mensual && !String(mensual.universo || '').includes(':')) i('La fila MENSUAL no tiene pesos', 'Pon el universo como ISIN:peso,ISIN:peso… para fijar el reparto.');
+    // 9. Depósitos
+    depositosDefinidos().forEach(d => { const fin = d.fin || _isoMasMeses(d.inicio, d.plazo), dias = Math.round((new Date(fin + 'T00:00:00') - hoy) / 86400000);
+        if (!(d.tin || d.tae)) w('Depósito sin tipo de interés', d.entidad + ': rellena el interés nominal.');
+        if (dias >= 0 && dias <= 60) i('Depósito a punto de vencer', d.entidad + ' vence el ' + revFmt(fin) + ' (en ' + dias + ' días): ' + fe(d.importe) + ' de capital vuelven a tu mano.'); });
+    // 10. Cierres diarios
+    if (HISTORICO_CIERRES.length) { const u = HISTORICO_CIERRES[HISTORICO_CIERRES.length - 1].fecha, dd = Math.round((hoy - new Date(u + 'T00:00:00').getTime()) / 86400000); if (dd > 4) w('El cierre diario no se está guardando', 'Último cierre: ' + u + ' (hace ' + dd + ' días). Revisa el disparador guardarCierreDiario del script.'); }
+    return res;
+}
+const NOMBRES_BREVES = { 'US7561091049': 'Realty Income', 'US0084921008': 'Agree Realty', 'US9256521090': 'VICI' };
+function renderSaludDatos() {
+    const el = document.getElementById('datos-salud-card'); if (!el) return;
+    let r; try { r = auditoriaDatos(); } catch (e) { el.innerHTML = ''; return; }
+    const nw = r.filter(x => x.n === 'w').length, ni = r.filter(x => x.n === 'i').length;
+    const ico = { w: '⚠️', i: 'ℹ️' };
+    el.innerHTML = '<div class="ch"><h3>🩺 Salud de los datos</h3><span class="mt2" style="font-size:8px">revisión automática de la hoja, el extracto de TR y los precios</span></div>' +
+        '<div style="padding:12px 16px 14px">' + (r.length ? '<div class="alert-box ' + (nw ? 'warn' : 'info') + '" style="margin-bottom:10px"><span class="icon">' + (nw ? '⚠️' : 'ℹ️') + '</span><span><b>' + nw + ' aviso' + (nw === 1 ? '' : 's') + ' importante' + (nw === 1 ? '' : 's') + ' · ' + ni + ' nota' + (ni === 1 ? '' : 's') + '</b></span></div>' +
+            '<div class="avisos-grid" style="padding:0">' + r.map(x => '<div class="alert-box ' + (x.n === 'w' ? 'warn' : 'info') + '" style="animation:none"><span class="icon">' + ico[x.n] + '</span><span><b>' + revEsc(x.t) + '</b><br><span style="font-size:10.5px;color:var(--mt)">' + revEsc(x.d) + '</span></span></div>').join('') + '</div>' :
+            '<div class="alert-box success"><span class="icon">✅</span><span><b>Todo en orden</b> — no se ha detectado ningún problema en los datos.</span></div>') + '</div>';
+}
+
+// ══════════ CALENDARIO DE COBROS (próximos 12 meses) ══════════
+function calendarioCobros12() {
+    const hoy = new Date(), nom = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const proximos = proximosCobrosEnVivo();
+    const divsHist = divsEnVivo() || [];
+    const ints = interesesEnVivo();
+    const mediaInt = ints.length ? ints.slice(-3).reduce((t, i) => t + i.neto, 0) / Math.min(3, ints.length) : 0; // media de los 3 últimos meses
+    const meses = [];
+    for (let k = 0; k < 12; k++) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() + k, 1);
+        meses.push({ key: d.getFullYear() + '-' + _pad2(d.getMonth() + 1), m: d.getMonth() + 1, label: nom[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2), div: 0, int: mediaInt, dep: 0, notas: [] });
+    }
+    meses.forEach((M, k) => {
+        proximos.forEach(p => {
+            if (!p._meses || !p._meses.includes(M.m)) return;
+            if (k === 0 && divsHist.some(d => esMismoISIN(d.isin, p.isin) && mesClaveDe(d.f, 'DD/MM/YYYY') === M.key)) return; // ya cobrado este mes
+            M.div += p.neto_real_est; M.notas.push(p.n.replace(/ (International|Properties|Sistemas|Labs|SA|PLC)$/i, ''));
+        });
+    });
+    ingresosPrevistos().forEach(x => { const M = meses.find(q => q.key === mesClaveDe(x.fecha)); if (M) { M.dep += x.importe; M.notas.push('💰 ' + x.entidad + ' ' + fe(x.importe)); } });
+    const venc = depositosDefinidos().map(d => ({ d, fin: d.fin || _isoMasMeses(d.inicio, d.plazo) })).filter(x => x.fin > _hoyISO() && x.fin <= _isoMasMeses(_hoyISO(), 12));
+    venc.forEach(x => { const M = meses.find(q => q.key === x.fin.slice(0, 7)); if (M) M.notas.push('🔔 vence ' + x.d.entidad); });
+    meses.forEach(M => { M.div = Math.round(M.div * 100) / 100; M.int = Math.round(M.int * 100) / 100; M.dep = Math.round(M.dep * 100) / 100; M.total = Math.round((M.div + M.int + M.dep) * 100) / 100; });
+    return { meses, venc, mediaInt };
+}
+function renderCalendarioCobros() {
+    const cuerpo = document.getElementById('tb-cal-cobros');
+    if (!cuerpo) return;
+    let cal; try { cal = calendarioCobros12(); } catch (e) { return; }
+    const { meses, venc, mediaInt } = cal;
+    cuerpo.innerHTML = meses.map((M, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + M.label + '</td><td class="gn">' + (M.div ? fe(M.div) : '—') + '</td><td class="am">' + fe(M.int) +
+        '</td><td style="color:#5B8FD9">' + (M.dep ? fe(M.dep) : '—') + '</td><td style="font-weight:700">' + fe(M.total) + '</td><td style="text-align:left;font-size:9.5px;color:var(--mt)">' + M.notas.join(' · ') + '</td></tr>').join('');
+    const t = c => meses.reduce((a, M) => a + M[c], 0);
+    document.getElementById('tf-cal-cobros').innerHTML = '<td>TOTAL 12 meses</td><td class="gn">' + fe(t('div')) + '</td><td class="am">' + fe(t('int')) + '</td><td style="color:#5B8FD9">' + fe(t('dep')) + '</td><td style="font-weight:700">' + fe(t('total')) +
+        '</td><td style="text-align:left;font-size:9.5px">≈ ' + fe(t('total') / 12) + ' al mes</td>';
+    const nv = document.getElementById('cal-vencimientos');
+    if (nv) nv.innerHTML = venc.length ? venc.map(x => { const cal2 = calendarioDeposito(x.d); const neto = cal2.reduce((a, c) => a + c.importe, 0);
+        return '<div class="alert-box info" style="margin:0 0 8px"><span class="icon">🔔</span><span><b>' + x.d.entidad + '</b> vence el <b>' + revFmt(x.fin) + '</b>: recuperas <b>' + fe(x.d.importe) + '</b> de capital + ' + fe(cal2[cal2.length - 1].importe) +
+            ' de último cobro de intereses. Decide con tiempo si lo renuevas, lo pasas a TR o lo inviertes.</span></div>'; }).join('') : '';
+    const note = document.getElementById('n-cal-cobros');
+    if (note) note.textContent = 'dividendos y intereses TR estimados (TR: media de los 3 últimos meses = ' + fe(mediaInt) + '/mes) · depósitos exactos';
+    const cv = document.getElementById('c-cal-cobros');
+    if (cv && typeof Chart !== 'undefined') {
+        if (window._chartCal) window._chartCal.destroy();
+        const txt = getComputedStyle(document.documentElement).getPropertyValue('--tx').trim() || '#1E293B';
+        window._chartCal = new Chart(cv.getContext('2d'), {
+            type: 'bar',
+            data: { labels: meses.map(M => M.label), datasets: [
+                { label: 'Dividendos (est.)', data: meses.map(M => M.div), backgroundColor: 'rgba(52,199,123,0.55)', borderColor: '#34C77B', borderWidth: 1.5, stack: 's' },
+                { label: 'Intereses TR (est.)', data: meses.map(M => M.int), backgroundColor: 'rgba(226,154,62,0.55)', borderColor: '#E29A3E', borderWidth: 1.5, stack: 's' },
+                { label: 'Depósitos', data: meses.map(M => M.dep), backgroundColor: '#5B8FD9', stack: 's', borderRadius: 3 }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 16 } },
+                plugins: { legend: { labels: { color: txt, font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { footer: it => 'Total ' + fe(meses[it[0].dataIndex].total) } } },
+                scales: { x: { stacked: true, ticks: { color: txt, font: { size: 10, weight: '700' } }, grid: { display: false } }, y: { stacked: true, ticks: { color: txt, font: { size: 9 }, callback: v => v + '€' }, grid: { color: 'rgba(128,128,128,0.15)' } } } },
+            plugins: [{ id: 'totCal', afterDatasetsDraw(chart) { const { ctx } = chart; meses.forEach((M, i) => { const b = chart.getDatasetMeta(2).data[i]; if (!b || M.total <= 0) return; let top = b.y;
+                [0, 1].forEach(d => { const q = chart.getDatasetMeta(d).data[i]; if (q && q.y < top) top = q.y; }); ctx.save(); ctx.fillStyle = txt; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(Math.round(M.total) + '€', b.x, top - 3); ctx.restore(); }); } }]
+        });
+    }
+}
+
+// ══════════ RENTABILIDAD REAL (TIR) FRENTE AL ÍNDICE ══════════
+// Flujos de la cartera de inversión: compras (−), ventas (+), dividendos netos (+) y el valor de hoy (+).
+// Comparación: las MISMAS aportaciones y retiradas invertidas en el ETF MSCI World (método "PME"),
+// con su precio interpolado entre tus compras reales de ese ETF.
+const ISIN_BENCHMARK = 'IE00B4L5Y983';
+function tirCarteraVsIndice() {
+    const compras = COMPRAS_DETALLE_GS || [];
+    if (compras.length < 5 || !(VALOR_CARTERA_ACTUAL > 0)) return null;
+    const iso = f => /^\d{4}-\d{2}-\d{2}/.test(String(f)) ? String(f).slice(0, 10) : (() => { const [d, m, y] = String(f).split('/'); return y + '-' + _pad2(m) + '-' + _pad2(d); })();
+    const flujos = [];
+    compras.forEach(c => { const v = c.coste || c.importe || 0; if (v > 0) flujos.push({ fecha: iso(c.fecha), monto: -v }); });
+    (OPERACIONES_CERRADAS || []).forEach(o => { if (o.ingreso > 0) flujos.push({ fecha: iso(o.fecha), monto: o.ingreso }); });
+    (divsEnVivo() || []).forEach(d => { if (d.neto_real > 0) flujos.push({ fecha: iso(d.f), monto: d.neto_real }); });
+    flujos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    if (flujos.length < 5) return null;
+    const hoy = _hoyISO(), T = f => new Date(f + 'T00:00:00').getTime();
+    const invertido = -flujos.filter(f => f.monto < 0).reduce((t, f) => t + f.monto, 0);
+    const recibido = flujos.filter(f => f.monto > 0).reduce((t, f) => t + f.monto, 0);
+    const tir = calcularXIRR(flujos.concat([{ fecha: hoy, monto: VALOR_CARTERA_ACTUAL }]));
+    // índice
+    const precioHoy = precioDe({ isin: ISIN_BENCHMARK, n: '' });
+    const serie = compras.filter(c => c.isin === ISIN_BENCHMARK && c.precio > 0).map(c => ({ t: T(iso(c.fecha)), p: c.precio }));
+    let bench = null;
+    if (serie.length >= 3 && precioHoy > 0) {
+        serie.push({ t: T(hoy), p: precioHoy }); serie.sort((a, b) => a.t - b.t);
+        const precioEn = t => {
+            if (t <= serie[0].t) return serie[0].p; if (t >= serie[serie.length - 1].t) return serie[serie.length - 1].p;
+            for (let i = 1; i < serie.length; i++) if (t <= serie[i].t) { const a = serie[i - 1], b = serie[i]; return b.t === a.t ? b.p : a.p + (b.p - a.p) * (t - a.t) / (b.t - a.t); }
+            return serie[serie.length - 1].p;
+        };
+        const unidades = flujos.reduce((u, f) => u - f.monto / precioEn(T(f.fecha)), 0);
+        const valorBench = unidades * precioHoy;
+        bench = { valor: valorBench, tir: calcularXIRR(flujos.concat([{ fecha: hoy, monto: valorBench }])) };
+    }
+    const dias = Math.round((T(hoy) - T(flujos[0].fecha)) / 86400000);
+    return { tir, invertido, recibido, valor: VALOR_CARTERA_ACTUAL, beneficio: VALOR_CARTERA_ACTUAL + recibido - invertido, bench, dias, desde: flujos[0].fecha };
+}
+function renderTIR() {
+    const el = document.getElementById('tir-card');
+    if (!el) return;
+    const r = tirCarteraVsIndice();
+    if (!r || r.tir == null) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const pc = v => (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + ' %';
+    const dif = r.bench && r.bench.tir != null ? r.tir - r.bench.tir : null, difEur = r.bench ? r.valor - r.bench.valor : null;
+    const max = Math.max(Math.abs(r.tir), r.bench && r.bench.tir != null ? Math.abs(r.bench.tir) : 0, 1);
+    const barra = (v, col) => '<div style="height:10px;border-radius:5px;background:var(--bd);overflow:hidden"><div style="height:100%;width:' + Math.min(100, Math.max(2, Math.abs(v) / max * 100)) + '%;background:' + col + ';border-radius:5px"></div></div>';
+    el.innerHTML = '<div class="ch"><h3>📈 Rentabilidad real (TIR) frente al índice</h3><span class="mt2" style="font-size:8px">tiene en cuenta cuándo metiste cada euro · compras, ventas y dividendos netos</span></div>' +
+        '<div style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:start">' +
+        '<div><div class="kl">Tu cartera (anualizada)</div><div class="kv" style="color:' + (r.tir >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-size:26px;margin:6px 0 8px">' + pc(r.tir) + '</div>' + barra(r.tir, 'var(--gn)') + '</div>' +
+        (r.bench && r.bench.tir != null ? '<div><div class="kl">Mismo dinero en MSCI World</div><div class="kv" style="color:#5B8FD9;font-size:26px;margin:6px 0 8px">' + pc(r.bench.tir) + '</div>' + barra(r.bench.tir, '#5B8FD9') + '</div>' +
+            '<div><div class="kl">Diferencia</div><div class="kv" style="color:' + (dif >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-size:26px;margin:6px 0 4px">' + (dif >= 0 ? '+' : '') + dif.toFixed(1).replace('.', ',') + ' pts</div>' +
+            '<div class="ks">' + (difEur >= 0 ? 'Vas ' + fe(difEur) + ' por encima del índice' : 'El índice iría ' + fe(-difEur) + ' por encima') + '</div></div>' : '') +
+        '<div><div class="kl">Beneficio total</div><div class="kv" style="color:' + (r.beneficio >= 0 ? 'var(--gn)' : 'var(--rd)') + ';font-size:26px;margin:6px 0 4px">' + (r.beneficio >= 0 ? '+' : '') + fe(r.beneficio) + '</div>' +
+        '<div class="ks">valor hoy ' + fe(r.valor) + ' + cobrado ' + fe(r.recibido) + ' − invertido ' + fe(r.invertido) + '</div></div></div>' +
+        '<div class="mt2" style="padding:0 16px 14px;font-size:9px;line-height:1.5">Periodo: ' + revFmt(r.desde) + ' → hoy (' + r.dias + ' días).' + (r.dias < 540 ? ' ⚠️ Con menos de 18 meses la cifra anualizada es muy sensible a cuándo compraste: tómala como orientativa.' : '') +
+        (r.bench ? ' El índice se simula con el ETF MSCI World, usando el precio de tus compras reales de ese ETF (interpolado entre fechas): es aproximado.' : '') + ' Solo cartera de inversión; no incluye depósitos ni intereses de TR.</div>';
+}
+
+// ══════════ REVISIÓN SEMESTRAL ══════════
+const REV_DECISIONES = ['Mantener', 'Reforzar', 'Reducir', 'Vender', 'Vigilar'];
+const REV_MESES = 6;
+let REV_BORRADOR = {};          // { nombre: { dec, nota } } — sin guardar aún
+let REV_FILTRO = 'todos';       // 'todos' | 'avisos' | 'forever' | 'especulativa'
+try { REV_BORRADOR = JSON.parse(localStorage.getItem('rev_borrador') || '{}') || {}; } catch (e) { REV_BORRADOR = {}; }
+function revGuardarBorrador() { try { localStorage.setItem('rev_borrador', JSON.stringify(REV_BORRADOR)); } catch (e) {} }
+function revEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function estadoRevision() {
+    const fechas = (REVISIONES_GS || []).map(r => String(r.f)).filter(Boolean).sort();
+    if (!fechas.length) return { nunca: true, vencida: true, ultima: null, proxima: null, dias: null, faltan: null };
+    const ultima = fechas[fechas.length - 1], proxima = _isoMasMeses(ultima, REV_MESES);
+    const t = iso => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)).getTime();
+    const dias = Math.round((Date.now() - t(ultima)) / 86400000), faltan = Math.round((t(proxima) - Date.now()) / 86400000);
+    return { nunca: false, vencida: faltan <= 0, ultima, proxima, dias, faltan };
+}
+function revFmt(iso) { return iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) + '/' + String(iso).slice(0, 4) : '—'; }
+
+// Métricas y avisos automáticos de cada posición
+function datosRevision() {
+    const pos = posicionesVivas();
+    const valorTotal = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
+    const sectores = {};
+    pos.forEach(p => { sectores[p.sector] = (sectores[p.sector] || 0) + (precioDe(p) || 0) * p.sh; });
+    const hoy = Date.now(), ts = f => { const [d, m, y] = String(f).split('/'); return new Date(+y, +m - 1, +d).getTime(); };
+    const C = GOTEO_CFG;
+    return pos.map(p => {
+        const pa = precioDe(p) || 0, valor = pa * p.sh;
+        const peso = valor / valorTotal * 100, rent = p.ct ? (valor - p.ct) / p.ct * 100 : 0;
+        const esEtf = !!(p.isin && C.NOMBRES_ETF && C.NOMBRES_ETF[p.isin]) || /MSCI|ETF/i.test(p.n);
+        const mios = (divsEnVivo() || []).filter(d => d.n === p.n || (p.isin && d.isin && d.isin === p.isin)).sort((a, b) => ts(a.f) - ts(b.f));
+        const div12 = mios.filter(d => hoy - ts(d.f) <= 365 * 86400000).reduce((t, d) => t + (d.bruto || 0), 0);
+        const yoc = p.ct ? div12 / p.ct * 100 : 0;
+        let tendDiv = null; // cambio del dividendo por acción entre los dos últimos cobros
+        if (mios.length >= 2) {
+            const a = mios[mios.length - 2], b = mios[mios.length - 1];
+            if (a.sh > 0 && b.sh > 0 && a.bruto > 0) tendDiv = ((b.bruto / b.sh) / (a.bruto / a.sh) - 1) * 100;
+        }
+        const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
+        const dist = tr ? Math.abs(cn(tr[5])) : null;
+        const flags = []; // [clase, texto]
+        if (!esEtf && peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + peso.toFixed(1) + '% > tope ' + C.MAX_PESO_ACCION + '%']);
+        if (peso > 0 && (sectores[p.sector] || 0) / valorTotal * 100 > C.MAX_PESO_SECTOR && !esEtf) flags.push(['i', 'Sector ' + p.sector + ' > ' + C.MAX_PESO_SECTOR + '%']);
+        if (rent <= -10) flags.push(['w', 'En pérdida ' + rent.toFixed(1).replace('.', ',') + '%: ¿sigue la tesis?']);
+        if (String(p.tipo).toLowerCase().startsWith('especulativ') && rent >= 12) flags.push(['g', 'Objetivo de venta alcanzado (+' + rent.toFixed(0) + '%)']);
+        if (tendDiv != null && tendDiv <= -5) flags.push(['w', 'Dividendo a la baja ' + tendDiv.toFixed(0) + '%']);
+        if (tendDiv != null && tendDiv >= 5) flags.push(['g', 'Dividendo al alza +' + tendDiv.toFixed(0) + '%']);
+        if (dist != null && dist <= 3) flags.push(['i', 'A ' + dist.toFixed(1).replace('.', ',') + '% de su trampa']);
+        const ult = (REVISIONES_GS || []).filter(r => r.n === p.n).sort((a, b) => String(b.f).localeCompare(String(a.f)))[0] || null;
+        return { p, pa, valor, peso, rent, yoc, tendDiv, dist, flags, esEtf, ult };
+    }).sort((a, b) => b.flags.filter(f => f[0] === 'w').length - a.flags.filter(f => f[0] === 'w').length || b.flags.length - a.flags.length || b.peso - a.peso);
+}
+
+function revFiltrar(f) { REV_FILTRO = f; renderRevisionSemestral(); }
+function revCambiar(nombre, campo, valor) {
+    REV_BORRADOR[nombre] = Object.assign({ dec: '', nota: '' }, REV_BORRADOR[nombre] || {}, { [campo]: valor });
+    if (!REV_BORRADOR[nombre].dec && !REV_BORRADOR[nombre].nota) delete REV_BORRADOR[nombre];
+    revGuardarBorrador();
+    if (campo === 'dec') renderRevisionSemestral(); else revPintarBoton();
+}
+function revPintarBoton() {
+    const n = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
+    const el = document.getElementById('rev-guardar');
+    if (!el) return;
+    el.innerHTML = '<button class="btn ac" ' + (n ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar revisión (' + n + ' decisión' + (n === 1 ? '' : 'es') + ')</button>' +
+        '<span class="mt2" id="rev-msg" style="font-size:10px">' + (window._revMsg || '') + '</span>';
+}
+function renderRevisionSemestral() {
+    const lista = document.getElementById('rev-lista');
+    if (!lista) return;
+    const datos = datosRevision(), st = estadoRevision();
+    const nAvisos = datos.filter(d => d.flags.some(f => f[0] === 'w')).length;
+    const decididas = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
+    const maxPeso = datos.filter(d => !d.esEtf).sort((a, b) => b.peso - a.peso)[0];
+    document.getElementById('kg12').innerHTML = [
+        { l: 'Última revisión', v: st.nunca ? 'Nunca' : revFmt(st.ultima), s: st.nunca ? 'Aún sin historial' : 'hace ' + st.dias + ' días', c: '#C9A24B' },
+        { l: 'Próxima revisión', v: st.nunca ? 'Ya toca' : revFmt(st.proxima), s: st.nunca ? 'Haz la primera hoy' : (st.vencida ? '⚠️ vencida hace ' + (-st.faltan) + ' días' : 'en ' + st.faltan + ' días'), c: st.vencida ? '#E85A5A' : '#34C77B' },
+        { l: 'Activos con aviso', v: nAvisos + ' / ' + datos.length, s: 'señales rojas automáticas', c: nAvisos ? '#E85A5A' : '#34C77B' },
+        { l: 'Decididos ahora', v: decididas + ' / ' + datos.length, s: 'sin guardar todavía', c: '#5B8FD9' },
+        { l: 'Mayor peso (sin ETF)', v: maxPeso ? maxPeso.peso.toFixed(1).replace('.', ',') + ' %' : '—', s: maxPeso ? maxPeso.p.n : '', c: '#E29A3E' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' + k.c + ';white-space:nowrap">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+    document.getElementById('rev-aviso').innerHTML = st.vencida ?
+        '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Repasa cada activo y pulsa guardar: así queda fijada tu primera foto de la cartera.' : 'Han pasado más de ' + REV_MESES + ' meses desde la última revisión: toca revisar la cartera.') + '</span></div>' : '';
+    const filtros = [['todos', 'Todos'], ['avisos', '⚠️ Con avisos'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
+    document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('');
+    const visibles = datos.filter(d => REV_FILTRO === 'todos' || (REV_FILTRO === 'avisos' && d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ||
+        (REV_FILTRO === 'forever' && !String(d.p.tipo).toLowerCase().startsWith('especulativ')) || (REV_FILTRO === 'especulativa' && String(d.p.tipo).toLowerCase().startsWith('especulativ')));
+    const pc = (v, d = 1) => (v >= 0 ? '+' : '') + v.toFixed(d).replace('.', ',') + '%';
+    lista.innerHTML = visibles.map(d => {
+        const b = REV_BORRADOR[d.p.n] || { dec: '', nota: '' }, tope = GOTEO_CFG.MAX_PESO_ACCION;
+        const anchoPeso = Math.min(100, d.peso / (d.esEtf ? 40 : tope * 1.5) * 100), colPeso = (!d.esEtf && d.peso > tope) ? 'var(--rd)' : 'var(--ac)';
+        const ult = d.ult ? 'Última revisión (' + revFmt(d.ult.f) + '): <b>' + revEsc(d.ult.dec) + '</b>' + (d.ult.nota ? ' — ' + revEsc(d.ult.nota) : '') : 'Sin revisiones anteriores';
+        return '<div class="rev-c' + (b.dec ? ' dec' : '') + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.p.sector || '') + '</span></div>' +
+            '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
+            '<div class="rev-m"><div><b>' + d.peso.toFixed(1).replace('.', ',') + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
+            '<div><b>' + (d.yoc ? d.yoc.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Yield coste</i></div><div><b>' + (d.dist != null ? d.dist.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
+            '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
+            '<div class="rev-ult">' + ult + '</div>' +
+            '<div class="rev-ctl"><select onchange="revCambiar(' + JSON.stringify(d.p.n).replace(/"/g, '&quot;') + ',\'dec\',this.value)"><option value="">Decisión…</option>' +
+            REV_DECISIONES.map(x => '<option' + (b.dec === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>' +
+            '<input type="text" maxlength="300" placeholder="Nota (opcional)" value="' + revEsc(b.nota) + '" onchange="revCambiar(' + JSON.stringify(d.p.n).replace(/"/g, '&quot;') + ',\'nota\',this.value)"></div></div>';
+    }).join('') || '<div class="mt2" style="padding:16px">Nada que mostrar con este filtro</div>';
+    revPintarBoton();
+    const hist = (REVISIONES_GS || []).slice().sort((a, b) => String(b.f).localeCompare(String(a.f))).slice(0, 80);
+    document.getElementById('tb-rev-hist').innerHTML = hist.length ? hist.map((r, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + revFmt(r.f) + '</td><td style="text-align:left">' + revEsc(r.n) +
+        '</td><td>' + revEsc(r.dec) + '</td><td style="text-align:left">' + revEsc(r.nota) + '</td><td>' + (r.peso != null && r.peso !== '' ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') + '</td><td>' + (r.rent != null && r.rent !== '' ? pc(Number(r.rent)) : '—') + '</td></tr>').join('') :
+        '<tr><td colspan="6" class="mt2">Aún no hay revisiones guardadas</td></tr>';
+}
+
+async function guardarRevision() {
+    const datos = datosRevision(), hoy = _hoyISO();
+    const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => ({
+        f: hoy, n: d.p.n, isin: d.p.isin || '', dec: REV_BORRADOR[d.p.n].dec, nota: (REV_BORRADOR[d.p.n].nota || '').slice(0, 300),
+        peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), dist: d.dist == null ? '' : +d.dist.toFixed(2)
+    }));
+    if (!filas.length) return;
+    let clave = '';
+    try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
+    const msg = t => { window._revMsg = t; const el = document.getElementById('rev-msg'); if (el) el.textContent = t; };
+    if (!clave) { msg('⚠️ Sin clave: no se ha guardado nada.'); return; }
+    let ok = 0;
+    for (const fila of filas) {
+        msg('⏳ guardando ' + (ok + 1) + ' de ' + filas.length + '…');
+        try {
+            const q = 'accion=guardarRevision&clave=' + encodeURIComponent(clave) + '&fecha=' + hoy + '&activo=' + encodeURIComponent(fila.n) + '&isin=' + encodeURIComponent(fila.isin) +
+                '&decision=' + encodeURIComponent(fila.dec) + '&nota=' + encodeURIComponent(fila.nota) + '&peso=' + fila.peso + '&rent=' + fila.rent + '&dist=' + fila.dist;
+            const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q)).json();
+            if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} msg('⚠️ Clave incorrecta. Se han guardado ' + ok + ' de ' + filas.length + '.'); } else msg('⚠️ Error al guardar. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
+            try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
+            REVISIONES_GS.push({ f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, nota: fila.nota, peso: fila.peso, rent: fila.rent, dist: fila.dist });
+            delete REV_BORRADOR[fila.n]; ok++;
+        } catch (e) { msg('⚠️ Sin conexión con la hoja. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
+    }
+    revGuardarBorrador();
+    if (ok === filas.length) msg('✅ Revisión guardada (' + ok + ' activos) en la hoja REVISIONES');
+    renderRevisionSemestral();
+    if (ok === filas.length) msg('✅ Revisión guardada (' + ok + ' activos) en la hoja REVISIONES');
 }
 
 recargar(esMovilInit); // en móvil, primera carga en modo rápido (sin los campos más pesados)
