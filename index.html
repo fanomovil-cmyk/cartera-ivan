@@ -189,6 +189,11 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .rev-peso{height:5px;border-radius:3px;background:var(--bd);position:relative;overflow:hidden}.rev-peso>span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
 .rev-f{display:flex;gap:4px;flex-wrap:wrap}.rev-f span{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
 .rev-f .w{background:rgba(232,90,90,.14);color:var(--rd)}.rev-f .i{background:rgba(226,154,62,.15);color:var(--am)}.rev-f .g{background:rgba(52,199,123,.14);color:var(--gn)}
+.rev-52{display:flex;flex-direction:column;gap:3px}.rev-52b{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(52,199,123,.35),rgba(226,154,62,.3),rgba(232,90,90,.35))}.rev-52b span{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:var(--tx);transform:translateX(-50%)}
+.rev-52t{display:flex;justify-content:space-between;gap:6px;font-size:9px;color:var(--mt);font-family:'JetBrains Mono',monospace}.rev-52t b{color:var(--tx);font-weight:600;text-align:center}
+.rev-gq{font-size:9.5px;color:var(--mt);line-height:1.4;background:var(--s1);border-radius:8px;padding:5px 8px}.rev-gq b{color:var(--tx)}
+.rev-pf{font-size:9.5px;color:var(--mt)}.rev-pf b{color:var(--tx)}
+.rev-dv{display:flex;gap:4px}.rev-dv select{flex:1.2}.rev-dv input{flex:1;width:0;min-width:0;background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:5px 6px;font-size:11px;font-family:inherit}
 .rev-ult{font-size:9.5px;color:var(--mt);line-height:1.35}
 .rev-hist{font-size:10px;color:var(--mt)}.rev-hist summary{cursor:pointer;font-weight:600}.rev-hist div{padding:2px 0;border-bottom:1px dashed var(--bd)}
 .rev-q{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rev-q label{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);display:flex;flex-direction:column;gap:3px}
@@ -1033,6 +1038,7 @@ let DIVIDENDOS_GS = null,
     INGRESOS_GS = null,
     DEPOSITOS_GS = null,
     REVISIONES_GS = [],
+    GETQUIN_GS = [],
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
@@ -2601,6 +2607,9 @@ async function recargar(modoRapido) {
         }
         if (data.revisiones) {
             REVISIONES_GS = data.revisiones;
+        }
+        if (data.getquin) {
+            GETQUIN_GS = data.getquin;
         }
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
@@ -7633,6 +7642,20 @@ function divAccDe(p) {
     return tr && cn(tr[8]) > 0 ? cn(tr[8]) : 0;
 }
 
+// Mínimo y máximo de 52 semanas (hoja TRAMPAS, columnas Q y R)
+function rango52De(p) {
+    const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
+    const mn = tr ? cn(tr[16]) : 0, mx = tr ? cn(tr[17]) : 0;
+    return (mn > 0 && mx > mn) ? { min: mn, max: mx } : null;
+}
+// Datos de Getquin (hoja GETQUIN) de una posición, si ya se han descargado
+function gqDe(p) {
+    const g = (GETQUIN_GS || []).find(x => x.isin && p.isin && x.isin === p.isin);
+    return g && g.div > 0 ? g : null;
+}
+function revEtiquetaDiv(pct) { return pct == null || isNaN(pct) ? '' : (pct > 0.5 ? 'Sube' : pct < -0.5 ? 'Baja' : 'Igual'); }
+function revPct(v, k = 1) { return v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') + Number(v).toFixed(k).replace('.', ',') + '%'; }
+
 function estadoRevision() {
     const fechas = (REVISIONES_GS || []).map(r => String(r.f)).filter(Boolean).sort();
     if (!fechas.length) return { nunca: true, vencida: true, ultima: null, proxima: null, dias: null, faltan: null };
@@ -7661,6 +7684,11 @@ function datosRevision() {
         const dist = tr ? Math.abs(cn(tr[5])) : null;
         const hist = (REVISIONES_GS || []).filter(r => r.n === p.n || (p.isin && r.isin === p.isin)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
         const ult = hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
+        const r52 = rango52De(p), gq = gqDe(p);
+        const pos52 = r52 ? Math.max(0, Math.min(100, (pa - r52.min) / (r52.max - r52.min) * 100)) : null;
+        const vsMax = r52 ? (pa / r52.max - 1) * 100 : null, vsMin = r52 ? (pa / r52.min - 1) * 100 : null;
+        // Sugerencia de variación del dividendo: Getquin (1 año) → si no, entre los dos últimos cobros
+        const sugDiv = (gq && gq.crec1 != null) ? { pct: gq.crec1, fuente: 'Getquin, último año' } : (tendDiv != null ? { pct: tendDiv, fuente: 'entre tus dos últimos cobros' } : null);
         const flags = []; // [clase, texto]  w = rojo · i = ámbar · g = verde
         if (!esEtf) {
             if (peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + peso.toFixed(1).replace('.', ',') + '% > tope ' + C.MAX_PESO_ACCION + '%']);
@@ -7675,7 +7703,7 @@ function datosRevision() {
         if (dist != null && dist <= 3) flags.push(['i', 'A ' + dist.toFixed(1).replace('.', ',') + '% de su trampa']);
         if (ult && diasUlt > REV_DIAS_ATRASO) flags.push(['w', 'Revisión atrasada: hace ' + diasUlt + ' días']);
         const pendiente = !ult || String(ult.f).slice(0, 7) !== mesHoy || diasUlt > REV_DIAS_ATRASO;
-        return { p, pa, valor, peso, rent, yoc, dpa, tendDiv, dist, flags, esEtf, sector, pesoSector, hist, ult, diasUlt, pendiente };
+        return { p, pa, valor, peso, rent, yoc, dpa, tendDiv, dist, flags, esEtf, sector, pesoSector, hist, ult, diasUlt, pendiente, r52, gq, pos52, vsMax, vsMin, sugDiv };
     });
 }
 function revAvisosRojos(d) { return d.flags.filter(f => f[0] === 'w').length; }
@@ -7687,8 +7715,9 @@ function revFiltrar(f) { REV_FILTRO = f; renderRevisionSemestral(); }
 function revOrdenar(o) { REV_ORDEN = o; renderRevisionSemestral(); }
 function revSet(idx, campo, valor) {
     const d = window._revDatos[idx]; if (!d) return;
-    const b = REV_BORRADOR[d.p.n] = Object.assign({ dec: '', div: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {}, { [campo]: valor });
-    if (!b.dec && !b.div && !b.cub && !b.deu && !b.nota) delete REV_BORRADOR[d.p.n];
+    const b = REV_BORRADOR[d.p.n] = Object.assign({ dec: '', div: '', divpct: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {}, { [campo]: valor });
+    if (campo === 'divpct') { const n = parseFloat(String(valor).replace(',', '.')); b.divpct = isNaN(n) ? '' : n; if (b.divpct !== '') b.div = revEtiquetaDiv(b.divpct); }
+    if (!b.dec && !b.div && b.divpct === '' && !b.cub && !b.deu && !b.nota) delete REV_BORRADOR[d.p.n];
     revGuardarBorrador();
     const el = document.getElementById('revc-' + idx);
     if (el) el.outerHTML = revTarjetaHtml(d, idx);   // solo se repinta esa tarjeta (no se cierran los historiales ni se pierde el foco)
@@ -7698,22 +7727,34 @@ function revSelect(idx, campo, opciones, actual, vacio) {
     return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + vacio + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
 }
 function revTarjetaHtml(d, idx) {
-    const b = REV_BORRADOR[d.p.n] || { dec: '', div: '', cub: '', deu: '', nota: '', prox: '' };
+    const b = Object.assign({ dec: '', div: '', divpct: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {});
     const tope = GOTEO_CFG.MAX_PESO_ACCION, pc = (v, k = 1) => (v >= 0 ? '+' : '') + v.toFixed(k).replace('.', ',') + '%';
     const anchoPeso = Math.min(100, d.peso / (d.esEtf ? 40 : tope * 1.5) * 100), colPeso = (!d.esEtf && d.peso > tope) ? 'var(--rd)' : (!d.esEtf && d.peso >= REV_CERCA_ACCION) ? 'var(--am)' : 'var(--ac)';
     const ult = d.ult ? 'Última revisión (' + revFmt(d.ult.f) + '): <b>' + revEsc(d.ult.dec) + '</b>' + (d.ult.nota ? ' — ' + revEsc(d.ult.nota) : '') : 'Nunca revisado';
+    // precio fijado en la revisión anterior vs hoy
+    const pAnt = d.ult && d.ult.precio !== '' && d.ult.precio != null ? Number(d.ult.precio) : null;
+    const bloque52 = d.r52 ? '<div class="rev-52" title="Mínimo y máximo de 52 semanas (hoja TRAMPAS, columnas Q y R)"><div class="rev-52b"><span style="left:' + d.pos52.toFixed(1) + '%"></span></div><div class="rev-52t"><span>mín ' + fe(d.r52.min, 2) + '</span><b>' +
+        d.pos52.toFixed(0) + '% del rango · ' + revPct(d.vsMax, 1) + ' del máx</b><span>máx ' + fe(d.r52.max, 2) + '</span></div></div>' :
+        '<div class="rev-pf">52 semanas: sin datos (solo hay mín/máx de los valores que están en TRAMPAS)</div>';
+    const lineaPrecio = '<div class="rev-pf">Precio fijado al guardar: <b>' + fe(d.pa, 2) + '</b>' + (pAnt ? ' · en la revisión del ' + revFmt(d.ult.f) + ': ' + fe(pAnt, 2) + ' (<b>' + revPct((d.pa / pAnt - 1) * 100) + '</b>)' : '') + '</div>';
+    const g = d.gq;
+    const lineaGq = g ? '<div class="rev-gq" title="Datos de la hoja GETQUIN">Getquin (' + revEsc(String(g.act).slice(0, 10)) + '): dividendo anual <b>' + fe(g.div, 2) + '</b>' + (g.yld != null ? ' · yield <b>' + g.yld.toFixed(1).replace('.', ',') + '%</b>' : '') +
+        (g.crec1 != null ? ' · vs año anterior <b>' + revPct(g.crec1) + '</b>' : '') + (g.crec3 != null ? ' · 3 años <b>' + revPct(g.crec3) + '</b>' : '') + (g.pfcf != null ? ' · dividendo/FCF <b>' + g.pfcf.toFixed(0) + '%</b>' : '') +
+        (d.dpa > 0 && Math.abs(g.div / d.dpa - 1) > 0.1 ? '<br>⚠️ Tu DIV/ACC (' + d.dpa.toFixed(2).replace('.', ',') + ' €) difiere ' + revPct((g.div / d.dpa - 1) * 100, 0) + ' de Getquin' : '') + '</div>' : '';
     const hist5 = d.hist.slice(0, 5);
     const historial = '<details class="rev-hist"><summary>Historial (' + d.hist.length + ')</summary>' + (hist5.length ? hist5.map(r => '<div>' + revFmt(r.f) + ' · <b>' + revEsc(r.dec) + '</b> · peso ' +
-        (r.peso !== '' && r.peso != null ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') + (r.nota ? ' · ' + revEsc(r.nota) : '') + '</div>').join('') : '<div>Sin revisiones guardadas</div>') + '</details>';
+        (r.peso !== '' && r.peso != null ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') +
+        (r.precio !== '' && r.precio != null ? ' · precio ' + fe(Number(r.precio), 2) : '') + (r.divpct !== '' && r.divpct != null ? ' · div ' + revPct(Number(r.divpct)) : '') + (r.nota ? ' · ' + revEsc(r.nota) : '') + '</div>').join('') : '<div>Sin revisiones guardadas</div>') + '</details>';
     const calidad = d.esEtf ? '<div class="rev-q"><span class="rev-na">Dividendo · cobertura · deuda: n/a (ETF)</span></div>' :
-        '<div class="rev-q"><label>Dividendo vs año anterior' + revSelect(idx, 'div', REV_OPC_DIV, b.div, '—') + '</label><label>Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub, '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
+        '<div class="rev-q"><label title="' + (d.sugDiv ? 'Sugerido: ' + revPct(d.sugDiv.pct) + ' (' + d.sugDiv.fuente + ')' : 'Sin dato automático: escribe el % si lo sabes') + '">Dividendo vs año anterior<span class="rev-dv">' + revSelect(idx, 'div', REV_OPC_DIV, b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : ''), '—') +
+            '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : (d.sugDiv ? d.sugDiv.pct.toFixed(1) : '')) + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span></label><label>Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub, '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
     const prox = b.prox || (b.dec ? revProximaAuto(d, b.dec) : '');
     return '<div class="rev-c' + (b.dec ? ' dec' : '') + '" id="revc-' + idx + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.sector) + '</span></div>' +
         '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
         '<div class="rev-m"><div><b>' + d.peso.toFixed(1).replace('.', ',') + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
         '<div title="' + (d.dpa > 0 ? 'DIV/ACC ' + d.dpa.toFixed(2).replace('.', ',') + ' € ÷ precio medio de compra ' + d.p.pm.toFixed(2).replace('.', ',') + ' €' : 'Sin DIV/ACC en CARTERA ni TRAMPAS') + '"><b>' + (d.yoc != null ? d.yoc.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Yield coste</i></div>' +
         '<div><b>' + (d.dist != null ? d.dist.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
-        '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
+        bloque52 + lineaPrecio + lineaGq + '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
         '<div class="rev-ult">' + ult + '</div>' + historial +
         '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, 'Decisión…') + '<input type="text" maxlength="300" placeholder="Nota (opcional)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)"></div>' +
         calidad +
@@ -7774,8 +7815,10 @@ async function guardarRevision() {
     const datos = window._revDatos || [], hoy = _hoyISO(), ahora = new Date();
     const id = 'R-' + hoy.replace(/-/g, '') + '-' + _pad2(ahora.getHours()) + _pad2(ahora.getMinutes());
     const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => { const b = REV_BORRADOR[d.p.n];
-        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || ''), cub: d.esEtf ? '' : (b.cub || ''), deuda: d.esEtf ? '' : (b.deu || ''),
-            peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), precio: +d.pa.toFixed(4), nota: (b.nota || '').slice(0, 300), prox: b.prox || revProximaAuto(d, b.dec) }; });
+        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '')), cub: d.esEtf ? '' : (b.cub || ''), deuda: d.esEtf ? '' : (b.deu || ''),
+            peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), precio: +d.pa.toFixed(4), nota: (b.nota || '').slice(0, 300), prox: b.prox || revProximaAuto(d, b.dec),
+            min52: d.r52 ? d.r52.min : '', max52: d.r52 ? d.r52.max : '', rango52: d.pos52 != null ? +d.pos52.toFixed(1) : '', dpa: d.dpa > 0 ? +d.dpa.toFixed(4) : '',
+            divpct: d.esEtf ? '' : (b.divpct !== '' ? +b.divpct : (d.sugDiv ? +d.sugDiv.pct.toFixed(2) : '')), gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '' }; });
     if (!filas.length) return;
     let clave = '';
     try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
@@ -7788,11 +7831,13 @@ async function guardarRevision() {
         try {
             const q = 'accion=guardarRevision&clave=' + encodeURIComponent(clave) + '&id=' + encodeURIComponent(fila.id) + '&fecha=' + fila.f + '&activo=' + encodeURIComponent(fila.n) + '&isin=' + encodeURIComponent(fila.isin) +
                 '&decision=' + encodeURIComponent(fila.dec) + '&divvs=' + encodeURIComponent(fila.divvs) + '&cubierto=' + encodeURIComponent(fila.cub) + '&deuda=' + encodeURIComponent(fila.deuda) +
-                '&peso=' + fila.peso + '&rent=' + fila.rent + '&precio=' + fila.precio + '&nota=' + encodeURIComponent(fila.nota) + '&proxima=' + encodeURIComponent(fila.prox);
+                '&peso=' + fila.peso + '&rent=' + fila.rent + '&precio=' + fila.precio + '&nota=' + encodeURIComponent(fila.nota) + '&proxima=' + encodeURIComponent(fila.prox) +
+                '&min52=' + fila.min52 + '&max52=' + fila.max52 + '&rango52=' + fila.rango52 + '&dpa=' + fila.dpa + '&divpct=' + fila.divpct + '&gqdiv=' + fila.gqdiv + '&gqyld=' + fila.gqyld + '&gqpfcf=' + fila.gqpfcf;
             const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q)).json();
             if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} msg('⚠️ Clave incorrecta. Se han guardado ' + ok + ' de ' + filas.length + '.'); } else msg('⚠️ Error al guardar. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
             try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
-            REVISIONES_GS.push({ id: fila.id, f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, divvs: fila.divvs, cub: fila.cub, deuda: fila.deuda, peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, prox: fila.prox });
+            REVISIONES_GS.push({ id: fila.id, f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, divvs: fila.divvs, cub: fila.cub, deuda: fila.deuda, peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, prox: fila.prox,
+                min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct, gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf });
             delete REV_BORRADOR[fila.n]; ok++;
         } catch (e) { msg('⚠️ Sin conexión con la hoja. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
     }
