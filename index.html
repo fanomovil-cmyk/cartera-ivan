@@ -7768,7 +7768,7 @@ function revPintarGq() {
     const g = GETQUIN_GS || [], ok = g.filter(x => x.div > 0).length, ult = g.map(x => String(x.act || '')).filter(Boolean).sort().pop();
     const estado = g.length ? ok + ' valores con datos de ' + g.length + (ult ? ' · última actualización ' + revFmt(ult.slice(0, 10)) + ' ' + ult.slice(11, 16) : '') : 'Aún sin datos de Getquin (hoja GETQUIN vacía)';
     el.innerHTML = '<div class="rev-gq" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">📡 <span>Getquin: <b>' + estado + '</b></span>' +
-        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600">' + (window._gqMsg || '') + '</span></div>';
+        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;flex-basis:100%">' + (window._gqMsg || '') + '</span></div>';
 }
 async function gqActualizar() {
     if (window._gqBusy) return;
@@ -7778,7 +7778,7 @@ async function gqActualizar() {
     const msg = t => { window._gqMsg = t; const m = document.getElementById('gq-msg'); if (m) m.textContent = t; };
     if (!clave) { msg('⚠️ Sin clave: no se ha actualizado nada.'); return; }
     window._gqBusy = true; const b = document.getElementById('gq-btn'); if (b) b.disabled = true;
-    let hechos = 0, fallos = [], total = 0, error = '';
+    let hechos = 0, fallos = [], total = 0, error = '', diags = [];
     try {
         for (let vuelta = 1; vuelta <= 20; vuelta++) {
             msg('⏳ Descargando de Getquin… tanda ' + vuelta + (total ? ' · ' + hechos + ' de ' + total + ' valores' : ''));
@@ -7787,13 +7787,13 @@ async function gqActualizar() {
             if (r && r.error === 'ocupado') { error = 'Ya hay una actualización en marcha; espera un minuto.'; break; }
             if (!r || !r.ok || typeof r.hechos !== 'number') { error = 'El script desplegado no tiene esta función: pega el script nuevo y vuelve a desplegar.'; break; }
             try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
-            hechos += r.hechos; fallos = fallos.concat(r.fallos || []); total = r.total;
+            hechos += r.hechos; fallos = fallos.concat(r.fallos || []); total = r.total; diags = diags.concat(r.diags || []).slice(0, 3);
             if (!r.restantes) break;
         }
     } catch (e) { error = 'No se pudo completar (¿falta autorizar el script? Ejecuta probarGetquin una vez en Apps Script).'; }
     window._gqBusy = false;
     try { await recargar(); } catch (e) {}
-    window._gqMsg = error ? '⚠️ ' + error + (hechos ? ' Se actualizaron ' + hechos + '.' : '') : '✅ ' + hechos + ' actualizados' + (fallos.length ? ' · no encontrados: ' + fallos.join(', ') : '');
+    window._gqMsg = error ? '⚠️ ' + error + (hechos ? ' Se actualizaron ' + hechos + '.' : '') : '✅ ' + hechos + ' actualizados' + (fallos.length ? ' · no encontrados: ' + fallos.length + ' de ' + total + (hechos ? '' : '\nDiagnóstico (cópialo y pásamelo):\n' + diags.join('\n')) : '');
     renderRevisionSemestral();
 }
 function revPintarBoton() {
