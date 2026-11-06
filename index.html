@@ -7777,12 +7777,12 @@ async function gqActualizar() {
     if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
     const msg = t => { window._gqMsg = t; const m = document.getElementById('gq-msg'); if (m) m.textContent = t; };
     if (!clave) { msg('⚠️ Sin clave: no se ha actualizado nada.'); return; }
-    window._gqBusy = true; const b = document.getElementById('gq-btn'); if (b) b.disabled = true;
+    window._gqBusy = true; const desde = Date.now(); const b = document.getElementById('gq-btn'); if (b) b.disabled = true;
     let hechos = 0, fallos = [], total = 0, error = '', diags = [];
     try {
         for (let vuelta = 1; vuelta <= 20; vuelta++) {
             msg('⏳ Descargando de Getquin… tanda ' + vuelta + (total ? ' · ' + hechos + ' de ' + total + ' valores' : ''));
-            const r = await (await fetch(API_GS + '?accion=actualizarGetquin&clave=' + encodeURIComponent(clave) + '&maxms=60000&horas=12&nocache=' + Date.now())).json();
+            const r = await (await fetch(API_GS + '?accion=actualizarGetquin&clave=' + encodeURIComponent(clave) + '&maxms=60000&horas=12&desde=' + desde + '&nocache=' + Date.now())).json();
             if (r && r.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} error = 'Clave incorrecta.'; break; }
             if (r && r.error === 'ocupado') { error = 'Ya hay una actualización en marcha; espera un minuto.'; break; }
             if (!r || !r.ok || typeof r.hechos !== 'number') { error = 'El script desplegado no tiene esta función: pega el script nuevo y vuelve a desplegar.'; break; }
