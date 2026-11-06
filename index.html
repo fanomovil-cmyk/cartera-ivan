@@ -1040,6 +1040,8 @@ let DIVIDENDOS_GS = null,
     DEPOSITOS_GS = null,
     REVISIONES_GS = [],
     GETQUIN_GS = [],
+    FUENTE_DIVACC = (function () { try { return localStorage.getItem('divacc_fuente') === 'getquin' ? 'getquin' : 'hoja'; } catch (e) { return 'hoja'; } })(),
+    GQ_MAX_DIAS = 200,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
 let PLAN_PANICO_GS = [];
@@ -1402,6 +1404,7 @@ function posicionesVivas() {
             CH: 'CHE', LU: 'LUX', IT: 'ITA' };
         const isinLimpio = (live.isin || '').trim().toUpperCase();
         const paisDesdeIsin = isinLimpio ? paisPorIsin[isinLimpio.substring(0, 2)] : null;
+        const gqPos = FUENTE_DIVACC === 'getquin' ? gqPorIsin(isinLimpio) : null; // DIV/ACC de Getquin si se ha elegido esa fuente
         return {
             n: live.nombre,
             isin: isinLimpio,
@@ -1411,8 +1414,9 @@ function posicionesVivas() {
             ret: estatico.ret || 0,
             sh: live.acciones,
             pm: live.pCompra,
-            divAcc: live.divAcc || 0,
-            divAnio: live.divAnio || 0,
+            divAcc: gqPos ? gqPos.div : (live.divAcc || 0),
+            divAnio: gqPos ? gqPos.div * live.acciones : (live.divAnio || 0),
+            fuenteDiv: gqPos ? 'getquin' : 'hoja',
             // El P.Compra de tu hoja YA incluye la comisión de compra cuando la hubo
             // (salvo en planes de inversión, saveback y redondeo, que no tienen comisión).
             // No hay que sumarla otra vez aquí — solo la guardamos como dato informativo.
@@ -2612,6 +2616,7 @@ async function recargar(modoRapido) {
         if (data.getquin) {
             GETQUIN_GS = data.getquin;
         }
+        aplicarFuenteDivAcc();
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
         }
@@ -7643,6 +7648,42 @@ function divAccDe(p) {
     return tr && cn(tr[8]) > 0 ? cn(tr[8]) : 0;
 }
 
+// ── Fuente del DIV/ACC: «hoja» (lo que apuntas en CARTERA/TRAMPAS) o «getquin» (hoja GETQUIN, si el dato tiene menos de GQ_MAX_DIAS)
+function gqFresco(g) { const t = Date.parse(String(g.act || '').replace(' ', 'T')); return !isNaN(t) && (Date.now() - t) / 86400000 <= GQ_MAX_DIAS; }
+function gqPorIsin(isin) {
+    if (!isin) return null;
+    return (GETQUIN_GS || []).find(x => x.isin === isin && x.div > 0 && /^(OK|PARCIAL)/.test(x.estado || '') && gqFresco(x)) || null;
+}
+function aplicarFuenteDivAcc() { // TRAMPAS_GS: r[8] = DIV/ACC, r[9] = yield sobre la trampa. El valor de la hoja se guarda en r._h
+    (TRAMPAS_GS || []).forEach(r => {
+        if (r._h === undefined) r._h = cn(r[8]);
+        const g = FUENTE_DIVACC === 'getquin' ? gqPorIsin(String(r[15] || '').trim().toUpperCase()) : null;
+        r[8] = g ? g.div : r._h;
+        r[9] = cn(r[3]) ? (r[8] / cn(r[3]) * 100).toFixed(2) + '%' : '—';
+    });
+    _cachePosicionesVivas = null;
+}
+function gqCambiarFuente(m) {
+    FUENTE_DIVACC = m === 'getquin' ? 'getquin' : 'hoja';
+    try { localStorage.setItem('divacc_fuente', FUENTE_DIVACC); } catch (e) {}
+    aplicarFuenteDivAcc();
+    renderDashboard(); renderProximaAccion();
+    _secundariasRenderizadas = false; renderSecundariasSiHaceFalta();
+    renderRevisionSemestral();
+}
+// Comparación: Getquin frente a lo que tienes apuntado en la hoja
+function gqComparacion() {
+    const filas = [];
+    (GETQUIN_GS || []).forEach(g => {
+        if (!(g.div > 0)) return;
+        const pc = (POSICIONES_GS || []).find(x => String(x.isin || '').toUpperCase() === g.isin);
+        const tr = (TRAMPAS_GS || []).find(r => String(r[15] || '').toUpperCase() === g.isin);
+        const c = pc && pc.divAcc > 0 ? pc.divAcc : null, t = tr && tr._h > 0 ? tr._h : null, ref = c != null ? c : t;
+        filas.push({ g, n: g.n, c, t, ref, dif: ref ? (g.div / ref - 1) * 100 : null, fresco: gqFresco(g) });
+    });
+    return filas.sort((a, b) => Math.abs(b.dif == null ? -1 : b.dif) - Math.abs(a.dif == null ? -1 : a.dif));
+}
+
 // Mínimo y máximo de 52 semanas (hoja TRAMPAS, columnas Q y R)
 function rango52De(p) {
     const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
@@ -7651,8 +7692,7 @@ function rango52De(p) {
 }
 // Datos de Getquin (hoja GETQUIN) de una posición, si ya se han descargado
 function gqDe(p) {
-    const g = (GETQUIN_GS || []).find(x => x.isin && p.isin && x.isin === p.isin);
-    return g && g.div > 0 ? g : null;
+    return gqPorIsin(p.isin);
 }
 function revEtiquetaDiv(pct) { return pct == null || isNaN(pct) ? '' : (pct > 0.5 ? 'Sube' : pct < -0.5 ? 'Baja' : 'Igual'); }
 function revPct(v, k = 1) { return v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') + Number(v).toFixed(k).replace('.', ',') + '%'; }
@@ -7748,7 +7788,7 @@ function revTarjetaHtml(d, idx) {
         (r.precio !== '' && r.precio != null ? ' · precio ' + fe(Number(r.precio), 2) : '') + (r.divpct !== '' && r.divpct != null ? ' · div ' + revPct(Number(r.divpct)) : '') + (r.nota ? ' · ' + revEsc(r.nota) : '') + '</div>').join('') : '<div>Sin revisiones guardadas</div>') + '</details>';
     const calidad = d.esEtf ? '<div class="rev-q"><span class="rev-na">Dividendo · cobertura · deuda: n/a (ETF)</span></div>' :
         '<div class="rev-q"><label title="' + (d.sugDiv ? 'Sugerido: ' + revPct(d.sugDiv.pct) + ' (' + d.sugDiv.fuente + ')' : 'Sin dato automático: escribe el % si lo sabes') + '">Dividendo vs año anterior<span class="rev-dv">' + revSelect(idx, 'div', REV_OPC_DIV, b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : ''), '—') +
-            '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : (d.sugDiv ? d.sugDiv.pct.toFixed(1) : '')) + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span></label><label>Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub, '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
+            '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : (d.sugDiv ? d.sugDiv.pct.toFixed(1) : '')) + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span></label><label title="' + (d.gq && d.gq.pfcf != null ? 'Dividendo ÷ flujo de caja libre (Getquin): ' + d.gq.pfcf.toFixed(0) + '%' : '') + '">Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub || (d.gq && d.gq.cub && d.gq.cub !== 'No sé' ? d.gq.cub : ''), '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
     const prox = b.prox || (b.dec ? revProximaAuto(d, b.dec) : '');
     return '<div class="rev-c' + (b.dec ? ' dec' : '') + '" id="revc-' + idx + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.sector) + '</span></div>' +
         '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
@@ -7768,7 +7808,108 @@ function revPintarGq() {
     const g = GETQUIN_GS || [], ok = g.filter(x => x.div > 0).length, ult = g.map(x => String(x.act || '')).filter(Boolean).sort().pop();
     const estado = g.length ? ok + ' valores con datos de ' + g.length + (ult ? ' · última actualización ' + revFmt(ult.slice(0, 10)) + ' ' + ult.slice(11, 16) : '') : 'Aún sin datos de Getquin (hoja GETQUIN vacía)';
     el.innerHTML = '<div class="rev-gq" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">📡 <span>Getquin: <b>' + estado + '</b></span>' +
-        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;flex-basis:100%">' + (window._gqMsg || '') + '</span></div>';
+        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;flex-basis:100%">' + (window._gqMsg || '') + '</span></div>' + (ok ? revGqPanelHtml() : '') + gqPanelPegarHtml();
+}
+function revGqPanelHtml() {
+    const f = gqComparacion(), pc = v => v == null ? '—' : fe(v, 2), col = d => d == null ? 'var(--mt)' : Math.abs(d) <= 5 ? 'var(--gn)' : Math.abs(d) <= 15 ? 'var(--am)' : 'var(--rd)';
+    const nGq = f.filter(x => x.fresco).length, difs = f.filter(x => x.dif != null && Math.abs(x.dif) > 15).length;
+    return '<details class="rev-gq" style="margin-top:6px"' + (window._gqCmpAbierto ? ' open' : '') + ' ontoggle="window._gqCmpAbierto=this.open"><summary style="cursor:pointer;font-weight:600">Getquin frente a mi hoja · ' + f.length + ' valores' + (difs ? ' · <span style="color:var(--rd)">' + difs + ' con diferencia &gt; 15%</span>' : '') + '</summary>' +
+        '<div style="margin:8px 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center"><b>DIV/ACC para todos los cálculos del dashboard:</b>' +
+        '<label><input type="radio" name="gqf" ' + (FUENTE_DIVACC === 'hoja' ? 'checked ' : '') + 'onchange="gqCambiarFuente(\'hoja\')"> Mi hoja (CARTERA / TRAMPAS)</label>' +
+        '<label><input type="radio" name="gqf" ' + (FUENTE_DIVACC === 'getquin' ? 'checked ' : '') + 'onchange="gqCambiarFuente(\'getquin\')"> Getquin (' + nGq + ' valores, el resto usa la hoja)</label></div>' +
+        '<div style="overflow-x:auto"><table class="dt" style="font-size:10.5px"><thead><tr><th>Valor</th><th>CARTERA</th><th>TRAMPAS</th><th>Getquin</th><th>Dif.</th><th>Dato de</th></tr></thead><tbody>' +
+        f.map(x => '<tr><td>' + revEsc(x.n) + '</td><td>' + pc(x.c) + '</td><td>' + pc(x.t) + '</td><td><b>' + pc(x.g.div) + '</b></td><td style="color:' + col(x.dif) + ';font-weight:700">' + (x.dif == null ? '—' : revPct(x.dif, 1)) + '</td><td class="mt2">' + revEsc(String(x.g.act || '').slice(0, 10)) + (x.fresco ? '' : ' ⚠️ viejo') + '</td></tr>').join('') +
+        '</tbody></table></div><div class="mt2" style="font-size:9px;margin-top:4px">Getquin llega en dólares y se pasa a euros con el cambio del día (diferencia típica ~3%). La diferencia se calcula frente a CARTERA, o frente a TRAMPAS si CARTERA no tiene el dato.</div></details>';
+}
+// ── Pegar el texto de Getquin (versión Pro, leído desde tu navegador) y guardarlo en la hoja GETQUIN
+function gqNumEs(s) {
+    if (s == null) return null;
+    let t = String(s).replace(/[\s€$£%+]|EUR|USD|US\$/gi, '').replace(/\u2212/g, '-');
+    if (!/\d/.test(t)) return null;
+    if (t.includes(',') && t.includes('.')) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+    else if (t.includes(',')) t = t.replace(',', '.');
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    const n = parseFloat(t); return isNaN(n) ? null : n;
+}
+function gqMagEs(s) { // «56,05 mil M €» → 5,605e10 · «3977,27 M €» → 3,97727e9
+    const m = String(s || '').match(/(-?[\d.,]+)\s*(mil\s*M|Mrd|Bn|B|M|K|T)?(?![A-Za-z])/i); if (!m) return null;
+    const n = gqNumEs(m[1]); if (n === null) return null;
+    const u = String(m[2] || '').toLowerCase().replace(/\s+/g, '');
+    return n * ({ milm: 1e9, mrd: 1e9, bn: 1e9, b: 1e9, m: 1e6, k: 1e3, t: 1e12 }[u] || 1);
+}
+function gqLeerTextoPegado(texto) {
+    const L = String(texto || '').split(/\n/).map(x => x.replace(/[\u00a0\u202f]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const tras = re => { for (let i = 0; i < L.length; i++) if (re.test(L[i])) { for (let j = i + 1; j < Math.min(L.length, i + 4); j++) { if (re.test(L[j])) break; if (/^[-+€$£]?\s*\d/.test(L[j]) || /^(Mensual|Trimestral|Semestral|Anual)/i.test(L[j])) return L[j]; } } return null; };
+    const iso = x => { const m = String(x || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : ''; };
+    const todo = L.join(' '), o = { moneda: /€/.test(todo) ? 'EUR' : (/\$/.test(todo) ? 'USD' : ''), filas: [] };
+    const precio = L.find(x => /^\d[\d.,]*\s*€$/.test(x)); o.precio = precio ? gqNumEs(precio) : null;
+    o.div = gqNumEs(tras(/^Remuneraci[oó]n anual/i)); o.yld = gqNumEs(tras(/^Rendimiento en los/i)); o.payout = gqNumEs(tras(/^Raz[oó]n de pago/i));
+    o.frec = tras(/^Frecuencia de pago/i) || ''; o.crec3 = gqNumEs(tras(/^Crecimiento de los dividendos \(3/i)); o.proxImp = gqNumEs(tras(/^Pr[oó]ximo pago/i));
+    const g = todo.match(/crecimiento del dividendo es\s*(-?[\d.,]+)\s*%/i); o.crec1 = g ? gqNumEs(g[1]) : null;
+    for (let k = 0; k < L.length; k++) {
+        if (!/^(Estimado|Anunciado|Pagado)$/.test(L[k])) continue;
+        const ex = iso(L[k + 1]), pg = iso(L[k + 2]); if (!ex && !pg) continue;
+        let imp = null; for (let q = k + 3; q <= k + 6 && q < L.length; q++) if (/€/.test(L[q]) && /\d/.test(L[q])) { imp = gqNumEs(L[q]); break; }
+        o.filas.push({ est: L[k], ex, pago: pg, imp });
+    }
+    const hoyI = _hoyISO(), fut = o.filas.filter(f => f.est !== 'Pagado' && (f.pago || f.ex) >= hoyI).sort((a, b) => (a.est === 'Anunciado' ? 0 : 1) - (b.est === 'Anunciado' ? 0 : 1) || (a.pago || a.ex).localeCompare(b.pago || b.ex));
+    if (fut.length) { const nx = fut[0]; o.proxEx = nx.ex; o.proxPago = nx.pago; o.proxEstado = nx.est; if (nx.imp != null) o.proxImp = nx.imp; }
+    // Visión general (si se ha pegado también)
+    const capT = tras(/^Capitalizaci[oó]n/i), fcfT = tras(/^(Flujo de caja libre|FCF)/i);
+    o.capT = capT || ''; o.fcfT = fcfT || ''; o.gpa = gqNumEs(tras(/^(GPA|BPA)/i)); o.per = gqNumEs(tras(/^PER/i));
+    const cap = capT ? gqMagEs(capT) : null, fcf = fcfT ? gqMagEs(fcfT) : null;
+    if (o.div > 0 && o.precio > 0 && cap && fcf != null) {
+        if (fcf <= 0) { o.cub = 'No'; } else { const p = o.div * (cap / o.precio) / fcf * 100; o.pfcf = Math.round(p * 10) / 10; o.cub = (p > 400 || p < 3) ? 'No sé' : p <= 75 ? 'Sí' : p <= 95 ? 'Justo' : 'No'; }
+    }
+    o.nombre = L[0] || '';
+    return o;
+}
+function gqOpcionesValor() { // valores con ISIN (cartera + trampas), sin repetir
+    const m = new Map();
+    (posicionesVivas() || []).forEach(p => { if (p.isin && !esEtfPos(p)) m.set(p.isin, p.n); });
+    (TRAMPAS_GS || []).forEach(r => { const i = String(r[15] || '').trim().toUpperCase(); if (i && !m.has(i)) m.set(i, r[0]); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+}
+function gqPanelPegarHtml() {
+    const ops = gqOpcionesValor();
+    return '<details class="rev-gq" style="margin-top:6px"' + (window._gqPegarAbierto ? ' open' : '') + ' ontoggle="window._gqPegarAbierto=this.open"><summary style="cursor:pointer;font-weight:600">📋 Pegar texto de Getquin Pro (próximos pagos y datos que solo ves con tu cuenta)</summary>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px"><div class="mt2" style="font-size:10px">En Getquin, abre la página del valor (con tu sesión Pro, en euros), selecciona todo el texto (Ctrl+A), copia y pega aquí. Si pegas también «Visión general», se calcula el «Cubierto». Un valor cada vez.</div>' +
+        '<textarea id="gq-texto" rows="5" style="width:100%;background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px;font-size:11px;font-family:inherit" placeholder="Pega aquí el texto de la página de Getquin…" oninput="gqAdivinar()"></textarea>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="gq-valor" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:5px 6px;font-size:11px;max-width:60%"><option value="">¿De qué valor es?</option>' + ops.map(o => '<option value="' + o[0] + '">' + revEsc(o[1]) + '</option>').join('') + '</select>' +
+        '<button class="btn" onclick="gqGuardarPegado()">💾 Leer y guardar</button><span id="gq-pegar-msg" style="font-size:10.5px;font-weight:600;flex-basis:100%;white-space:pre-wrap"></span></div></div></details>';
+}
+function gqAdivinar() { // elige el valor por el nombre de la primera línea del texto
+    const t = (document.getElementById('gq-texto') || {}).value || '', sel = document.getElementById('gq-valor'); if (!sel || sel.value) return;
+    const prim = t.split(/\n/).map(x => x.trim()).filter(Boolean)[0] || ''; if (!prim) return;
+    const norm = x => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(corporation|corp|inc|plc|sa|ag|se|company|co|ltd|group|the)\b/g, '').replace(/\s+/g, ' ').trim();
+    const a = norm(prim); if (a.length < 3) return;
+    const op = [...sel.options].find(o => o.value && (norm(o.text) === a || a.startsWith(norm(o.text)) && norm(o.text).length > 3));
+    if (op) sel.value = op.value;
+}
+async function gqGuardarPegado() {
+    const msg = t => { const m = document.getElementById('gq-pegar-msg'); if (m) m.textContent = t; };
+    const texto = (document.getElementById('gq-texto') || {}).value || '', isin = (document.getElementById('gq-valor') || {}).value || '';
+    if (!texto.trim()) { msg('⚠️ Pega primero el texto de la página.'); return; }
+    const o = gqLeerTextoPegado(texto);
+    if (!(o.div > 0)) { msg('⚠️ No encuentro «Remuneración anual (TTM)». ¿Es la página de Dividendos de Getquin en español?'); return; }
+    if (o.moneda === 'USD') { msg('⚠️ El texto está en dólares. Cambia la moneda de Getquin a euros (Ajustes) y vuelve a pegarlo.'); return; }
+    if (!isin) { msg('⚠️ Elige de qué valor es.'); return; }
+    let clave = ''; try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
+    if (!clave) { msg('⚠️ Sin clave: no se ha guardado nada.'); return; }
+    const nom = (document.getElementById('gq-valor').selectedOptions[0] || {}).text || o.nombre;
+    const q = { accion: 'guardarGetquin', clave, isin, n: nom, precio: o.precio, div: o.div, yld: o.yld, payout: o.payout, frec: o.frec, crec3: o.crec3, crec1: o.crec1, proximp: o.proxImp, proxex: o.proxEx, proxpago: o.proxPago, proxestado: o.proxEstado, captxt: o.capT, fcftxt: o.fcfT, gpa: o.gpa, per: o.per, pfcf: o.pfcf, cub: o.cub };
+    const qs = Object.keys(q).filter(k => q[k] !== null && q[k] !== undefined && q[k] !== '').map(k => k + '=' + encodeURIComponent(q[k])).join('&');
+    msg('⏳ Guardando…');
+    try {
+        const j = await (await fetch(API_GS + '?' + qs)).json();
+        if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} msg('⚠️ Clave incorrecta.'); return; }
+        if (!j || j.ok !== true) { msg('⚠️ No se pudo guardar (¿has pegado el script nuevo y vuelto a implementar?).'); return; }
+        try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
+        window._gqMsg = '✅ ' + nom + ' guardado: dividendo ' + fe(o.div, 2) + ' · ' + (o.proxPago ? 'próximo pago ' + revFmt(o.proxPago) + (o.proxImp ? ' (' + fe(o.proxImp, 3) + ')' : '') : 'sin fechas de pago') + (o.cub ? ' · cubierto: ' + o.cub : '');
+        try { await recargar(); } catch (e) {}
+        renderRevisionSemestral();
+    } catch (e) { msg('⚠️ Sin conexión con la hoja.'); }
 }
 async function gqActualizar() {
     if (window._gqBusy) return;
@@ -7793,6 +7934,7 @@ async function gqActualizar() {
     } catch (e) { error = 'No se pudo completar (¿falta autorizar el script? Ejecuta probarGetquin una vez en Apps Script).'; }
     window._gqBusy = false;
     try { await recargar(); } catch (e) {}
+    if (!hechos && diags.some(x => /external_request|No tienes permiso para llamar/.test(x))) error = 'Falta autorizar el acceso a internet del script: en Apps Script ejecuta la función probarGetquin una vez, acepta los permisos y vuelve a desplegar como versión nueva.';
     window._gqMsg = error ? '⚠️ ' + error + (hechos ? ' Se actualizaron ' + hechos + '.' : '') : '✅ ' + hechos + ' actualizados' + (fallos.length ? ' · no encontrados: ' + fallos.length + ' de ' + total + (hechos ? '' : '\nDiagnóstico (cópialo y pásamelo):\n' + diags.join('\n')) : '');
     renderRevisionSemestral();
 }
@@ -7851,7 +7993,7 @@ async function guardarRevision() {
     const datos = window._revDatos || [], hoy = _hoyISO(), ahora = new Date();
     const id = 'R-' + hoy.replace(/-/g, '') + '-' + _pad2(ahora.getHours()) + _pad2(ahora.getMinutes());
     const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => { const b = REV_BORRADOR[d.p.n];
-        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '')), cub: d.esEtf ? '' : (b.cub || ''), deuda: d.esEtf ? '' : (b.deu || ''),
+        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '')), cub: d.esEtf ? '' : (b.cub || (d.gq && d.gq.cub && d.gq.cub !== 'No sé' ? d.gq.cub : '')), deuda: d.esEtf ? '' : (b.deu || ''),
             peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), precio: +d.pa.toFixed(4), nota: (b.nota || '').slice(0, 300), prox: b.prox || revProximaAuto(d, b.dec),
             min52: d.r52 ? d.r52.min : '', max52: d.r52 ? d.r52.max : '', rango52: d.pos52 != null ? +d.pos52.toFixed(1) : '', dpa: d.dpa > 0 ? +d.dpa.toFixed(4) : '',
             divpct: d.esEtf ? '' : (b.divpct !== '' ? +b.divpct : (d.sugDiv ? +d.sugDiv.pct.toFixed(2) : '')), gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '' }; });
