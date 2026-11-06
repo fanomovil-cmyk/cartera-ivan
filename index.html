@@ -190,6 +190,11 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .rev-f{display:flex;gap:4px;flex-wrap:wrap}.rev-f span{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
 .rev-f .w{background:rgba(232,90,90,.14);color:var(--rd)}.rev-f .i{background:rgba(226,154,62,.15);color:var(--am)}.rev-f .g{background:rgba(52,199,123,.14);color:var(--gn)}
 .rev-ult{font-size:9.5px;color:var(--mt);line-height:1.35}
+.rev-hist{font-size:10px;color:var(--mt)}.rev-hist summary{cursor:pointer;font-weight:600}.rev-hist div{padding:2px 0;border-bottom:1px dashed var(--bd)}
+.rev-q{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rev-q label{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);display:flex;flex-direction:column;gap:3px}
+.rev-q select,.rev-prox input{background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:5px 6px;font-size:11px;font-family:inherit;min-width:0;text-transform:none;letter-spacing:0}
+.rev-na{grid-column:1/-1;font-size:9.5px;color:var(--mt);font-style:italic}
+.rev-prox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rev-prox label{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);display:flex;align-items:center;gap:6px}
 .rev-ctl{display:flex;gap:6px}.rev-ctl select,.rev-ctl input{background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:11px;font-family:inherit;min-width:0}
 .rev-ctl select{flex:0 0 112px}.rev-ctl input{flex:1}
 .rev-banner{border:2px solid var(--rd);border-radius:var(--radius);background:linear-gradient(135deg,rgba(232,90,90,.18),rgba(232,90,90,.07));padding:16px 18px;margin-bottom:14px;animation:alertaZona 2s ease-in-out infinite;text-align:center}
@@ -324,7 +329,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
   <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle</button>
   <span class="tsep"></span><span class="tg">Revisión</span>
-  <button class="tb" data-tab="12" onclick="sw(12)">🧾 Semestral</button>
+  <button class="tb" data-tab="12" onclick="sw(12)">🧾 Revisión</button>
 </div></div>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -694,16 +699,17 @@ html.light .badge-orden.venta{color:#B33A3A}
 </div>
 
 <!-- ═══ ESTRATEGIA DE GOTEO ═══ -->
-<!-- ═══ REVISIÓN SEMESTRAL ═══ -->
+<!-- ═══ REVISIÓN DE LA CARTERA ═══ -->
 <div class="tp" id="t12">
   <div class="kg" id="kg12"></div>
-  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión semestral de la cartera</h3><span class="mt2" style="font-size:8px">cada 6 meses: ¿sigue valiendo la pena cada activo? · las decisiones se guardan en la hoja REVISIONES</span></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión de la cartera</h3><span class="mt2" style="font-size:8px">cada mes: ¿sigue valiendo la pena cada activo? · cada decisión se AÑADE como fila nueva a la hoja REVISIONES (nunca se sobrescribe)</span></div>
     <div id="rev-aviso" style="padding:10px 16px 0"></div>
     <div id="rev-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
     <div id="rev-lista" class="rev-grid"></div>
     <div id="rev-guardar" style="padding:0 16px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
   </div>
-  <div class="card"><div class="ch"><h3>📜 Historial de revisiones</h3></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Activo</th><th>Decisión</th><th style="text-align:left">Nota</th><th>Peso</th><th>Rentab.</th></tr></thead><tbody id="tb-rev-hist"></tbody></table></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🗂️ Revisiones realizadas</h3><span class="mt2" style="font-size:8px">una línea por revisión (mismo ID)</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">ID_REVISION</th><th>Activos</th><th style="text-align:left">Decisiones</th></tr></thead><tbody id="tb-rev-ids"></tbody></table></div></div>
+  <div class="card"><div class="ch"><h3>📜 Historial detallado</h3><span class="mt2" style="font-size:8px">últimas 100 filas de la hoja REVISIONES</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Activo</th><th>Decisión</th><th>Div. vs ant.</th><th>Cubierto</th><th>Deuda</th><th>Peso</th><th>Rentab.</th><th>Precio</th><th style="text-align:left">Nota</th><th>Próxima</th></tr></thead><tbody id="tb-rev-hist"></tbody></table></div></div>
 </div>
 
 <div class="tp" id="t11">
@@ -1088,6 +1094,18 @@ let PERIODO_SELECCIONADO = 'todo'; // 'mes' | un año concreto (string) | 'todo'
 let ANIO_TERMO = null; // null = año actual por defecto; también puede ser 'prevision' o un año pasado (string)
 let HISTORICO_CIERRES = [];
 let POS_ORDEN = { k: 'orig', dir: 1 }; // orden de la tabla Posiciones del Mando
+const REV_DECISIONES = ['Mantener', 'Reforzar', 'Reducir', 'Vender', 'Vigilar'];
+const REV_OPC_DIV = ['Sube', 'Igual', 'Baja'], REV_OPC_CUB = ['Sí', 'Justo', 'No', 'No sé'], REV_OPC_DEU = ['OK', 'Sube', 'Vigilar'];
+const REV_MESES = 1;              // cadencia general: una revisión al mes
+const REV_DIAS_ATRASO = 35;       // revisión de un activo atrasada si la última tiene más de 35 días
+const REV_CERCA_ACCION = 11;      // % de peso a partir del cual una acción está «cerca del tope»
+const REV_CERCA_SECTOR = 23;      // idem para un sector
+let REV_BORRADOR = {};            // { activo: { dec, div, cub, deu, nota, prox } } — sin guardar aún
+let REV_FILTRO = 'todos';         // 'todos' | 'pendientes' | 'avisos' | 'forever' | 'especulativa'
+let REV_ORDEN = 'peso';           // 'peso' | 'avisos' | 'nombre'
+window._revDatos = [];
+try { REV_BORRADOR = JSON.parse(localStorage.getItem('rev_borrador') || '{}') || {}; } catch (e) { REV_BORRADOR = {}; }
+
 let HISTORICO_PRECIOS = {};
 
 function calcularVariacionDia(valorActual, costeActual) {
@@ -3530,7 +3548,7 @@ function renderDashboard() {
     // ── Plan de Pánico (v2): cálculo compartido con el panel ──
     alertasPlanPanico().forEach(al => alertas.push(al));
     { let nW = 0; try { nW = auditoriaDatos().filter(x => x.n === 'w').length; } catch (e) {} if (nW) alertas.push({ solo: 'mando', tipo: 'info', icon: '🩺', msg: nW + ' aviso' + (nW === 1 ? '' : 's') + ' importante' + (nW === 1 ? '' : 's') + ' en los datos: míralos en la pestaña Detalle.' }); }
-    { const rv = estadoRevision(); if (rv.vencida) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: rv.nunca ? 'Aún no has hecho la revisión semestral de la cartera.' : 'Toca la revisión semestral de la cartera (última: ' + revFmt(rv.ultima) + ').' }); else if (rv.faltan <= 14) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: 'Revisión semestral en ' + rv.faltan + ' días (' + revFmt(rv.proxima) + ').' }); }
+    { const rv = estadoRevision(); if (rv.vencida) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: rv.nunca ? 'Aún no has hecho ninguna revisión de la cartera: pestaña Revisión.' : 'Toca la revisión mensual de la cartera (última: ' + revFmt(rv.ultima) + ').' }); else if (rv.faltan <= 3) alertas.push({ solo: 'mando', tipo: 'info', icon: '🧾', msg: 'Revisión de la cartera en ' + rv.faltan + ' días (' + revFmt(rv.proxima) + ').' }); }
     if (pct >= 100) alertas.push({ tipo: 'success', icon: '🎉', msg: '¡HAS ALCANZADO TU OBJETIVO DE 300€/MES!' });
 
     const htmlAlerta = a => '<div class="alert-box ' + (a.tipo === 'warn' ? 'warn' : a.tipo === 'success' ? 'success' : 'info') + '"><span class="icon">' + a.icon + '</span><span>' + a.msg + '</span></div>';
@@ -7599,122 +7617,165 @@ function renderTIR() {
         (r.bench ? ' El índice se simula con el ETF MSCI World, usando el precio de tus compras reales de ese ETF (interpolado entre fechas): es aproximado.' : '') + ' Solo cartera de inversión; no incluye depósitos ni intereses de TR.</div>';
 }
 
-// ══════════ REVISIÓN SEMESTRAL ══════════
-const REV_DECISIONES = ['Mantener', 'Reforzar', 'Reducir', 'Vender', 'Vigilar'];
-const REV_MESES = 6;
-let REV_BORRADOR = {};          // { nombre: { dec, nota } } — sin guardar aún
-let REV_FILTRO = 'todos';       // 'todos' | 'avisos' | 'forever' | 'especulativa'
-try { REV_BORRADOR = JSON.parse(localStorage.getItem('rev_borrador') || '{}') || {}; } catch (e) { REV_BORRADOR = {}; }
+// ══════════ REVISIÓN DE LA CARTERA (mensual) ══════════
 function revGuardarBorrador() { try { localStorage.setItem('rev_borrador', JSON.stringify(REV_BORRADOR)); } catch (e) {} }
 function revEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function revFmt(iso) { return iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) + '/' + String(iso).slice(0, 4) : '—'; }
+function revT(iso) { return new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)).getTime(); }
+
+// Sector «de verdad»: lujo, restauración, Lowe's… todo es Consumo. Se quita lo que va tras «/».
+function sectorBase(s) { const t = String(s || '').split('/')[0].trim(); return /^consumo/i.test(t) ? 'Consumo' : (t || 'Sin clasificar'); }
+function esEtfPos(p) { const C = GOTEO_CFG; return !!(p.isin && C.NOMBRES_ETF && C.NOMBRES_ETF[p.isin]) || /diversific/i.test(p.sector || '') || /MSCI|ETF|FTSE|ALL.?WORLD/i.test(p.n || ''); }
+// DIV/ACC anual: el de CARTERA (col I, el que actualizas a mano); si falta, el de TRAMPAS (col I)
+function divAccDe(p) {
+    if (p.divAcc > 0) return p.divAcc;
+    const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
+    return tr && cn(tr[8]) > 0 ? cn(tr[8]) : 0;
+}
 
 function estadoRevision() {
     const fechas = (REVISIONES_GS || []).map(r => String(r.f)).filter(Boolean).sort();
     if (!fechas.length) return { nunca: true, vencida: true, ultima: null, proxima: null, dias: null, faltan: null };
     const ultima = fechas[fechas.length - 1], proxima = _isoMasMeses(ultima, REV_MESES);
-    const t = iso => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)).getTime();
-    const dias = Math.round((Date.now() - t(ultima)) / 86400000), faltan = Math.round((t(proxima) - Date.now()) / 86400000);
+    const dias = Math.round((Date.now() - revT(ultima)) / 86400000), faltan = Math.round((revT(proxima) - Date.now()) / 86400000);
     return { nunca: false, vencida: faltan <= 0, ultima, proxima, dias, faltan };
 }
-function revFmt(iso) { return iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) + '/' + String(iso).slice(0, 4) : '—'; }
 
 // Métricas y avisos automáticos de cada posición
 function datosRevision() {
     const pos = posicionesVivas();
     const valorTotal = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
     const sectores = {};
-    pos.forEach(p => { sectores[p.sector] = (sectores[p.sector] || 0) + (precioDe(p) || 0) * p.sh; });
+    pos.forEach(p => { if (!esEtfPos(p)) { const k = sectorBase(p.sector); sectores[k] = (sectores[k] || 0) + (precioDe(p) || 0) * p.sh / valorTotal * 100; } });
     const hoy = Date.now(), ts = f => { const [d, m, y] = String(f).split('/'); return new Date(+y, +m - 1, +d).getTime(); };
-    const C = GOTEO_CFG;
+    const C = GOTEO_CFG, mesHoy = _hoyISO().slice(0, 7);
     return pos.map(p => {
         const pa = precioDe(p) || 0, valor = pa * p.sh;
         const peso = valor / valorTotal * 100, rent = p.ct ? (valor - p.ct) / p.ct * 100 : 0;
-        const esEtf = !!(p.isin && C.NOMBRES_ETF && C.NOMBRES_ETF[p.isin]) || /MSCI|ETF/i.test(p.n);
+        const esEtf = esEtfPos(p), sector = sectorBase(p.sector), pesoSector = esEtf ? null : sectores[sector];
+        const dpa = divAccDe(p), yoc = (dpa > 0 && p.pm > 0) ? dpa / p.pm * 100 : null;   // DIV/ACC anual ÷ precio medio de compra
         const mios = (divsEnVivo() || []).filter(d => d.n === p.n || (p.isin && d.isin && d.isin === p.isin)).sort((a, b) => ts(a.f) - ts(b.f));
-        const div12 = mios.filter(d => hoy - ts(d.f) <= 365 * 86400000).reduce((t, d) => t + (d.bruto || 0), 0);
-        const yoc = p.ct ? div12 / p.ct * 100 : 0;
         let tendDiv = null; // cambio del dividendo por acción entre los dos últimos cobros
-        if (mios.length >= 2) {
-            const a = mios[mios.length - 2], b = mios[mios.length - 1];
-            if (a.sh > 0 && b.sh > 0 && a.bruto > 0) tendDiv = ((b.bruto / b.sh) / (a.bruto / a.sh) - 1) * 100;
-        }
+        if (mios.length >= 2) { const a = mios[mios.length - 2], b = mios[mios.length - 1]; if (a.sh > 0 && b.sh > 0 && a.bruto > 0) tendDiv = ((b.bruto / b.sh) / (a.bruto / a.sh) - 1) * 100; }
         const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
         const dist = tr ? Math.abs(cn(tr[5])) : null;
-        const flags = []; // [clase, texto]
-        if (!esEtf && peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + peso.toFixed(1) + '% > tope ' + C.MAX_PESO_ACCION + '%']);
-        if (peso > 0 && (sectores[p.sector] || 0) / valorTotal * 100 > C.MAX_PESO_SECTOR && !esEtf) flags.push(['i', 'Sector ' + p.sector + ' > ' + C.MAX_PESO_SECTOR + '%']);
+        const hist = (REVISIONES_GS || []).filter(r => r.n === p.n || (p.isin && r.isin === p.isin)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
+        const ult = hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
+        const flags = []; // [clase, texto]  w = rojo · i = ámbar · g = verde
+        if (!esEtf) {
+            if (peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + peso.toFixed(1).replace('.', ',') + '% > tope ' + C.MAX_PESO_ACCION + '%']);
+            else if (peso >= REV_CERCA_ACCION) flags.push(['i', 'Cerca del tope por acción (' + peso.toFixed(1).replace('.', ',') + '% de ' + C.MAX_PESO_ACCION + '%)']);
+            if (pesoSector > C.MAX_PESO_SECTOR) flags.push(['w', 'Sector ' + sector + ' ' + pesoSector.toFixed(1).replace('.', ',') + '% > tope ' + C.MAX_PESO_SECTOR + '%']);
+            else if (pesoSector >= REV_CERCA_SECTOR) flags.push(['i', 'Sector ' + sector + ' cerca del tope (' + pesoSector.toFixed(1).replace('.', ',') + '% de ' + C.MAX_PESO_SECTOR + '%)']);
+        }
         if (rent <= -10) flags.push(['w', 'En pérdida ' + rent.toFixed(1).replace('.', ',') + '%: ¿sigue la tesis?']);
         if (String(p.tipo).toLowerCase().startsWith('especulativ') && rent >= 12) flags.push(['g', 'Objetivo de venta alcanzado (+' + rent.toFixed(0) + '%)']);
         if (tendDiv != null && tendDiv <= -5) flags.push(['w', 'Dividendo a la baja ' + tendDiv.toFixed(0) + '%']);
         if (tendDiv != null && tendDiv >= 5) flags.push(['g', 'Dividendo al alza +' + tendDiv.toFixed(0) + '%']);
         if (dist != null && dist <= 3) flags.push(['i', 'A ' + dist.toFixed(1).replace('.', ',') + '% de su trampa']);
-        const ult = (REVISIONES_GS || []).filter(r => r.n === p.n).sort((a, b) => String(b.f).localeCompare(String(a.f)))[0] || null;
-        return { p, pa, valor, peso, rent, yoc, tendDiv, dist, flags, esEtf, ult };
-    }).sort((a, b) => b.flags.filter(f => f[0] === 'w').length - a.flags.filter(f => f[0] === 'w').length || b.flags.length - a.flags.length || b.peso - a.peso);
+        if (ult && diasUlt > REV_DIAS_ATRASO) flags.push(['w', 'Revisión atrasada: hace ' + diasUlt + ' días']);
+        const pendiente = !ult || String(ult.f).slice(0, 7) !== mesHoy || diasUlt > REV_DIAS_ATRASO;
+        return { p, pa, valor, peso, rent, yoc, dpa, tendDiv, dist, flags, esEtf, sector, pesoSector, hist, ult, diasUlt, pendiente };
+    });
+}
+function revAvisosRojos(d) { return d.flags.filter(f => f[0] === 'w').length; }
+function revProximaAuto(d, dec) { // +1 mes; +6 meses si Mantener y sin avisos (rojos o ámbar)
+    return _isoMasMeses(_hoyISO(), (dec === 'Mantener' && !d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ? 6 : 1);
 }
 
 function revFiltrar(f) { REV_FILTRO = f; renderRevisionSemestral(); }
-function revCambiar(nombre, campo, valor) {
-    REV_BORRADOR[nombre] = Object.assign({ dec: '', nota: '' }, REV_BORRADOR[nombre] || {}, { [campo]: valor });
-    if (!REV_BORRADOR[nombre].dec && !REV_BORRADOR[nombre].nota) delete REV_BORRADOR[nombre];
+function revOrdenar(o) { REV_ORDEN = o; renderRevisionSemestral(); }
+function revSet(idx, campo, valor) {
+    const d = window._revDatos[idx]; if (!d) return;
+    const b = REV_BORRADOR[d.p.n] = Object.assign({ dec: '', div: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {}, { [campo]: valor });
+    if (!b.dec && !b.div && !b.cub && !b.deu && !b.nota) delete REV_BORRADOR[d.p.n];
     revGuardarBorrador();
-    if (campo === 'dec') renderRevisionSemestral(); else revPintarBoton();
+    const el = document.getElementById('revc-' + idx);
+    if (el) el.outerHTML = revTarjetaHtml(d, idx);   // solo se repinta esa tarjeta (no se cierran los historiales ni se pierde el foco)
+    revPintarBoton(); revPintarKpis();
+}
+function revSelect(idx, campo, opciones, actual, vacio) {
+    return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + vacio + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
+}
+function revTarjetaHtml(d, idx) {
+    const b = REV_BORRADOR[d.p.n] || { dec: '', div: '', cub: '', deu: '', nota: '', prox: '' };
+    const tope = GOTEO_CFG.MAX_PESO_ACCION, pc = (v, k = 1) => (v >= 0 ? '+' : '') + v.toFixed(k).replace('.', ',') + '%';
+    const anchoPeso = Math.min(100, d.peso / (d.esEtf ? 40 : tope * 1.5) * 100), colPeso = (!d.esEtf && d.peso > tope) ? 'var(--rd)' : (!d.esEtf && d.peso >= REV_CERCA_ACCION) ? 'var(--am)' : 'var(--ac)';
+    const ult = d.ult ? 'Última revisión (' + revFmt(d.ult.f) + '): <b>' + revEsc(d.ult.dec) + '</b>' + (d.ult.nota ? ' — ' + revEsc(d.ult.nota) : '') : 'Nunca revisado';
+    const hist5 = d.hist.slice(0, 5);
+    const historial = '<details class="rev-hist"><summary>Historial (' + d.hist.length + ')</summary>' + (hist5.length ? hist5.map(r => '<div>' + revFmt(r.f) + ' · <b>' + revEsc(r.dec) + '</b> · peso ' +
+        (r.peso !== '' && r.peso != null ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') + (r.nota ? ' · ' + revEsc(r.nota) : '') + '</div>').join('') : '<div>Sin revisiones guardadas</div>') + '</details>';
+    const calidad = d.esEtf ? '<div class="rev-q"><span class="rev-na">Dividendo · cobertura · deuda: n/a (ETF)</span></div>' :
+        '<div class="rev-q"><label>Dividendo vs año anterior' + revSelect(idx, 'div', REV_OPC_DIV, b.div, '—') + '</label><label>Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub, '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
+    const prox = b.prox || (b.dec ? revProximaAuto(d, b.dec) : '');
+    return '<div class="rev-c' + (b.dec ? ' dec' : '') + '" id="revc-' + idx + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.sector) + '</span></div>' +
+        '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
+        '<div class="rev-m"><div><b>' + d.peso.toFixed(1).replace('.', ',') + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
+        '<div title="' + (d.dpa > 0 ? 'DIV/ACC ' + d.dpa.toFixed(2).replace('.', ',') + ' € ÷ precio medio de compra ' + d.p.pm.toFixed(2).replace('.', ',') + ' €' : 'Sin DIV/ACC en CARTERA ni TRAMPAS') + '"><b>' + (d.yoc != null ? d.yoc.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Yield coste</i></div>' +
+        '<div><b>' + (d.dist != null ? d.dist.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
+        '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
+        '<div class="rev-ult">' + ult + '</div>' + historial +
+        '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, 'Decisión…') + '<input type="text" maxlength="300" placeholder="Nota (opcional)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)"></div>' +
+        calidad +
+        '<div class="rev-prox"><label>Próxima revisión <input type="date" value="' + prox + '" ' + (b.dec ? '' : 'disabled ') + 'onchange="revSet(' + idx + ',\'prox\',this.value)"></label>' +
+        (b.dec ? '<span class="mt2">' + (b.prox ? 'editada' : (b.dec === 'Mantener' && !d.flags.some(f => f[0] === 'w' || f[0] === 'i') ? '+6 meses: mantener y sin avisos' : '+1 mes')) + '</span>' : '<span class="mt2">se rellena al elegir decisión</span>') + '</div></div>';
 }
 function revPintarBoton() {
     const n = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
-    const el = document.getElementById('rev-guardar');
-    if (!el) return;
-    el.innerHTML = '<button class="btn ac" ' + (n ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar revisión (' + n + ' decisión' + (n === 1 ? '' : 'es') + ')</button>' +
-        '<span class="mt2" id="rev-msg" style="font-size:10px">' + (window._revMsg || '') + '</span>';
+    const el = document.getElementById('rev-guardar'); if (!el) return;
+    el.innerHTML = '<button class="btn ac" ' + (n ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar revisión (' + n + ' activo' + (n === 1 ? '' : 's') + ')</button>' +
+        '<span id="rev-msg" style="font-size:11px;font-weight:600">' + (window._revMsg || (n ? 'Solo se guardan los activos con decisión elegida.' : 'Elige una decisión en al menos un activo.')) + '</span>';
 }
-function renderRevisionSemestral() {
-    const lista = document.getElementById('rev-lista');
-    if (!lista) return;
-    const datos = datosRevision(), st = estadoRevision();
-    const nAvisos = datos.filter(d => d.flags.some(f => f[0] === 'w')).length;
+function revPintarKpis() {
+    const datos = window._revDatos || [], st = estadoRevision();
+    const nAvisos = datos.filter(d => revAvisosRojos(d)).length, pend = datos.filter(d => d.pendiente).length;
     const decididas = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
-    const maxPeso = datos.filter(d => !d.esEtf).sort((a, b) => b.peso - a.peso)[0];
     document.getElementById('kg12').innerHTML = [
         { l: 'Última revisión', v: st.nunca ? 'Nunca' : revFmt(st.ultima), s: st.nunca ? 'Aún sin historial' : 'hace ' + st.dias + ' días', c: '#C9A24B' },
-        { l: 'Próxima revisión', v: st.nunca ? 'Ya toca' : revFmt(st.proxima), s: st.nunca ? 'Haz la primera hoy' : (st.vencida ? '⚠️ vencida hace ' + (-st.faltan) + ' días' : 'en ' + st.faltan + ' días'), c: st.vencida ? '#E85A5A' : '#34C77B' },
-        { l: 'Activos con aviso', v: nAvisos + ' / ' + datos.length, s: 'señales rojas automáticas', c: nAvisos ? '#E85A5A' : '#34C77B' },
+        { l: 'Próxima revisión', v: st.nunca ? 'Ya toca' : revFmt(st.proxima), s: st.nunca ? 'Haz la primera hoy' : (st.vencida ? '⚠️ atrasada ' + (-st.faltan) + ' días' : 'en ' + st.faltan + ' días'), c: st.vencida ? '#E85A5A' : '#34C77B' },
+        { l: 'Pendientes', v: pend + ' / ' + datos.length, s: 'sin revisar este mes o atrasadas', c: pend ? '#E29A3E' : '#34C77B' },
+        { l: 'Con avisos rojos', v: nAvisos + ' / ' + datos.length, s: 'señales automáticas', c: nAvisos ? '#E85A5A' : '#34C77B' },
         { l: 'Decididos ahora', v: decididas + ' / ' + datos.length, s: 'sin guardar todavía', c: '#5B8FD9' },
-        { l: 'Mayor peso (sin ETF)', v: maxPeso ? maxPeso.peso.toFixed(1).replace('.', ',') + ' %' : '—', s: maxPeso ? maxPeso.p.n : '', c: '#E29A3E' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' + k.c + ';white-space:nowrap">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+}
+function renderRevisionSemestral() {
+    const lista = document.getElementById('rev-lista'); if (!lista) return;
+    const datos = datosRevision(), st = estadoRevision();
+    datos.sort((a, b) => REV_ORDEN === 'nombre' ? a.p.n.localeCompare(b.p.n, 'es') : REV_ORDEN === 'avisos' ? (revAvisosRojos(b) - revAvisosRojos(a)) || (b.flags.length - a.flags.length) || (b.peso - a.peso) : b.peso - a.peso);
+    window._revDatos = datos;
+    revPintarKpis();
     document.getElementById('rev-aviso').innerHTML = st.vencida ?
-        '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Repasa cada activo y pulsa guardar: así queda fijada tu primera foto de la cartera.' : 'Han pasado más de ' + REV_MESES + ' meses desde la última revisión: toca revisar la cartera.') + '</span></div>' : '';
-    const filtros = [['todos', 'Todos'], ['avisos', '⚠️ Con avisos'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
-    document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('');
-    const visibles = datos.filter(d => REV_FILTRO === 'todos' || (REV_FILTRO === 'avisos' && d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ||
-        (REV_FILTRO === 'forever' && !String(d.p.tipo).toLowerCase().startsWith('especulativ')) || (REV_FILTRO === 'especulativa' && String(d.p.tipo).toLowerCase().startsWith('especulativ')));
-    const pc = (v, d = 1) => (v >= 0 ? '+' : '') + v.toFixed(d).replace('.', ',') + '%';
-    lista.innerHTML = visibles.map(d => {
-        const b = REV_BORRADOR[d.p.n] || { dec: '', nota: '' }, tope = GOTEO_CFG.MAX_PESO_ACCION;
-        const anchoPeso = Math.min(100, d.peso / (d.esEtf ? 40 : tope * 1.5) * 100), colPeso = (!d.esEtf && d.peso > tope) ? 'var(--rd)' : 'var(--ac)';
-        const ult = d.ult ? 'Última revisión (' + revFmt(d.ult.f) + '): <b>' + revEsc(d.ult.dec) + '</b>' + (d.ult.nota ? ' — ' + revEsc(d.ult.nota) : '') : 'Sin revisiones anteriores';
-        return '<div class="rev-c' + (b.dec ? ' dec' : '') + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.p.sector || '') + '</span></div>' +
-            '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
-            '<div class="rev-m"><div><b>' + d.peso.toFixed(1).replace('.', ',') + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
-            '<div><b>' + (d.yoc ? d.yoc.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Yield coste</i></div><div><b>' + (d.dist != null ? d.dist.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
-            '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
-            '<div class="rev-ult">' + ult + '</div>' +
-            '<div class="rev-ctl"><select onchange="revCambiar(' + JSON.stringify(d.p.n).replace(/"/g, '&quot;') + ',\'dec\',this.value)"><option value="">Decisión…</option>' +
-            REV_DECISIONES.map(x => '<option' + (b.dec === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>' +
-            '<input type="text" maxlength="300" placeholder="Nota (opcional)" value="' + revEsc(b.nota) + '" onchange="revCambiar(' + JSON.stringify(d.p.n).replace(/"/g, '&quot;') + ',\'nota\',this.value)"></div></div>';
-    }).join('') || '<div class="mt2" style="padding:16px">Nada que mostrar con este filtro</div>';
+        '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Repasa cada activo, elige decisión y pulsa guardar: así queda fijada la primera foto de la cartera.' : 'Ha pasado más de ' + REV_MESES + ' mes desde la última revisión: toca revisar la cartera.') + '</span></div>' : '';
+    const filtros = [['todos', 'Todos'], ['pendientes', '⏳ Pendientes'], ['avisos', '⚠️ Con avisos'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
+    document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('') +
+        '<span style="margin-left:auto;font-size:10px;color:var(--mt)">Orden <select onchange="revOrdenar(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:11px">' +
+        [['peso', 'Peso'], ['avisos', 'Avisos'], ['nombre', 'Nombre']].map(o => '<option value="' + o[0] + '"' + (REV_ORDEN === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></span>';
+    const esEsp = d => String(d.p.tipo).toLowerCase().startsWith('especulativ');
+    const html = datos.map((d, idx) => ({ d, idx })).filter(({ d }) => REV_FILTRO === 'todos' || (REV_FILTRO === 'pendientes' && d.pendiente) || (REV_FILTRO === 'avisos' && d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ||
+        (REV_FILTRO === 'forever' && !esEsp(d)) || (REV_FILTRO === 'especulativa' && esEsp(d))).map(({ d, idx }) => revTarjetaHtml(d, idx)).join('');
+    lista.innerHTML = html || '<div class="mt2" style="padding:16px">Nada que mostrar con este filtro</div>';
     revPintarBoton();
-    const hist = (REVISIONES_GS || []).slice().sort((a, b) => String(b.f).localeCompare(String(a.f))).slice(0, 80);
+    // Historial general: una línea por revisión (mismo ID_REVISION) y el detalle de las últimas filas
+    const grupos = {}; (REVISIONES_GS || []).forEach(r => { const k = r.id || r.f; (grupos[k] = grupos[k] || { id: k, f: r.f, filas: [] }).filas.push(r); });
+    const lg = Object.values(grupos).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id))).slice(0, 24);
+    const tbI = document.getElementById('tb-rev-ids');
+    if (tbI) tbI.innerHTML = lg.length ? lg.map((g, j) => { const c = {}; g.filas.forEach(r => c[r.dec] = (c[r.dec] || 0) + 1);
+        return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + revFmt(g.f) + '</td><td style="text-align:left;font-size:9px;color:var(--mt)">' + revEsc(g.id) + '</td><td>' + g.filas.length + '</td><td style="text-align:left">' +
+            Object.keys(c).map(k => revEsc(k) + ' ×' + c[k]).join(' · ') + '</td></tr>'; }).join('') : '<tr><td colspan="4" class="mt2">Aún no hay revisiones guardadas</td></tr>';
+    const hist = (REVISIONES_GS || []).slice().sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id))).slice(0, 100);
+    const pc = v => (v >= 0 ? '+' : '') + Number(v).toFixed(1).replace('.', ',') + '%', num = (v, f) => (v !== '' && v != null) ? f(Number(v)) : '—';
     document.getElementById('tb-rev-hist').innerHTML = hist.length ? hist.map((r, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:600">' + revFmt(r.f) + '</td><td style="text-align:left">' + revEsc(r.n) +
-        '</td><td>' + revEsc(r.dec) + '</td><td style="text-align:left">' + revEsc(r.nota) + '</td><td>' + (r.peso != null && r.peso !== '' ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') + '</td><td>' + (r.rent != null && r.rent !== '' ? pc(Number(r.rent)) : '—') + '</td></tr>').join('') :
-        '<tr><td colspan="6" class="mt2">Aún no hay revisiones guardadas</td></tr>';
+        '</td><td>' + revEsc(r.dec) + '</td><td>' + revEsc(r.divvs || '—') + '</td><td>' + revEsc(r.cub || '—') + '</td><td>' + revEsc(r.deuda || '—') + '</td><td>' + num(r.peso, v => v.toFixed(1).replace('.', ',') + '%') + '</td><td>' + num(r.rent, pc) +
+        '</td><td>' + num(r.precio, v => v.toFixed(2).replace('.', ',') + ' €') + '</td><td style="text-align:left">' + revEsc(r.nota) + '</td><td>' + (r.prox ? revFmt(r.prox) : '—') + '</td></tr>').join('') :
+        '<tr><td colspan="11" class="mt2">Aún no hay revisiones guardadas</td></tr>';
 }
 
 async function guardarRevision() {
-    const datos = datosRevision(), hoy = _hoyISO();
-    const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => ({
-        f: hoy, n: d.p.n, isin: d.p.isin || '', dec: REV_BORRADOR[d.p.n].dec, nota: (REV_BORRADOR[d.p.n].nota || '').slice(0, 300),
-        peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), dist: d.dist == null ? '' : +d.dist.toFixed(2)
-    }));
+    const datos = window._revDatos || [], hoy = _hoyISO(), ahora = new Date();
+    const id = 'R-' + hoy.replace(/-/g, '') + '-' + _pad2(ahora.getHours()) + _pad2(ahora.getMinutes());
+    const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => { const b = REV_BORRADOR[d.p.n];
+        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || ''), cub: d.esEtf ? '' : (b.cub || ''), deuda: d.esEtf ? '' : (b.deu || ''),
+            peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), precio: +d.pa.toFixed(4), nota: (b.nota || '').slice(0, 300), prox: b.prox || revProximaAuto(d, b.dec) }; });
     if (!filas.length) return;
     let clave = '';
     try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
@@ -7725,19 +7786,19 @@ async function guardarRevision() {
     for (const fila of filas) {
         msg('⏳ guardando ' + (ok + 1) + ' de ' + filas.length + '…');
         try {
-            const q = 'accion=guardarRevision&clave=' + encodeURIComponent(clave) + '&fecha=' + hoy + '&activo=' + encodeURIComponent(fila.n) + '&isin=' + encodeURIComponent(fila.isin) +
-                '&decision=' + encodeURIComponent(fila.dec) + '&nota=' + encodeURIComponent(fila.nota) + '&peso=' + fila.peso + '&rent=' + fila.rent + '&dist=' + fila.dist;
+            const q = 'accion=guardarRevision&clave=' + encodeURIComponent(clave) + '&id=' + encodeURIComponent(fila.id) + '&fecha=' + fila.f + '&activo=' + encodeURIComponent(fila.n) + '&isin=' + encodeURIComponent(fila.isin) +
+                '&decision=' + encodeURIComponent(fila.dec) + '&divvs=' + encodeURIComponent(fila.divvs) + '&cubierto=' + encodeURIComponent(fila.cub) + '&deuda=' + encodeURIComponent(fila.deuda) +
+                '&peso=' + fila.peso + '&rent=' + fila.rent + '&precio=' + fila.precio + '&nota=' + encodeURIComponent(fila.nota) + '&proxima=' + encodeURIComponent(fila.prox);
             const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q)).json();
             if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} msg('⚠️ Clave incorrecta. Se han guardado ' + ok + ' de ' + filas.length + '.'); } else msg('⚠️ Error al guardar. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
             try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
-            REVISIONES_GS.push({ f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, nota: fila.nota, peso: fila.peso, rent: fila.rent, dist: fila.dist });
+            REVISIONES_GS.push({ id: fila.id, f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, divvs: fila.divvs, cub: fila.cub, deuda: fila.deuda, peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, prox: fila.prox });
             delete REV_BORRADOR[fila.n]; ok++;
         } catch (e) { msg('⚠️ Sin conexión con la hoja. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
     }
     revGuardarBorrador();
-    if (ok === filas.length) msg('✅ Revisión guardada (' + ok + ' activos) en la hoja REVISIONES');
+    window._revMsg = ok === filas.length ? '✅ ' + ok + ' activo' + (ok === 1 ? '' : 's') + ' guardado' + (ok === 1 ? '' : 's') + ' (' + id + ')' : window._revMsg;
     renderRevisionSemestral();
-    if (ok === filas.length) msg('✅ Revisión guardada (' + ok + ' activos) en la hoja REVISIONES');
 }
 
 recargar(esMovilInit); // en móvil, primera carga en modo rápido (sin los campos más pesados)
