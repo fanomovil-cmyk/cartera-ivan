@@ -709,6 +709,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="kg" id="kg12"></div>
   <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión de la cartera</h3><span class="mt2" style="font-size:8px">cada mes: ¿sigue valiendo la pena cada activo? · cada decisión se AÑADE como fila nueva a la hoja REVISIONES (nunca se sobrescribe)</span></div>
     <div id="rev-aviso" style="padding:10px 16px 0"></div>
+    <div id="rev-gqbar" style="padding:10px 16px 0"></div>
     <div id="rev-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
     <div id="rev-lista" class="rev-grid"></div>
     <div id="rev-guardar" style="padding:0 16px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
@@ -7761,6 +7762,40 @@ function revTarjetaHtml(d, idx) {
         '<div class="rev-prox"><label>Próxima revisión <input type="date" value="' + prox + '" ' + (b.dec ? '' : 'disabled ') + 'onchange="revSet(' + idx + ',\'prox\',this.value)"></label>' +
         (b.dec ? '<span class="mt2">' + (b.prox ? 'editada' : (b.dec === 'Mantener' && !d.flags.some(f => f[0] === 'w' || f[0] === 'i') ? '+6 meses: mantener y sin avisos' : '+1 mes')) + '</span>' : '<span class="mt2">se rellena al elegir decisión</span>') + '</div></div>';
 }
+// ── Getquin: botón para actualizar la hoja GETQUIN desde la web (por tandas, hasta que no queden pendientes)
+function revPintarGq() {
+    const el = document.getElementById('rev-gqbar'); if (!el) return;
+    const g = GETQUIN_GS || [], ok = g.filter(x => x.div > 0).length, ult = g.map(x => String(x.act || '')).filter(Boolean).sort().pop();
+    const estado = g.length ? ok + ' valores con datos de ' + g.length + (ult ? ' · última actualización ' + revFmt(ult.slice(0, 10)) + ' ' + ult.slice(11, 16) : '') : 'Aún sin datos de Getquin (hoja GETQUIN vacía)';
+    el.innerHTML = '<div class="rev-gq" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">📡 <span>Getquin: <b>' + estado + '</b></span>' +
+        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600">' + (window._gqMsg || '') + '</span></div>';
+}
+async function gqActualizar() {
+    if (window._gqBusy) return;
+    let clave = '';
+    try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
+    const msg = t => { window._gqMsg = t; const m = document.getElementById('gq-msg'); if (m) m.textContent = t; };
+    if (!clave) { msg('⚠️ Sin clave: no se ha actualizado nada.'); return; }
+    window._gqBusy = true; const b = document.getElementById('gq-btn'); if (b) b.disabled = true;
+    let hechos = 0, fallos = [], total = 0, error = '';
+    try {
+        for (let vuelta = 1; vuelta <= 20; vuelta++) {
+            msg('⏳ Descargando de Getquin… tanda ' + vuelta + (total ? ' · ' + hechos + ' de ' + total + ' valores' : ''));
+            const r = await (await fetch(API_GS + '?accion=actualizarGetquin&clave=' + encodeURIComponent(clave) + '&maxms=60000&horas=12&nocache=' + Date.now())).json();
+            if (r && r.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} error = 'Clave incorrecta.'; break; }
+            if (r && r.error === 'ocupado') { error = 'Ya hay una actualización en marcha; espera un minuto.'; break; }
+            if (!r || !r.ok || typeof r.hechos !== 'number') { error = 'El script desplegado no tiene esta función: pega el script nuevo y vuelve a desplegar.'; break; }
+            try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
+            hechos += r.hechos; fallos = fallos.concat(r.fallos || []); total = r.total;
+            if (!r.restantes) break;
+        }
+    } catch (e) { error = 'No se pudo completar (¿falta autorizar el script? Ejecuta probarGetquin una vez en Apps Script).'; }
+    window._gqBusy = false;
+    try { await recargar(); } catch (e) {}
+    window._gqMsg = error ? '⚠️ ' + error + (hechos ? ' Se actualizaron ' + hechos + '.' : '') : '✅ ' + hechos + ' actualizados' + (fallos.length ? ' · no encontrados: ' + fallos.join(', ') : '');
+    renderRevisionSemestral();
+}
 function revPintarBoton() {
     const n = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
     const el = document.getElementById('rev-guardar'); if (!el) return;
@@ -7787,6 +7822,7 @@ function renderRevisionSemestral() {
     revPintarKpis();
     document.getElementById('rev-aviso').innerHTML = st.vencida ?
         '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Repasa cada activo, elige decisión y pulsa guardar: así queda fijada la primera foto de la cartera.' : 'Ha pasado más de ' + REV_MESES + ' mes desde la última revisión: toca revisar la cartera.') + '</span></div>' : '';
+    revPintarGq();
     const filtros = [['todos', 'Todos'], ['pendientes', '⏳ Pendientes'], ['avisos', '⚠️ Con avisos'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
     document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('') +
         '<span style="margin-left:auto;font-size:10px;color:var(--mt)">Orden <select onchange="revOrdenar(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:11px">' +
