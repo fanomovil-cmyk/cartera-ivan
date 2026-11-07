@@ -178,12 +178,32 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .tfill.m{background:linear-gradient(90deg,var(--am),#F0BC7A)}
 .tfill.f{background:linear-gradient(90deg,var(--rd),#F09090)}
 .highlight{background:rgba(52,199,123,0.08)}
+.rev-bloque{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 16px 0;padding:9px 14px;border-radius:10px;border:1px solid var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);font-size:13px;font-weight:700;color:var(--tx)}
+.rev-bloque i{font-style:normal;font-weight:500;color:var(--mt);font-size:11px}
+.rev-bloque .rb-n{font-size:11px;font-weight:600;color:var(--mt)}
+.rev-bloque.t-rojo{--c:var(--rd)}.rev-bloque.t-naranja{--c:var(--am)}.rev-bloque.t-verde{--c:var(--gn)}
+.rev-c.t-rojo{border-left:4px solid var(--rd)}.rev-c.t-naranja{border-left:4px solid var(--am)}.rev-c.t-verde{border-left:4px solid var(--gn)}
+.rev-termo-c{display:flex;gap:8px;align-items:flex-start;font-size:10.5px;line-height:1.45}
+.rev-termo-c .rt-chip{flex:0 0 auto;font-weight:800;font-size:11px;padding:3px 9px;border-radius:12px;color:var(--c);border:1px solid var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);white-space:nowrap;cursor:help}
+.rev-termo-c .w{color:var(--rd)}.rev-termo-c .i{color:var(--am)}.rev-termo-c .g{color:var(--gn)}
+.rt-wrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:14px 16px 6px}
+.rt-gauge{display:flex;gap:10px;align-items:center}
+.rt-num{font-size:38px;font-weight:800;line-height:1}.rt-num small{font-size:13px;color:var(--mt);font-weight:600}
+.rt-lbl{font-size:12px;font-weight:700;line-height:1.3}.rt-lbl span{font-weight:500;color:var(--mt);font-size:10px}
+.rt-meter{flex:1;min-width:240px}
+.rt-seg{display:flex;height:22px;border-radius:11px;overflow:hidden;background:var(--bd);gap:2px}
+.rt-seg span{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0d1117}
+.rt-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--mt);margin-top:3px}
+.rt-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding:6px 16px 0}
+.rt-tile{display:block;text-decoration:none;color:var(--tx);padding:10px 12px;border-radius:12px;border:1px solid var(--c);background:color-mix(in srgb,var(--c) 9%,transparent)}
+.rt-tile .rt-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}.rt-tile .rt-top b{font-size:22px;color:var(--c)}
+.rt-tile .rt-sub{font-size:10px;color:var(--mt);margin-top:1px}.rt-tile .rt-names{font-size:10.5px;margin-top:6px;line-height:1.4}
 .rev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;padding:12px 16px 16px}
 .rev-c{background:var(--s2);border:1px solid var(--bd);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
 .rev-c.dec{border-color:var(--ac)}
 .rev-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rev-n{font-weight:700;font-size:13px}.rev-t{font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--mt)}
-.rev-m{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rev-m{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
 .rev-m div{background:var(--s1);border-radius:8px;padding:5px 6px;text-align:center}
 .rev-m b{display:block;font-family:'JetBrains Mono',monospace;font-size:11px}.rev-m i{font-style:normal;font-size:7.5px;color:var(--mt);text-transform:uppercase;letter-spacing:.6px}
 .rev-peso{height:5px;border-radius:3px;background:var(--bd);position:relative;overflow:hidden}.rev-peso>span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
@@ -201,7 +221,21 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .rev-na{grid-column:1/-1;font-size:9.5px;color:var(--mt);font-style:italic}
 .rev-prox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rev-prox label{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);display:flex;align-items:center;gap:6px}
 .rev-ctl{display:flex;gap:6px}.rev-ctl select,.rev-ctl input{background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:11px;font-family:inherit;min-width:0}
-.rev-ctl select{flex:0 0 112px}.rev-ctl input{flex:1}
+.rev-ctl select{flex:0 0 138px}.rev-ctl input{flex:1}
+.rev-dec{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:12px;color:var(--c);border:1px solid var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);white-space:nowrap}
+
+.rev-line{font-size:10.5px;line-height:1.5;color:var(--tx);margin-top:6px}
+.rev-line i{color:var(--mt);font-style:normal}
+.rev-why{font-size:10.5px;line-height:1.45;margin-top:7px;padding:6px 8px;border-radius:8px;background:var(--s2);color:var(--tx)}
+.rev-hist{margin-top:7px;font-size:10.5px}
+.rev-hist summary{cursor:pointer;color:var(--mt);font-weight:600}
+.rev-hist table{width:100%;border-collapse:collapse;margin-top:5px;font-size:10px}
+.rev-hist th,.rev-hist td{padding:3px 4px;text-align:right;border-bottom:1px solid var(--bd)}
+.rev-hist th:first-child,.rev-hist td:first-child{text-align:left}
+.rev-sp{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px}
+.rev-sp div{display:flex;flex-direction:column;gap:2px}
+.rev-sp i{font-style:normal;font-size:9.5px;color:var(--mt)}
+#rev-resumen{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0}
 .rev-banner{border:2px solid var(--rd);border-radius:var(--radius);background:linear-gradient(135deg,rgba(232,90,90,.18),rgba(232,90,90,.07));padding:16px 18px;margin-bottom:14px;animation:alertaZona 2s ease-in-out infinite;text-align:center}
 .rev-banner h2{margin:0;font-size:38px;font-weight:900;letter-spacing:5px;color:var(--rd);font-family:'Space Grotesk',sans-serif;line-height:1.1}
 .rev-banner .rv-l{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
@@ -327,6 +361,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <button class="tb" data-tab="3" onclick="sw(3)">💰 Dividendos</button>
   <button class="tb" data-tab="4" onclick="sw(4)">🏦 Intereses</button>
   <button class="tb" data-tab="5" onclick="sw(5)">📅 Temporal</button>
+  <button class="tb" data-tab="13" onclick="sw(13)">💎 Análisis div.</button>
   <span class="tsep"></span><span class="tg">Análisis</span>
   <button class="tb" data-tab="6" onclick="sw(6)">🔮 Simular</button>
   <button class="tb" data-tab="7" onclick="sw(7)">🧠 Analítica</button>
@@ -474,6 +509,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 <!-- ═══ TRAMPAS ═══ -->
 <div class="tp" id="t2">
   <div class="kg" id="kg2"></div>
+  <div id="trampas-aviso"></div>
   <div class="card">
     <div class="ch"><h3>📊 Distancia a la trampa</h3><span class="mt2" style="font-size:9px" id="n-grafico-trampas">—</span></div>
     <div class="mt2" style="font-size:9px;padding:0 4px 6px">La línea dorada (0) es tu TRAMPA. Barra hacia abajo = el precio aún está por encima (cuanto más corta, más cerca); barra hacia arriba = ya ha tocado la trampa. Solo se muestran las que están a menos de un 15%.</div>
@@ -481,7 +517,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="card">
     <div class="ch"><h3>🎯 Todas las trampas activas</h3><span class="mt2" style="font-size:9px" id="n-trampas">— órdenes</span></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th style="background:rgba(201,162,75,0.22);color:var(--tx);box-shadow:inset 0 -3px 0 #C9A24B">🎯 Dist.%</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Activo</th><th>Calidad</th><th>Prio</th><th>Trampa €</th><th>P.Actual €</th><th style="background:rgba(201,162,75,0.22);color:var(--tx);box-shadow:inset 0 -3px 0 #C9A24B">🎯 Dist.%</th><th style="min-width:190px;text-align:left">🧠 ¿Sigue valiendo la pena?</th><th>Acciones</th><th>Capital €</th><th>Div/Acc €</th><th>Yield%</th><th>Pago</th><th>Orden</th><th>Vista a €</th><th>Desde</th></tr></thead><tbody id="tb-trampas"></tbody></table></div>
   </div>
 </div>
 
@@ -707,15 +743,30 @@ html.light .badge-orden.venta{color:#B33A3A}
 <!-- ═══ REVISIÓN DE LA CARTERA ═══ -->
 <div class="tp" id="t12">
   <div class="kg" id="kg12"></div>
-  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión de la cartera</h3><span class="mt2" style="font-size:8px">cada mes: ¿sigue valiendo la pena cada activo? · cada decisión se AÑADE como fila nueva a la hoja REVISIONES (nunca se sobrescribe)</span></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🧾 Revisión de la cartera</h3><span class="mt2" style="font-size:8px">se rellena solo · tú solo miras las excepciones · cada revisión se AÑADE como filas nuevas a la hoja REVISIONES (nunca se sobrescribe)</span></div>
     <div id="rev-aviso" style="padding:10px 16px 0"></div>
     <div id="rev-gqbar" style="padding:10px 16px 0"></div>
+    <div id="rev-termo"></div>
+    <div id="rev-resumen"></div>
+    <div id="rev-guardar-top" style="padding:10px 16px 0"></div>
     <div id="rev-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
-    <div id="rev-lista" class="rev-grid"></div>
+    <div id="rev-lista"></div>
     <div id="rev-guardar" style="padding:0 16px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
   </div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>📈 Evolución por activo</h3><span class="mt2" style="font-size:8px">precio, 52 semanas, dividendo y yield en cada revisión guardada</span></div><div id="rev-evo"></div></div>
   <div class="card" style="margin-bottom:12px"><div class="ch"><h3>🗂️ Revisiones realizadas</h3><span class="mt2" style="font-size:8px">una línea por revisión (mismo ID)</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">ID_REVISION</th><th>Activos</th><th style="text-align:left">Decisiones</th></tr></thead><tbody id="tb-rev-ids"></tbody></table></div></div>
   <div class="card"><div class="ch"><h3>📜 Historial detallado</h3><span class="mt2" style="font-size:8px">últimas 100 filas de la hoja REVISIONES</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Activo</th><th>Decisión</th><th>Div. vs ant.</th><th>Cubierto</th><th>Deuda</th><th>Peso</th><th>Rentab.</th><th>Precio</th><th style="text-align:left">Nota</th><th>Próxima</th></tr></thead><tbody id="tb-rev-hist"></tbody></table></div></div>
+</div>
+
+<!-- ═══ ANÁLISIS DE DIVIDENDOS ═══ -->
+<div class="tp" id="t13">
+  <div class="kg" id="kg13"></div>
+  <div id="div-alertas"></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>📆 Próximos cortes y cobros</h3><span class="mt2" style="font-size:8px">calendario de tu hoja DIVIDENDOS + fechas anunciadas por Getquin</span></div><div id="div-prox"></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="ch"><h3>💎 Calidad y evolución del dividendo por activo</h3><span class="mt2" style="font-size:8px">histórico por año, crecimiento, subida prevista, cobertura</span></div>
+    <div id="div-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div><div id="div-tabla"></div></div>
+  <div class="card" style="margin-bottom:12px" id="div-detalle-card"><div class="ch"><h3>🔬 Detalle del activo</h3><span class="mt2" style="font-size:8px">dividendo por acción y año</span></div><div id="div-detalle"></div></div>
+  <div class="card"><div class="ch"><h3>🧪 Calidad de los datos de dividendo</h3><span class="mt2" style="font-size:8px">tu hoja frente a histórico y Getquin</span></div><div id="div-datos"></div></div>
 </div>
 
 <div class="tp" id="t11">
@@ -768,9 +819,10 @@ function sw(i) {
         const on = Number(b.dataset.tab) === i; b.classList.toggle('on', on);
         if (on && b.scrollIntoView) { try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {} }
     });
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12'].forEach((id, j) => { const el = document
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12', 't13'].forEach((id, j) => { const el = document
         .getElementById(id); if (el) el.classList.toggle('on', i === j); });
     if (i === 12 && typeof renderRevisionSemestral === 'function') renderRevisionSemestral();
+    if (i === 13 && typeof renderAnalisisDividendos === 'function') renderAnalisisDividendos();
     if (i === 10 && typeof renderSaludDatos === 'function') renderSaludDatos();
 }
 
@@ -1041,6 +1093,9 @@ let DIVIDENDOS_GS = null,
     REVISIONES_GS = [],
     GETQUIN_GS = [],
     FUENTE_DIVACC = (function () { try { return localStorage.getItem('divacc_fuente') === 'getquin' ? 'getquin' : 'hoja'; } catch (e) { return 'hoja'; } })(),
+    FUENTE_PRECIO = (function () { try { const v = localStorage.getItem('fuente_precio'); return v === 'hoja' || v === 'getquin' ? v : 'auto'; } catch (e) { return 'auto'; } })(),
+    FUENTE_52S = (function () { try { const v = localStorage.getItem('fuente_52s'); return v === 'hoja' || v === 'getquin' ? v : 'auto'; } catch (e) { return 'auto'; } })(),
+    PRECIO_AUD = {}, _cache52 = {},
     GQ_MAX_DIAS = 200,
     SAVEBACKS_GS = null,
     EVOLUCION_GS = null;
@@ -1110,8 +1165,12 @@ const REV_DIAS_ATRASO = 35;       // revisión de un activo atrasada si la últi
 const REV_CERCA_ACCION = 11;      // % de peso a partir del cual una acción está «cerca del tope»
 const REV_CERCA_SECTOR = 23;      // idem para un sector
 let REV_BORRADOR = {};            // { activo: { dec, div, cub, deu, nota, prox } } — sin guardar aún
-let REV_FILTRO = 'todos';         // 'todos' | 'pendientes' | 'avisos' | 'forever' | 'especulativa'
-let REV_ORDEN = 'peso';           // 'peso' | 'avisos' | 'nombre'
+let REV_FILTRO = 'todos';         // 'todos' | 'revisar' | 'sin' | 'pendientes' | 'forever' | 'especulativa'
+const DIV_MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+let DIV_ORDEN = 'renta', DIV_FILTRO = 'todos', DIV_SEL = '';
+const DIV_COL = { 'Excelente': 'var(--gn)', 'Sólida': '#5B8FD9', 'A vigilar': 'var(--am)', 'En riesgo': 'var(--rd)', 'Sin datos': 'var(--mt)' };
+let REV_EVO = '';                 // activo elegido en «Evolución por activo»
+let REV_ORDEN = 'salud';          // dentro de cada bloque: 'salud' (peor primero) | 'peso' | 'avisos' | 'nombre'
 window._revDatos = [];
 try { REV_BORRADOR = JSON.parse(localStorage.getItem('rev_borrador') || '{}') || {}; } catch (e) { REV_BORRADOR = {}; }
 
@@ -1867,8 +1926,8 @@ function renderDetalleActivo() {
     const resManual = resumenMetodo(comprasManual);
 
     const trampaRango52 = p.isin ? TRAMPAS_GS.find(r => r[15] === p.isin) : null;
-    const min52 = trampaRango52 ? cn(trampaRango52[16]) : 0;
-    const max52 = trampaRango52 ? cn(trampaRango52[17]) : 0;
+    const min52 = trampaRango52 ? r52Fila(trampaRango52).min : 0;
+    const max52 = trampaRango52 ? r52Fila(trampaRango52).max : 0;
     const rango52HTML = (min52 && max52 && pa) ? (() => {
         const pct52 = Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100));
         const distMin = ((pa - min52) / min52 * 100);
@@ -2214,7 +2273,7 @@ function renderProximaAccion() {
             candidatas.push({
                 prioridad: 1,
                 icon: '🚨',
-                texto: r[0] + ' está a solo ' + d.toFixed(1) + '% de su trampa y no tienes la orden puesta.',
+                texto: r[0] + ' está a solo ' + d.toFixed(1) + '% de su trampa y no tienes la orden puesta.' + trampaVeredictoTxt(r),
                 color: 'var(--rd)'
             });
         }
@@ -2617,6 +2676,7 @@ async function recargar(modoRapido) {
             GETQUIN_GS = data.getquin;
         }
         aplicarFuenteDivAcc();
+        aplicarFuentePrecio();
         if (data.savebacks) {
             SAVEBACKS_GS = data.savebacks;
         }
@@ -3117,7 +3177,7 @@ function renderDashboard() {
     const trampasOrdenadas = [...TRAMPAS_GS]
         .map(r => ({ n: r[0], calidad: r[1] || '', p: r[2] || 'B', d: cn(r[5]), t: cn(r[3]), pa: cn(r[4]),
             acc: cn(r[6]), cap: cn(r[7]), dv: cn(r[8]), op: r[11] === true, pAnadir: cn(r[12]), fAnadir: r[13] ||
-            null, nota: r[14] || '', min52: cn(r[16]), max52: cn(r[17]), isin: r[15] || '' }))
+            null, nota: r[14] || '', min52: r52Fila(r).min, max52: r52Fila(r).max, isin: r[15] || '' }))
         .filter(t => t.t > 0 && t.pa > 0)
         .sort((a, b) => {
             const aDisparada = a.d >= 0,
@@ -3133,7 +3193,7 @@ function renderDashboard() {
         if (Math.abs(dPct) <= 1 && !trampasAvisadas.has(t.n)) {
             trampasAvisadas.add(t.n);
             notificar('🎯 ¡' + t.n + ' está a tiro!', 'Solo a ' + Math.abs(dPct).toFixed(2) +
-                '% de tu precio trampa (' + fe(t.t) + ')', 'warn');
+                '% de tu precio trampa (' + fe(t.t) + ')' + (() => { const rr = TRAMPAS_GS.find(x => x[0] === t.n); return rr ? trampaVeredictoTxt(rr) : ''; })(), 'warn');
         }
     });
 
@@ -3527,7 +3587,7 @@ function renderDashboard() {
         const d = Math.abs(cn(r[5]));
         if (d > 0 && d <= 1.5 && r[11] !== true && textoAccion.startsWith(r[0] + ' está a solo')) return; // ya es la acción principal
         if (d > 0 && d <= 1.5) alertas.push({ tipo: 'warn', icon: '🎯', msg: '¡' + r[0] + ' está a tiro! Solo a ' +
-                d.toFixed(1) + '% de su trampa' });
+                d.toFixed(1) + '% de su trampa.' + trampaVeredictoTxt(r) });
         else if (d > 1.5 && d < 3) alertas.push({ tipo: 'info', icon: '📡', msg: r[0] +
                 ' entrando en el radar (' + d.toFixed(1) + '% de distancia)' });
     });
@@ -3626,8 +3686,8 @@ function detectarOportunidadesExcepcionales() {
         const trampa = cn(trampaFila[3]);
         if (!pa || !trampa) return;
         const distPct = (pa - trampa) / trampa * 100;
-        const min52 = cn(trampaFila[16]),
-            max52 = cn(trampaFila[17]);
+        const min52 = r52Fila(trampaFila).min,
+            max52 = r52Fila(trampaFila).max;
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) :
             null;
 
@@ -4100,7 +4160,7 @@ function sugerirDestinoFlexible(excluirIsin, universoCSV) {
         if (!t || !pa) return;
         const trampa = cn(t[3]);
         const distTrampaPct = trampa ? (pa - trampa) / trampa * 100 : 999;
-        const min52 = cn(t[16]), max52 = cn(t[17]);
+        const min52 = r52Fila(t).min, max52 = r52Fila(t).max;
         const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
         const yieldActual = dividendoActualAnual(p.isin).valor / pa * 100;
         const esETF = (p.sector || '') === 'Diversificado';
@@ -4251,8 +4311,8 @@ function calcularScoreActivo(isin) {
 
     const trampa = trampaFila ? cn(trampaFila[3]) : 0;
     const distTrampaPct = trampa ? ((pa - trampa) / trampa * 100) : null;
-    const min52 = trampaFila ? cn(trampaFila[16]) : 0,
-        max52 = trampaFila ? cn(trampaFila[17]) : 0;
+    const min52 = trampaFila ? r52Fila(trampaFila).min : 0,
+        max52 = trampaFila ? r52Fila(trampaFila).max : 0;
     const pctRango52 = (min52 && max52) ? Math.max(0, Math.min(100, (pa - min52) / (max52 - min52) * 100)) : 50;
     const puntosRango = 100 - pctRango52;
 
@@ -4967,7 +5027,7 @@ function calcularPlanPanico() {
                 if (v > maxHist) maxHist = v;
             });
         }
-        const maximo = Math.max(cn(filaIdx[17]), maxHist, precio);
+        const maximo = Math.max(r52Fila(filaIdx).max, maxHist, precio);
         if (precio > 0 && maximo > 0) {
             indice = {
                 nombre: filaIdx[0], isin: C.ISIN_INDICE, precio, maximo,
@@ -5648,6 +5708,338 @@ function renderGraficoTrampas() {
     });
 }
 
+// ══════════ MOTOR DE DIVIDENDOS ══════════
+// Una sola ficha por activo (o por trampa) que junta TODO lo que sabemos del dividendo: histórico por año de tu hoja HISTORICO_DIVIDENDOS,
+// calendario de cortes y pagos de tu hoja DIVIDENDOS, datos diarios de Getquin (crecimiento, cobertura, próximo pago anunciado) y lo que cobras.
+// Lo usan la pestaña «Análisis de dividendos», las Trampas y la Revisión, para que todos hablen de lo mismo.
+function _hoy0() { const h = new Date(); h.setHours(0, 0, 0, 0); return h; }
+function _fechaTxt(t) { return t.getDate() + ' ' + DIV_MES[t.getMonth()] + (t.getFullYear() !== new Date().getFullYear() ? ' ' + t.getFullYear() : ''); }
+function _parseFechaGq(s) {
+    s = String(s || '').trim(); let m;
+    if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return new Date(+m[1], +m[2] - 1, +m[3]);
+    if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(+m[3], +m[2] - 1, +m[1]);
+    return null;
+}
+function divProximaFecha(meses, dia) { // próxima fecha futura según meses de pago y día del mes
+    if (!meses || !meses.length || !dia) return null;
+    const hoy = _hoy0(), y = hoy.getFullYear(), c = [];
+    meses.forEach(m => { c.push(new Date(y, m - 1, dia)); c.push(new Date(y + 1, m - 1, dia)); });
+    const f = c.filter(d => d >= hoy).sort((a, b) => a - b)[0];
+    return f ? { fecha: f, dias: Math.round((f - hoy) / 86400000) } : null;
+}
+function divNombreFrecuencia(n) { return n >= 10 ? 'Mensual' : n === 4 ? 'Trimestral' : n === 2 ? 'Semestral' : n === 1 ? 'Anual' : (n ? n + ' pagos/año' : '—'); }
+
+// o = { isin, n, sh, pa, dpa, pm, sector, pais }
+function divFichaIsin(o) {
+    const isin = String(o.isin || '').trim().toUpperCase(), hoy = _hoy0(), Y = hoy.getFullYear(), pa = o.pa || 0;
+    const g = isin ? gqFicha(isin) : null, cal = isin ? (CALENDARIO_DIVIDENDOS_GS || []).find(c => c.isin && esMismoISIN(c.isin, isin)) : null;
+    const hist = isin ? (HISTORICO_DIVIDENDOS_LARGO_GS || []).find(h => h.isin && esMismoISIN(h.isin, isin)) : null, por = hist ? hist.porAnio : null;
+    const v = a => (por && por[a] != null && por[a] > 0) ? Number(por[a]) : null;
+    const dpa = o.dpa > 0 ? o.dpa : (g && g.div > 0 ? g.div : 0);
+    const f = { isin, n: o.n, sh: o.sh || 0, pa, dpa, g, cal, Y, alertas: [] };
+    // ── histórico por año (años completos = hasta Y-1; Y = en curso; Y+1 = previsión de tu hoja)
+    f.serie = por ? Object.keys(por).map(Number).filter(a => por[a] > 0 && a >= Y - 12 && a <= Y + 1).sort((a, b) => a - b).map(a => ({ a, v: Number(por[a]) })) : [];
+    f.ult = v(Y - 1); f.prev = v(Y - 2); f.curso = v(Y); f.sig = v(Y + 1);
+    f.subUlt = f.ult && f.prev ? (f.ult / f.prev - 1) * 100 : null;
+    const cagr = n => (v(Y - 1) && v(Y - 1 - n)) ? (Math.pow(v(Y - 1) / v(Y - 1 - n), 1 / n) - 1) * 100 : null;
+    f.cagr3 = cagr(3); f.cagr5 = cagr(5); f.cagr10 = cagr(10);
+    // El histórico está en euros: en activos en dólares (u otras divisas) el cambio mete ruido de hasta ~8-10 % al año, así que la tolerancia es mayor
+    const enEur = /^(ES|FR|DE|IE|NL|IT|FI|BE|PT|AT|LU)/.test(isin), tol = enEur ? 0.05 : 0.10;
+    let sinRec = 0, recortes = [];
+    for (let a = Y - 1; v(a) && v(a - 1); a--) { if (v(a) >= v(a - 1) * (1 - tol)) sinRec++; else break; }
+    for (let a = Y - 1; a >= Y - 10; a--) if (v(a) && v(a - 1) && v(a) < v(a - 1) * (1 - tol)) recortes.push({ a, pct: (v(a) / v(a - 1) - 1) * 100 });
+    f.tolDivisa = tol; f.enEur = enEur;
+    f.racha = sinRec; f.sinRecorte = sinRec; f.recortes = recortes; f.aniosDatos = f.serie.filter(x => x.a <= Y - 1).length;
+    f.cursoVsUlt = f.curso && f.ult ? (f.curso / f.ult - 1) * 100 : null;
+    // ── subida esperada del dividendo (de lo más a lo menos fiable)
+    if (f.sig && f.curso) f.subida = { pct: (f.sig / f.curso - 1) * 100, fuente: 'previsión ' + (Y + 1) + ' de tu hoja' };
+    else if (f.curso && f.ult) f.subida = { pct: f.cursoVsUlt, fuente: 'año en curso frente al anterior' };
+    else if (f.cagr5 != null) f.subida = { pct: f.cagr5, fuente: 'media de los últimos 5 años' };
+    else if (g && g.crec3 != null) f.subida = { pct: g.crec3, fuente: 'Getquin, media 3 años' };
+    else f.subida = null;
+    f.crec1 = g && g.crec1 != null ? g.crec1 : (f.subUlt != null ? f.subUlt : null);   // variación del dividendo en el último año
+    f.crec1Fuente = g && g.crec1 != null ? 'Getquin, último año' : (f.subUlt != null ? 'tu histórico, ' + (Y - 1) + ' frente a ' + (Y - 2) : '');
+    // ── calendario: meses de pago, próximo corte (ex-dividendo) y próximo pago. Lo anunciado por Getquin manda sobre la estimación.
+    f.meses = cal && cal.meses && cal.meses.length ? cal.meses : null;
+    f.nPagos = f.meses ? f.meses.length : null;
+    if (!f.nPagos && g && g.frec) { const t = String(g.frec).toLowerCase(); f.nPagos = /mensual|monthly/.test(t) ? 12 : /trimest|quarter/.test(t) ? 4 : /semest|semi/.test(t) ? 2 : /anual|annual|year/.test(t) ? 1 : null; }
+    f.freq = divNombreFrecuencia(f.nPagos);
+    const fxG = g ? (g.mon === 'EUR' ? 1 : (gqFx52(g, pa) || g.fx || 1)) : 1;
+    const gEx = g ? _parseFechaGq(g.proxEx) : null, gPago = g ? _parseFechaGq(g.proxPago) : null;
+    const calEx = cal ? divProximaFecha(f.meses, cal.diaCorte) : null, calPago = cal ? divProximaFecha(f.meses, cal.diaPago || cal.diaCorte) : null;
+    const dias = d => Math.round((d - hoy) / 86400000);
+    f.ex = (gEx && gEx >= hoy) ? { fecha: gEx, dias: dias(gEx), real: true } : (calEx ? Object.assign({ real: false }, calEx) : null);
+    f.pago = (gPago && gPago >= hoy) ? { fecha: gPago, dias: dias(gPago), real: true } : (calPago ? Object.assign({ real: false }, calPago) : null);
+    f.exPasado = !!(gEx && gEx < hoy && gPago && gPago >= hoy);   // ya pasó el corte: el próximo pago ya es tuyo
+    f.impSh = (g && g.proxImp > 0 && gPago && gPago >= hoy) ? g.proxImp * fxG : (dpa > 0 && f.nPagos ? dpa / f.nPagos : null);
+    f.impReal = !!(g && g.proxImp > 0 && gPago && gPago >= hoy);
+    const origen = tasaOrigenEstimada(isin, o.pais), factorNeto = 1 - 0.19 * (1 - origen);
+    f.impNeto = f.impSh && f.sh ? f.impSh * f.sh * factorNeto : null;
+    f.estado = g && g.proxEstado ? g.proxEstado : '';
+    // ── cobertura y rentabilidad
+    f.cub = revCubierto({ esEtf: false, gq: g, gf: g, sector: o.sector || '' });
+    f.yld = dpa > 0 && pa > 0 ? dpa / pa * 100 : null;
+    f.yoc = dpa > 0 && o.pm > 0 ? dpa / o.pm * 100 : null;
+    f.payoutEps = g && g.payoutEps != null ? g.payoutEps : null; f.pfcf = g && g.pfcf != null ? g.pfcf : null;
+    // ── calidad del dividendo 0-100 (cada parte se ve en el detalle)
+    const partes = [];
+    const pRacha = f.aniosDatos >= 3 ? Math.min(sinRec, 10) * 3 : 12; partes.push(['Años sin recortar', pRacha, 30, f.aniosDatos >= 3 ? sinRec + (sinRec >= 10 ? '+ años' : ' años') : 'sin histórico']);
+    const c5 = f.cagr5 != null ? f.cagr5 : (g && g.crec3 != null ? g.crec3 : null);
+    const pCre = c5 == null ? 10 : c5 <= 0 ? 0 : c5 < 3 ? 8 : c5 < 6 ? 15 : c5 < 10 ? 20 : 25; partes.push(['Crecimiento medio', pCre, 25, c5 == null ? 'sin datos' : (c5 >= 0 ? '+' : '') + c5.toFixed(1).replace('.', ',') + '% anual']);
+    const pCub = f.cub.v === 'Sí' ? 25 : f.cub.v === 'Justo' ? 12 : f.cub.v === 'No' ? 0 : 10; partes.push(['Cobertura', pCub, 25, f.cub.v === 'No sé' ? 'sin datos' : f.cub.v]);
+    const recientes = recortes.filter(r => r.a >= Y - 4).length;
+    const t1 = f.crec1; // variación del último año (Getquin, sin ruido de divisa; si no, tu histórico)
+    const pTen = t1 == null ? 10 : t1 >= 5 ? 20 : t1 >= 0 ? 15 : t1 > -5 ? 8 : 0; partes.push(['Último año', pTen, 20, t1 == null ? 'sin datos' : divPc(t1, 1)]);
+    f.score = Math.round(partes.reduce((t, x) => t + x[1], 0)); f.partes = partes;
+    const umbral = (g && g.crec1 != null) ? -5 : -(tol * 100), malAhora = (f.crec1 != null && f.crec1 <= umbral) || (f.cursoVsUlt != null && f.cursoVsUlt <= -(tol * 100));
+    f.nivel = f.score >= 75 ? 'Excelente' : f.score >= 55 ? 'Sólida' : f.score >= 40 ? 'A vigilar' : 'En riesgo';
+    if (malAhora && (f.nivel === 'Excelente' || f.nivel === 'Sólida')) { f.nivel = 'A vigilar'; f.motivoNivel = (f.crec1 != null && f.crec1 <= umbral) ? 'bajó ' + Math.abs(f.crec1).toFixed(1).replace('.', ',') + '% el último año' : Y + ' va por debajo de ' + (Y - 1) + ' (' + divPc(f.cursoVsUlt, 1) + ')'; }
+    if (f.aniosDatos < 3 && !g) f.nivel = 'Sin datos';
+    // ── alertas
+    if (f.ex && f.ex.dias <= 14 && !f.exPasado) f.alertas.push(['i', 'Corte de dividendo en ' + f.ex.dias + ' día' + (f.ex.dias === 1 ? '' : 's') + ' (' + _fechaTxt(f.ex.fecha) + (f.ex.real ? '' : ', estimado') + '): hay que tener la acción antes']);
+    if (f.exPasado && f.pago) f.alertas.push(['g', 'Ya pasó el corte: cobrarás ' + _fechaTxt(f.pago.fecha) + (f.impNeto ? ' ≈ ' + fe(f.impNeto, 2) + ' netos' : '')]);
+    if (f.crec1 != null && f.crec1 <= umbral) f.alertas.push(['w', 'El dividendo bajó ' + Math.abs(f.crec1).toFixed(1).replace('.', ',') + '% en el último año']);
+    if (f.cursoVsUlt != null && f.cursoVsUlt <= -(tol * 100)) f.alertas.push(['w', Y + ' va ' + Math.abs(f.cursoVsUlt).toFixed(1).replace('.', ',') + '% por debajo de ' + (Y - 1) + ' en tu histórico']);
+    if (f.subida && f.subida.pct >= 5 && f.sig) f.alertas.push(['g', 'Subida prevista +' + f.subida.pct.toFixed(1).replace('.', ',') + '% en ' + (Y + 1)]);
+    if (f.cub.v === 'No') f.alertas.push(['w', 'Dividendo sin cubrir: ' + f.cub.why]);
+    if (recientes) f.alertas.push(['w', 'Recorte en ' + recortes.filter(r => r.a >= Y - 4).map(r => r.a + ' (' + r.pct.toFixed(0) + '%)').join(', ')]);
+    return f;
+}
+function divFicha(p) {
+    return divFichaIsin({ isin: p.isin, n: p.n, sh: p.sh, pa: precioDe(p) || 0, dpa: divAccDe(p), pm: p.pm, sector: p.sector, pais: p.pais });
+}
+function divFichasCartera() {
+    return posicionesVivas().filter(p => !esEtfPos(p) && p.sh > 0).map(p => Object.assign(divFicha(p), { p, valor: (precioDe(p) || 0) * p.sh }));
+}
+// Resumen de la cartera de dividendos
+function divResumenCartera(fs) {
+    const rentaHoy = fs.reduce((t, f) => t + f.dpa * f.sh, 0);
+    const rentaSig = fs.reduce((t, f) => t + f.dpa * (1 + Math.max(-30, Math.min(30, f.subida ? f.subida.pct : 0)) / 100) * f.sh, 0);
+    const valor = fs.reduce((t, f) => t + f.valor, 0), coste = fs.reduce((t, f) => t + (f.p.ct || 0), 0);
+    const conRenta = fs.filter(f => f.dpa > 0).sort((a, b) => b.dpa * b.sh - a.dpa * a.sh);
+    const top3 = rentaHoy ? conRenta.slice(0, 3).reduce((t, f) => t + f.dpa * f.sh, 0) / rentaHoy * 100 : 0;
+    const buena = rentaHoy ? fs.filter(f => f.nivel === 'Excelente' || f.nivel === 'Sólida').reduce((t, f) => t + f.dpa * f.sh, 0) / rentaHoy * 100 : 0;
+    return { rentaHoy, rentaSig, crece: rentaHoy ? (rentaSig / rentaHoy - 1) * 100 : 0, yld: valor ? rentaHoy / valor * 100 : 0, yoc: coste ? rentaHoy / coste * 100 : 0, top3, buena, conRenta,
+        riesgo: fs.filter(f => f.nivel === 'En riesgo' || f.nivel === 'A vigilar'), sinHist: fs.filter(f => f.aniosDatos < 3 && f.dpa > 0) };
+}
+
+// ── Histórico diario de Getquin (hoja GETQUIN_HIST): lo que se descargó cada día, para no perderlo nunca
+const GQ_HIST_CACHE = {};
+async function gqPedirHistorico(isin, dias) {
+    const k = (isin || '*') + '|' + (dias || 400);
+    if (GQ_HIST_CACHE[k]) return GQ_HIST_CACHE[k];
+    const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + 'accion=historicoGetquin&isin=' + encodeURIComponent(isin || '') + '&dias=' + (dias || 400))).json();
+    if (!j || !j.ok) throw new Error('hist');
+    return (GQ_HIST_CACHE[k] = j.hist || []);
+}
+async function divCargarHistGq(isin) {
+    const el = document.getElementById('div-histgq'); if (!el) return;
+    el.innerHTML = '<div class="mt2" style="padding-top:8px">⏳ Cargando el histórico de Getquin…</div>';
+    let h;
+    try { h = await gqPedirHistorico(isin, 400); } catch (e) { if (isin === DIV_SEL && document.getElementById('div-histgq')) document.getElementById('div-histgq').innerHTML = '<div class="mt2" style="padding-top:8px">No se pudo leer el histórico de Getquin (¿has desplegado la versión nueva del script?).</div>'; return; }
+    if (isin !== DIV_SEL || !document.getElementById('div-histgq')) return;
+    const f = (v, k = 2) => v == null ? '—' : Number(v).toFixed(k).replace('.', ',');
+    if (!h.length) { document.getElementById('div-histgq').innerHTML = '<div class="mt2" style="padding-top:8px">📚 Aún no hay histórico diario de este valor: se empieza a guardar con la próxima descarga de Getquin.</div>'; return; }
+    h = h.slice().sort((a, b) => String(a.f).localeCompare(String(b.f)));
+    const mostrar = []; let ultT = 0; h.forEach(x => { const t = Date.parse(x.f); if (!mostrar.length || t - ultT >= 6 * 86400000 || x === h[h.length - 1]) { mostrar.push(x); ultT = t; } });
+    const tabla = mostrar.slice(-14).reverse();
+    document.getElementById('div-histgq').innerHTML = '<div class="mt2" style="font-weight:700;margin:10px 0 4px">📚 Histórico de Getquin guardado (' + h.length + ' día' + (h.length === 1 ? '' : 's') + ' desde ' + revFmt(h[0].f) + ') <i style="font-weight:400">· queda en tu hoja GETQUIN_HIST aunque Getquin dejara de funcionar</i></div>' +
+        '<div class="rev-sp"><div><i>Dividendo (12 m)</i>' + revSparkline(mostrar.map(x => x.div), 'var(--gn)') + '</div><div><i>Yield</i>' + revSparkline(mostrar.map(x => x.yld), 'var(--am)') + '</div><div><i>Objetivo analistas</i>' + revSparkline(mostrar.map(x => x.obj), 'var(--ac)') + '</div><div><i>Cobertura (dividendo/FCF)</i>' + revSparkline(mostrar.map(x => x.pfcf), '#5B8FD9') + '</div></div>' +
+        '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Precio</th><th>Dividendo 12 m</th><th>Yield</th><th>Crec. 1 año</th><th>% del FCF</th><th>Objetivo</th><th>Analistas C/M/V</th><th>Próx. pago</th></tr></thead><tbody>' +
+        tabla.map((x, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="text-align:left;font-weight:600">' + revFmt(x.f) + '</td><td>' + f(x.precio) + '</td><td>' + f(x.div) + '</td><td>' + (x.yld != null ? f(x.yld) + '%' : '—') + '</td><td>' + (x.crec1 != null ? divPc(x.crec1, 1) : '—') + '</td><td>' + (x.pfcf != null ? f(x.pfcf, 0) + '%' : '—') + '</td><td>' + f(x.obj) + '</td><td>' + (x.nCom != null ? x.nCom + '/' + (x.nMan || 0) + '/' + (x.nVen || 0) : '—') + '</td><td>' + (x.proxPago ? revEsc(String(x.proxPago).slice(0, 10)) : '—') + '</td></tr>').join('') + '</tbody></table></div>' +
+        '<div class="mt2" style="font-size:9px;margin-top:4px">Precio, objetivo y 52 semanas en la divisa de la página de Getquin (normalmente dólares en acciones de EE. UU.).</div>';
+}
+async function gqDescargarCopia() {
+    const b = document.getElementById('gq-copia-btn'); if (b) { b.disabled = true; b.textContent = '⏳ Preparando…'; }
+    try {
+        const h = await gqPedirHistorico('', 3700);
+        const cols = ['f', 'isin', 'n', 'estado', 'precio', 'div', 'yld', 'crec1', 'pfcf', 'cub', 'proxEx', 'proxPago', 'proxImp', 'min52', 'max52', 'mon52', 'obj', 'nCom', 'nMan', 'nVen', 'per'];
+        const csv = [cols.join(';')].concat(h.map(x => cols.map(c => { const v = x[c]; return v == null ? '' : String(v).replace(/[;\n\r]/g, ' ').replace('.', ','); }).join(';'))).join('\n');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })); a.download = 'getquin_historico_' + _hoyISO() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+        if (b) b.textContent = '✅ Descargado (' + h.length + ' filas)';
+    } catch (e) { if (b) { b.disabled = false; b.textContent = '⚠️ No se pudo: ¿script nuevo desplegado?'; } return; }
+    if (b) setTimeout(() => { b.disabled = false; b.textContent = '📥 Descargar copia (CSV)'; }, 4000);
+}
+
+// ══════════ PESTAÑA «ANÁLISIS DE DIVIDENDOS» ══════════
+function divSetOrden(o) { DIV_ORDEN = o; renderAnalisisDividendos(); }
+function divSetFiltro(f) { DIV_FILTRO = f; renderAnalisisDividendos(); }
+function divSeleccionar(isin) { DIV_SEL = isin; renderAnalisisDividendos(); const el = document.getElementById('div-detalle-card'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function divPc(v, k = 1, signo = true) { return v == null || isNaN(v) ? '—' : (signo && v >= 0 ? '+' : '') + Number(v).toFixed(k).replace('.', ',') + '%'; }
+function divChip(f) { const c = DIV_COL[f.nivel]; return '<span class="rev-dec" style="--c:' + c + '" title="' + revEsc(f.partes.map(x => x[0] + ': ' + x[1] + '/' + x[2] + ' (' + x[3] + ')').join('\n')) + '">' + f.nivel + ' · ' + f.score + '</span>'; }
+
+function divBarras(f) { // barras de dividendo por acción y año
+    const s = f.serie.slice(-10); if (s.length < 2) return '<div class="mt2" style="padding:8px 0">Sin histórico suficiente en la hoja HISTORICO_DIVIDENDOS para este activo.</div>';
+    const mx = Math.max(...s.map(x => x.v)), W = 560, H = 150, bw = Math.min(40, (W - 20) / s.length - 8), x0 = i => 14 + i * ((W - 20) / s.length) + 4;
+    let out = '<svg viewBox="0 0 ' + W + ' ' + (H + 28) + '" style="width:100%;max-width:640px;height:auto">';
+    s.forEach((p, i) => {
+        const h = Math.max(2, p.v / mx * (H - 24)), y = H - h, enCurso = p.a === f.Y, prev = p.a > f.Y, col = prev ? 'var(--am)' : enCurso ? '#5B8FD9' : 'var(--gn)';
+        const ant = i ? s[i - 1].v : null, d = ant ? (p.v / ant - 1) * 100 : null;
+        out += '<rect x="' + x0(i) + '" y="' + y + '" width="' + bw + '" height="' + h + '" rx="3" fill="' + col + '" opacity="' + (prev ? 0.45 : 0.85) + '"' + (prev ? ' stroke="' + col + '" stroke-dasharray="3 2"' : '') + '/>' +
+            '<text x="' + (x0(i) + bw / 2) + '" y="' + (y - 4) + '" font-size="9.5" text-anchor="middle" fill="var(--tx)" font-weight="700">' + p.v.toFixed(2).replace('.', ',') + '</text>' +
+            '<text x="' + (x0(i) + bw / 2) + '" y="' + (H + 12) + '" font-size="9.5" text-anchor="middle" fill="var(--mt)">' + p.a + (enCurso ? '*' : prev ? '†' : '') + '</text>' +
+            (d != null ? '<text x="' + (x0(i) + bw / 2) + '" y="' + (H + 24) + '" font-size="8.5" text-anchor="middle" fill="' + (d > 0.5 ? 'var(--gn)' : d < -0.5 ? 'var(--rd)' : 'var(--mt)') + '">' + (d >= 0 ? '+' : '') + d.toFixed(0) + '%</text>' : '');
+    });
+    return out + '</svg><div class="mt2" style="font-size:9px">* año en curso (según tu hoja) · † previsión de tu hoja · el resto, años completos</div>';
+}
+
+function renderAnalisisDividendos() {
+    const kg = document.getElementById('kg13'); if (!kg) return;
+    let fs; try { fs = divFichasCartera(); } catch (e) { fs = []; }
+    const R = divResumenCartera(fs), Y = new Date().getFullYear();
+    kg.innerHTML = [
+        { l: 'Dividendo anual esperado', v: fe(R.rentaHoy, 0), s: 'bruto, con el pago actual de cada activo', c: '#34C77B' },
+        { l: 'Previsto para ' + (Y + 1), v: fe(R.rentaSig, 0), s: divPc(R.crece) + ' por las subidas previstas', c: R.crece >= 0 ? '#5B8FD9' : '#E85A5A' },
+        { l: 'Yield hoy / sobre coste', v: R.yld.toFixed(1).replace('.', ',') + '% / ' + R.yoc.toFixed(1).replace('.', ',') + '%', s: 'solo acciones', c: '#C9A24B' },
+        { l: 'Renta en dividendos sólidos', v: R.buena.toFixed(0) + '%', s: 'calidad «Sólida» o «Excelente»', c: R.buena >= 70 ? '#34C77B' : '#E29A3E' },
+        { l: 'Concentración', v: R.top3.toFixed(0) + '%', s: 'de la renta viene de tus 3 mayores', c: R.top3 > 50 ? '#E29A3E' : '#34C77B' },
+        { l: 'A vigilar / en riesgo', v: String(R.riesgo.length), s: R.riesgo.slice(0, 3).map(f => f.n).join(', ') || 'ninguno', c: R.riesgo.length ? '#E85A5A' : '#34C77B' },
+    ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' + k.c + ';white-space:nowrap;font-size:17px">' + k.v + '</div><div class="ks">' + revEsc(k.s) + '</div></div>').join('');
+
+    // Alertas importantes
+    const al = []; fs.forEach(f => f.alertas.filter(a => a[0] === 'w' || (a[0] === 'i' && /Corte/.test(a[1]))).forEach(a => al.push({ f, a })));
+    const actMax = (GETQUIN_GS || []).map(x => String(x.act || '')).filter(Boolean).sort().pop(), edadGq = actMax ? Math.round((Date.now() - Date.parse(actMax.replace(' ', 'T'))) / 86400000) : null;
+    const avisoEdad = (edadGq != null && edadGq >= 4) ? '<div class="alert-box warn" style="margin:0 16px 12px"><span class="icon">📡</span><span>La última descarga correcta de Getquin es de hace <b>' + edadGq + ' días</b> (' + revFmt(actMax.slice(0, 10)) + '). Se siguen usando los últimos datos guardados; revisa el disparador diario o pulsa «Actualizar datos» en Revisión.</span></div>' : '';
+    document.getElementById('div-alertas').innerHTML = avisoEdad + (al.length ? '<div class="card" style="margin-bottom:12px"><div style="padding:12px 16px;display:grid;gap:6px">' + al.slice(0, 12).map(x =>
+        '<div class="alert-box ' + (x.a[0] === 'w' ? 'warn' : 'info') + '" style="margin:0"><span class="icon">' + (x.a[0] === 'w' ? '⚠️' : '✂️') + '</span><span><b>' + revEsc(x.f.n) + '</b>: ' + revEsc(x.a[1]) + '</span></div>').join('') + '</div></div>' : '');
+
+    // Próximos cortes y cobros
+    const hoy = _hoy0(), cortes = fs.filter(f => f.ex && !f.exPasado && f.ex.dias <= 45).sort((a, b) => a.ex.dias - b.ex.dias);
+    const pagos = fs.filter(f => f.pago && f.pago.dias <= 120).sort((a, b) => a.pago.dias - b.pago.dias);
+    const sum = d => pagos.filter(f => f.pago.dias <= d).reduce((t, f) => t + (f.impNeto || 0), 0);
+    const etq = f => '<span class="mt2" style="font-size:8.5px">' + ((f.impReal || (f.pago && f.pago.real)) ? '🟢 anunciado' : '⚪ estimado') + '</span>';
+    document.getElementById('div-prox').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;padding:12px 16px">' +
+        '<div><div class="mt2" style="font-weight:700;margin-bottom:6px">✂️ Cortes en los próximos 45 días <i style="font-weight:400">(para cobrar hay que tener la acción antes)</i></div>' +
+        (cortes.length ? '<table class="dt"><tbody>' + cortes.map(f => '<tr><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + _fechaTxt(f.ex.fecha) + '</td><td>' + (f.ex.dias === 0 ? 'hoy' : 'en ' + f.ex.dias + ' d') + '</td><td>' + (f.ex.real ? '🟢' : '⚪') + '</td></tr>').join('') + '</tbody></table>' : '<div class="mt2">Ninguno.</div>') + '</div>' +
+        '<div><div class="mt2" style="font-weight:700;margin-bottom:6px">💶 Cobros en los próximos 120 días <i style="font-weight:400">· 30 d ≈ ' + fe(sum(30), 0) + ' · 90 d ≈ ' + fe(sum(90), 0) + ' netos</i></div>' +
+        (pagos.length ? '<table class="dt"><tbody>' + pagos.map(f => '<tr><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + _fechaTxt(f.pago.fecha) + '</td><td>' + (f.impNeto ? fe(f.impNeto, 2) : '—') + '</td><td>' + etq(f) + '</td></tr>').join('') + '</tbody></table>' : '<div class="mt2">Sin cobros previstos: revisa que la hoja DIVIDENDOS tenga los meses de pago.</div>') + '</div></div>';
+
+    // Tabla por activo
+    const filt = { todos: () => true, vigilar: f => f.nivel === 'A vigilar' || f.nivel === 'En riesgo', subida: f => f.subida && f.subida.pct >= 5, sinhist: f => f.aniosDatos < 3 };
+    const ord = { renta: (a, b) => b.dpa * b.sh - a.dpa * a.sh, calidadAsc: (a, b) => a.score - b.score, calidadDesc: (a, b) => b.score - a.score, pago: (a, b) => (a.pago ? a.pago.dias : 9999) - (b.pago ? b.pago.dias : 9999), yield: (a, b) => (b.yld || 0) - (a.yld || 0), nombre: (a, b) => a.n.localeCompare(b.n, 'es') };
+    const lista = fs.filter(filt[DIV_FILTRO] || filt.todos).sort(ord[DIV_ORDEN] || ord.renta);
+    const chips = [['todos', 'Todos (' + fs.length + ')'], ['vigilar', '⚠️ A vigilar (' + fs.filter(filt.vigilar).length + ')'], ['subida', '📈 Subida prevista ≥5% (' + fs.filter(filt.subida).length + ')'], ['sinhist', '❔ Sin histórico (' + fs.filter(filt.sinhist).length + ')']];
+    document.getElementById('div-filtros').innerHTML = chips.map(c => '<button class="btn' + (DIV_FILTRO === c[0] ? ' ac' : '') + '" onclick="divSetFiltro(\'' + c[0] + '\')">' + c[1] + '</button>').join('') +
+        '<span style="margin-left:auto;font-size:10px;color:var(--mt)">Orden <select onchange="divSetOrden(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:11px">' +
+        [['renta', 'Más dividendo (€)'], ['calidadAsc', 'Peor calidad primero'], ['calidadDesc', 'Mejor calidad primero'], ['pago', 'Próximo cobro'], ['yield', 'Yield'], ['nombre', 'Nombre']].map(o => '<option value="' + o[0] + '"' + (DIV_ORDEN === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></span>';
+    const num = (v, k = 2) => v == null ? '—' : Number(v).toFixed(k).replace('.', ',');
+    document.getElementById('div-tabla').innerHTML = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Calidad</th><th title="Años seguidos sin recortar el dividendo (con tolerancia de divisa)">Años sin recortar</th><th>Crec. 5 años</th><th>Dividendo / acc.</th><th>' + Y + '</th><th>' + (Y + 1) + ' previsto</th><th>Cubierto</th><th>Yield hoy</th><th>Yield coste</th><th>Frecuencia</th><th>Próx. corte</th><th>Próx. cobro</th></tr></thead><tbody>' +
+        lista.map((f, j) => '<tr style="cursor:pointer;' + (j % 2 ? 'background:var(--s2)' : '') + '" onclick="divSeleccionar(\'' + f.isin + '\')"><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + divChip(f) + '</td><td>' + (f.aniosDatos >= 3 ? (f.sinRecorte >= 10 ? '10+' : f.sinRecorte) : '—') + '</td>' +
+            '<td style="color:' + (f.cagr5 == null ? 'var(--mt)' : f.cagr5 >= 3 ? 'var(--gn)' : f.cagr5 >= 0 ? 'var(--am)' : 'var(--rd)') + '">' + divPc(f.cagr5) + '</td><td><b>' + num(f.dpa) + '</b></td><td>' + (f.curso ? num(f.curso) + (f.cursoVsUlt != null ? ' <i style="font-size:9px;color:' + (f.cursoVsUlt >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + divPc(f.cursoVsUlt, 1) + '</i>' : '') : '—') + '</td>' +
+            '<td>' + (f.sig ? num(f.sig) + ' <i style="font-size:9px;color:' + (f.subida && f.subida.pct >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + divPc(f.subida ? f.subida.pct : null, 1) + '</i>' : (f.subida ? '<span class="mt2" title="' + revEsc(f.subida.fuente) + '">≈ ' + divPc(f.subida.pct, 1) + '</span>' : '—')) + '</td>' +
+            '<td style="color:' + (f.cub.v === 'Sí' ? 'var(--gn)' : f.cub.v === 'No' ? 'var(--rd)' : f.cub.v === 'Justo' ? 'var(--am)' : 'var(--mt)') + '" title="' + revEsc(f.cub.why) + '">' + f.cub.v + '</td><td>' + (f.yld != null ? num(f.yld, 1) + '%' : '—') + '</td><td>' + (f.yoc != null ? num(f.yoc, 1) + '%' : '—') + '</td><td>' + f.freq + '</td>' +
+            '<td>' + (f.exPasado ? '<span class="mt2">ya pasó</span>' : f.ex ? _fechaTxt(f.ex.fecha) + ' ' + (f.ex.real ? '🟢' : '') : '—') + '</td><td>' + (f.pago ? _fechaTxt(f.pago.fecha) + (f.impNeto ? '<div class="mt2" style="font-size:9px">≈ ' + fe(f.impNeto, 2) + '</div>' : '') : '—') + '</td></tr>').join('') +
+        '</tbody></table></div><div class="mt2" style="font-size:9px;padding:8px 16px">Pulsa un activo para ver su detalle. 🟢 = fecha anunciada (Getquin); sin marca = estimada con tu calendario. «Calidad» (0-100) = años sin recortar (30) + crecimiento medio a 5 años (25) + cobertura por flujo de caja (25) + variación del último año (20). El histórico está en euros: en activos en dólares se tolera hasta un 10 % de ruido de divisa.</div>';
+
+    // Detalle
+    const sel = fs.find(f => f.isin === DIV_SEL) || fs.slice().sort(ord.renta)[0];
+    const det = document.getElementById('div-detalle');
+    if (sel) {
+        DIV_SEL = sel.isin;
+        det.innerHTML = '<div style="padding:10px 16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="mt2">Activo <select onchange="divSeleccionar(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:5px 8px;font-size:12px">' +
+            fs.slice().sort(ord.nombre).map(f => '<option value="' + f.isin + '"' + (f.isin === DIV_SEL ? ' selected' : '') + '>' + revEsc(f.n) + '</option>').join('') + '</select></label>' + divChip(sel) + '<span class="mt2">' + sel.freq + (sel.meses ? ' · meses ' + sel.meses.join(', ') : '') + '</span></div>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;padding:12px 16px">' +
+            '<div>' + divBarras(sel) + '</div><div>' +
+            '<div class="mt2" style="font-weight:700;margin-bottom:6px">Cómo sale la calidad</div>' + sel.partes.map(x => '<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px"><span style="flex:0 0 150px">' + x[0] + '</span><span style="flex:1;height:6px;border-radius:3px;background:var(--bd);overflow:hidden"><span style="display:block;height:100%;width:' + (x[1] / x[2] * 100) + '%;background:' + DIV_COL[sel.nivel] + '"></span></span><span style="flex:0 0 130px;text-align:right" class="mt2">' + x[1] + '/' + x[2] + ' · ' + revEsc(x[3]) + '</span></div>').join('') +
+            '<div class="rev-line" style="margin-top:10px">Subida esperada: <b>' + (sel.subida ? divPc(sel.subida.pct) : 'sin datos') + '</b>' + (sel.subida ? ' <i>(' + sel.subida.fuente + ')</i>' : '') + '</div>' +
+            '<div class="rev-line">Último año: <b>' + (sel.crec1 != null ? divPc(sel.crec1) : '—') + '</b> ' + (sel.crec1Fuente ? '<i>(' + sel.crec1Fuente + ')</i>' : '') + (sel.cagr10 != null ? ' · media 10 años <b>' + divPc(sel.cagr10) + '</b>' : '') + '</div>' +
+            '<div class="rev-line">Cobertura: <b>' + sel.cub.v + '</b> ' + (sel.cub.why ? '<i>(' + sel.cub.why + ')</i>' : '') + (sel.payoutEps != null ? ' · payout sobre beneficios ' + sel.payoutEps.toFixed(0) + '%' : '') + '</div>' +
+            '<div class="rev-line">Próximo corte: <b>' + (sel.exPasado ? 'ya pasó' : sel.ex ? _fechaTxt(sel.ex.fecha) + (sel.ex.real ? ' (anunciado)' : ' (estimado)') : '—') + '</b> · próximo cobro: <b>' + (sel.pago ? _fechaTxt(sel.pago.fecha) + (sel.impNeto ? ' ≈ ' + fe(sel.impNeto, 2) + ' netos' : '') : '—') + '</b>' + (sel.estado ? ' · ' + revEsc(sel.estado) : '') + '</div>' +
+            (sel.recortes.length ? '<div class="rev-line" style="color:var(--am)">Recortes en 10 años: ' + sel.recortes.map(r => r.a + ' (' + r.pct.toFixed(0) + '%)').join(', ') + '. Si fue una escisión, un extra del año anterior o un cambio de divisa, no es un recorte real.</div>' : '') +
+            '<div class="rev-f" style="margin-top:8px">' + (sel.alertas.length ? sel.alertas.map(a => '<span class="' + a[0] + '">' + revEsc(a[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div></div></div>' +
+            '<div id="div-histgq" style="padding:0 16px 14px"></div>';
+        divCargarHistGq(sel.isin);
+    } else det.innerHTML = '<div class="mt2" style="padding:16px">Sin posiciones con dividendo.</div>';
+
+    // Calidad de datos: el DIV/ACC que usa el dashboard frente al histórico y Getquin
+    const dat = fs.filter(f => f.dpa > 0).map(f => { const comp = [['histórico ' + f.Y, f.curso], ['histórico ' + (f.Y - 1), f.ult], ['Getquin', f.g && f.g.div > 0 ? f.g.div : null]].filter(c => c[1]);
+        const dif = comp.map(c => ({ n: c[0], v: c[1], d: (c[1] / f.dpa - 1) * 100 })); return { f, dif, max: dif.length ? Math.max(...dif.map(x => Math.abs(x.d))) : 0 }; }).sort((a, b) => b.max - a.max);
+    const dudosos = dat.filter(x => x.max > 12).length;
+    document.getElementById('div-datos').innerHTML = '<div style="padding:10px 16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="gq-copia-btn" onclick="gqDescargarCopia()">📥 Descargar copia (CSV)</button><span class="mt2" style="font-size:10px">Copia de todo el histórico de Getquin guardado día a día en tu hoja GETQUIN_HIST.</span></div>' + '<details style="padding:10px 16px"' + (dudosos ? '' : '') + '><summary style="cursor:pointer;font-weight:600">' + dat.length + ' activos · ' + (dudosos ? '<span style="color:var(--am)">' + dudosos + ' con diferencias &gt; 12%</span>' : '<span style="color:var(--gn)">todo coherente</span>') + '</summary>' +
+        '<div class="sc"><table class="dt" style="margin-top:8px"><thead><tr><th style="text-align:left">Activo</th><th>Usado (DIV/ACC)</th><th>Histórico año en curso</th><th>Histórico año anterior</th><th>Getquin</th></tr></thead><tbody>' + dat.map((x, j) => {
+            const c = n => { const d = x.dif.find(y => y.n.indexOf(n) === 0 || y.n === n); return d ? num(d.v) + ' <i style="font-size:9px;color:' + (Math.abs(d.d) > 12 ? 'var(--am)' : 'var(--mt)') + '">' + divPc(d.d, 0) + '</i>' : '—'; };
+            return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="text-align:left">' + revEsc(x.f.n) + '</td><td><b>' + num(x.f.dpa) + '</b></td><td>' + c('histórico ' + x.f.Y) + '</td><td>' + c('histórico ' + (x.f.Y - 1)) + '</td><td>' + c('Getquin') + '</td></tr>'; }).join('') +
+        '</tbody></table></div><div class="mt2" style="font-size:9px;margin-top:6px">Una diferencia grande puede ser un dato desfasado en tu hoja, un cambio reciente de dividendo o la conversión de divisa de Getquin (~3%). Sirve para saber qué dato revisar primero.</div></details>';
+}
+
+// ══════════ ANÁLISIS DE TRAMPAS: ¿sigue mereciendo la pena comprar a ese precio? ══════════
+// Cruza cada trampa con los datos diarios de Getquin: dividendo (sube/baja), si está cubierto, objetivo de analistas frente
+// a la trampa, 52 semanas y el peso que tendrías tras comprar. Nivel: ok (sigue) · ojo (vigilar) · no (dudosa) · nd (sin datos).
+const TRAMPA_NIVEL = { ok: ['#34C77B', '✅'], ojo: ['#E29A3E', '🟡'], no: ['#E85A5A', '🔴'], nd: ['#7A8499', '⚪'] };
+function analisisTrampa(r) {
+    const isin = String(r[15] || '').trim().toUpperCase(), tr = cn(r[3]), pa = cn(r[4]), d1 = cn(r[5]), cap = cn(r[7]), disparada = d1 >= 0;
+    const esEtf = /ETF|MSCI|FTSE|ISHARES|AMUNDI|VANGUARD|UCITS|ALL.?WORLD|ALL.?CAP|\((DIS|ACC|DIST)\)|CORE /i.test(String(r[0]));
+    const g = isin ? gqFicha(isin) : null, m = [];
+    const res = (nivel, titulo) => ({ nivel, titulo, motivos: m, disparada });
+    if (esEtf) return res('nd', 'ETF: no aplica');
+    if (!isin) return res('nd', 'Falta el ISIN');
+    let nivel = 'ok'; const peor = n => { if (n === 'no' || (n === 'ojo' && nivel === 'ok')) nivel = n; };
+    const pc1 = v => v.toFixed(1).replace('.', ',');
+    const fx = gqFx52(g, pa), conv = v => (v != null && fx) ? v * fx : null;
+    if (g) {
+        // Dividendo
+        const dpa = g.div > 0 ? g.div : cn(r[8]);
+        const cub = revCubierto({ esEtf: false, gq: g, gf: g, sector: '' });
+        const recorte = g.crec1 != null && g.crec1 <= -5, baja = g.crec1 != null && g.crec1 < -0.5;
+        if (recorte) { peor(cub.v === 'No' ? 'no' : 'ojo'); m.push(['w', 'El dividendo ha bajado ' + pc1(-g.crec1) + '% en el último año' + (cub.v === 'No' ? ' y no está cubierto: la caída del precio puede estar justificada' : '')]); }
+        else if (baja) m.push(['i', 'Dividendo algo a la baja (' + pc1(g.crec1) + '%)']);
+        else if (g.crec1 != null && g.crec1 >= 5) m.push(['g', 'Dividendo al alza +' + pc1(g.crec1) + '%']);
+        if (cub.v === 'No' && !recorte) { peor(baja ? 'no' : 'ojo'); m.push(['w', 'Dividendo sin cubrir: ' + cub.why]); }
+        else if (cub.v === 'Justo') m.push(['i', 'Cubierto justo: ' + cub.why]);
+        else if (cub.v === 'Sí') m.push(['g', 'Dividendo cubierto: ' + cub.why]);
+        if (dpa > 0 && tr > 0) m.push(['n', 'Yield en la trampa ' + pc1(dpa / tr * 100) + '%']);
+        // Analistas frente al precio de la trampa
+        const obj = conv(g.obj);
+        if (obj && tr > 0) {
+            const up = (obj / tr - 1) * 100;
+            if (up < 0) { peor('ojo'); m.push(['w', 'El objetivo medio de analistas (' + fe(obj, 2) + ') está por debajo de tu trampa']); }
+            else if (up < 8) m.push(['i', 'Poco margen según analistas: objetivo ' + fe(obj, 2) + ' (' + revPct(up, 0) + ' sobre la trampa)']);
+            else m.push(['g', 'Objetivo de analistas ' + fe(obj, 2) + ' (' + revPct(up, 0) + ' sobre la trampa)']);
+        }
+        if (g.nVen != null && g.nCom != null && g.nVen > g.nCom) { peor('ojo'); m.push(['w', 'Más analistas dicen vender (' + g.nVen + ') que comprar (' + g.nCom + ')']); }
+        // 52 semanas
+        const mn = conv(g.min52), mx = conv(g.max52);
+        if (mn && mx && tr > 0) {
+            if (tr < mn * 0.9) m.push(['i', 'La trampa está ' + pc1((1 - tr / mn) * 100) + '% por debajo del mínimo de 52 semanas (' + fe(mn, 2) + '): costará que se ejecute']);
+            else if (tr > mx) m.push(['i', 'La trampa está por encima del máximo de 52 semanas']);
+        }
+    } else m.push(['n', 'Sin datos de Getquin todavía: solo se usa tu histórico y calendario']);
+    // Calidad del dividendo (histórico + calendario) y corte próximo
+    const fd = divFichaIsin({ isin, n: r[0], sh: 0, pa, dpa: cn(r[8]) || 0, pm: 0, sector: '', pais: '' });
+    if (fd.nivel === 'En riesgo') { peor('ojo'); m.push(['w', 'Dividendo de calidad baja (' + fd.score + '/100): ' + fd.partes.filter(x => x[1] < x[2] * 0.4).map(x => x[0].toLowerCase()).join(', ')]); }
+    else if (fd.nivel === 'Excelente' || fd.nivel === 'Sólida') m.push(['g', 'Dividendo de calidad ' + fd.nivel.toLowerCase() + ' (' + fd.score + '/100): ' + (fd.aniosDatos >= 3 ? (fd.sinRecorte >= 10 ? '10+' : fd.sinRecorte) + ' años sin recortar' : 'sin histórico') + (fd.cagr5 != null ? ', crece ' + divPc(fd.cagr5, 1) + ' anual' : '')]);
+    else if (fd.nivel === 'A vigilar') m.push(['i', 'Dividendo a vigilar (' + fd.score + '/100)' + (fd.motivoNivel ? ': ' + fd.motivoNivel : '')]);
+    if (fd.alertas.some(x => x[0] === 'w' && /Recorte en/.test(x[1]))) { peor('ojo'); m.push(['w', fd.alertas.find(x => /Recorte en/.test(x[1]))[1]]); }
+    if (fd.subida && fd.subida.pct >= 5 && fd.sig) m.push(['g', 'Subida de dividendo prevista ' + divPc(fd.subida.pct, 1) + ' en ' + (fd.Y + 1)]);
+    if (fd.ex && !fd.exPasado && fd.ex.dias <= 30 && (disparada || Math.abs(d1) <= 8)) m.push(['i', 'Corte de dividendo en ' + fd.ex.dias + ' días (' + _fechaTxt(fd.ex.fecha) + (fd.ex.real ? '' : ', estimado') + '): ' + (disparada ? 'compra antes para cobrarlo' : 'si la trampa se ejecuta después, no cobras este pago')]);
+    // Peso tras comprar
+    const C = GOTEO_CFG, pos = posicionesVivas(), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
+    const mia = pos.find(p => p.isin && esMismoISIN(p.isin, isin)), valor = mia ? (precioDe(mia) || 0) * mia.sh : 0;
+    if (cap > 0) {
+        const pesoDesp = (valor + cap) / (total + cap) * 100;
+        if (pesoDesp > C.MAX_PESO_ACCION) { peor(valor / total * 100 > C.MAX_PESO_ACCION ? 'no' : 'ojo'); m.push(['w', 'Tras comprar pesarías ' + pc1(pesoDesp) + '% (tope ' + C.MAX_PESO_ACCION + '%): reduce el capital de la trampa']); }
+    }
+    if (!g && fd.nivel === 'Sin datos') return res('nd', 'Sin datos de Getquin');
+    const t = { ok: disparada ? 'Comprar: sigue valiendo' : 'Seguir con la trampa', ojo: disparada ? 'Comprar con cuidado' : 'Vigilar', no: disparada ? 'No comprar sin revisar' : 'Trampa dudosa' };
+    return res(nivel, t[nivel]);
+}
+// Frase corta con el veredicto de una trampa, para los avisos de «a tiro»
+function trampaVeredictoTxt(r) {
+    try {
+        const a = analisisTrampa(r); if (a.nivel === 'nd') return '';
+        const mal = (a.motivos.find(x => x[0] === 'w') || [0, ''])[1];
+        return a.nivel === 'ok' ? ' Análisis: sigue valiendo la pena.' : a.nivel === 'ojo' ? ' Análisis: vigílala' + (mal ? ' (' + mal + ')' : '') + '.' : ' ⚠️ Análisis: DUDOSA' + (mal ? ' (' + mal + ')' : '') + ', revísala antes de comprar.';
+    } catch (e) { return ''; }
+}
+function trampaCeldaHtml(r) {
+    const a = analisisTrampa(r), c = TRAMPA_NIVEL[a.nivel], op = r[11] === true;
+    const col = { w: 'var(--rd)', i: 'var(--am)', g: 'var(--gn)', n: 'var(--mt)' };
+    const orden = (op && a.nivel === 'no') ? '<div style="color:var(--rd);font-weight:700;font-size:9px;margin-top:3px">🚨 Tienes la orden puesta: revísala</div>' : '';
+    const principales = a.motivos.filter(x => x[0] === 'w').concat(a.motivos.filter(x => x[0] === 'i')).concat(a.motivos.filter(x => x[0] === 'g')).slice(0, 2);
+    return '<span title="' + revEsc(a.motivos.map(x => '• ' + x[1]).join('\n')) + '" style="display:inline-block;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap;color:' + c[0] + ';border:1px solid ' + c[0] + ';background:' + c[0] + '1f">' + c[1] + ' ' + a.titulo + '</span>' + orden +
+        principales.map(x => '<div style="font-size:8.5px;line-height:1.35;margin-top:3px;color:' + col[x[0]] + ';max-width:240px;white-space:normal">' + revEsc(x[1]) + '</div>').join('');
+}
+
 function renderTrampas() {
     if (!TRAMPAS_GS.length) return;
     document.getElementById('n-trampas').textContent = TRAMPAS_GS.length + ' órdenes';
@@ -5656,12 +6048,18 @@ function renderTrampas() {
     const medio = TRAMPAS_GS.filter(r => { const d = Math.abs(cn(r[5])); return d > 5 && d <= 10; }).length;
     const lejos = TRAMPAS_GS.filter(r => Math.abs(cn(r[5])) > 10).length;
     const capTotal = TRAMPAS_GS.reduce((s, r) => s + cn(r[7]), 0);
+    const anal = TRAMPAS_GS.map(r => ({ r, a: analisisTrampa(r) })), nOk = anal.filter(x => x.a.nivel === 'ok').length, nOjo = anal.filter(x => x.a.nivel === 'ojo').length, nNo = anal.filter(x => x.a.nivel === 'no').length, nNd = anal.filter(x => x.a.nivel === 'nd').length;
+    const dudosas = anal.filter(x => x.a.nivel === 'no'), conOrden = dudosas.filter(x => x.r[11] === true);
+    const avisoT = document.getElementById('trampas-aviso');
+    if (avisoT) avisoT.innerHTML = dudosas.length ? '<div class="alert-box warn"><span class="icon">🧠</span><span><b>' + dudosas.length + ' trampa' + (dudosas.length === 1 ? '' : 's') + ' dudosa' + (dudosas.length === 1 ? '' : 's') + ':</b> ' +
+        dudosas.map(x => revEsc(x.r[0]) + ' (' + revEsc((x.a.motivos.find(m => m[0] === 'w') || [0, ''])[1]) + ')').join(' · ') + (conOrden.length ? '<br>🚨 <b>Con la orden ya puesta en Trade Republic: ' + conOrden.map(x => revEsc(x.r[0])).join(', ') + '.</b> Revísalas antes de que se ejecuten.' : '') + '</span></div>' : '';
 
     document.getElementById('kg2').innerHTML = [
         { l: '🟢 Dist. 0-5% (muy cerca)', v: cerca + ' órdenes', s: 'Pueden ejecutar pronto', c: '#34C77B' },
         { l: '🟡 Dist. 5-10% (medio)', v: medio + ' órdenes', s: 'Zona de vigilancia', c: '#E29A3E' },
         { l: '🔴 Dist. >10% (lejos)', v: lejos + ' órdenes', s: 'Paciencia', c: '#E85A5A' },
         { l: 'Capital en espera', v: fe(capTotal, 0), s: 'Total comprometido en trampas', c: '#E4C777' },
+        { l: '🧠 Análisis de trampas', v: nOk + ' ✅ · ' + nOjo + ' 🟡 · ' + nNo + ' 🔴', s: nNd ? nNd + ' sin datos / ETF' : 'con datos de Getquin', c: nNo ? '#E85A5A' : nOjo ? '#E29A3E' : '#34C77B' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:16px">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
 
@@ -5708,6 +6106,7 @@ function renderTrampas() {
             '<td class="rd">' + (tr1 ? f2(tr1) + ' €' : '—') + '</td>' +
             '<td style="font-family:monospace;color:var(--tx)">' + (pa ? f2(pa) + ' €' : '—') + '</td>' +
             '<td style="background:rgba(201,162,75,0.10)">' + (d1 ? '<span style="display:inline-block;min-width:50px;text-align:center;padding:3px 9px;border-radius:12px;color:#fff;font-weight:800;font-size:12px;background:' + (d1 >= 0 || ad <= 3 ? '#E85A5A' : ad <= 5 ? '#E29A3E' : '#34C77B') + '">' + dv.toFixed(1) + '%</span>' : '—') + '</td>' +
+            '<td style="text-align:left">' + trampaCeldaHtml(r) + '</td>' +
             '<td class="mt2">' + (a1 || '—') + '</td>' +
             '<td class="bl">' + (cap1 ? Math.round(cap1) + ' €' : '—') + '</td>' +
             '<td class="gn">' + (divAcc > 0 ? f2(divAcc) + ' €' : '—') + '</td>' +
@@ -7684,16 +8083,111 @@ function gqComparacion() {
     return filas.sort((a, b) => Math.abs(b.dif == null ? -1 : b.dif) - Math.abs(a.dif == null ? -1 : a.dif));
 }
 
-// Mínimo y máximo de 52 semanas (hoja TRAMPAS, columnas Q y R)
+// ── 52 semanas y datos de Getquin de cada activo
+function gqFicha(isin) { // cualquier fila reciente de Getquin (también las «sin dividendo»)
+    if (!isin) return null;
+    return (GETQUIN_GS || []).find(x => x.isin === isin && /^(OK|PARCIAL|SIN DIV)/.test(x.estado || '') && gqFresco(x)) || null;
+}
+// Factor para pasar a euros los importes de la página de Getquin (rango 52 s., objetivo de analistas).
+// Se usa el rango del día frente al precio actual en euros, que es más fiable que el cambio de divisas del día.
+function gqFx52(g, pa) {
+    if (!g) return null;
+    if (g.mon52 === 'EUR') return 1;
+    if (g.diaMin > 0 && g.diaMax >= g.diaMin && pa > 0) return pa / ((g.diaMin + g.diaMax) / 2);
+    return g.fx > 0 ? g.fx : null;
+}
+// ══════════ FUENTES DE PRECIO Y DE 52 SEMANAS: hoja (fórmula de Google) frente a Getquin ══════════
+// No se toca ninguna fórmula de tu hoja: la comparación y la elección se hacen aquí, cada vez que se cargan los datos.
+// Getquin se descarga una vez al día (cierre anterior); la fórmula de Google va en directo. Por eso el PRECIO solo se sustituye si el de la hoja
+// es inválido o no encaja con el rango de 52 semanas de Getquin. Para las 52 SEMANAS, si ambos son coherentes, manda Getquin (dato fechado y archivado).
+function gqEdadDias(g) { const t = Date.parse(String(g.act || '').replace(' ', 'T')); return isNaN(t) ? 999 : (Date.now() - t) / 86400000; }
+function gqFxIndep(g) { return g.mon52 === 'EUR' ? 1 : (g.fx > 0 ? g.fx : null); }   // cambio que NO depende del precio de la hoja
+function precioHistUltimo(isin) {
+    const fs = Object.keys(HISTORICO_PRECIOS_POSICIONES_GS || {}).filter(f => HISTORICO_PRECIOS_POSICIONES_GS[f][isin] > 0).sort();
+    return fs.length ? HISTORICO_PRECIOS_POSICIONES_GS[fs[fs.length - 1]][isin] : 0;
+}
+function auditoriaPrecio(isin, pHoja) {
+    const g = isin ? gqFicha(isin) : null, edad = g ? gqEdadDias(g) : null;
+    const gq = (g && g.precio > 0 && edad <= 4) ? g.precio : null, hoja = pHoja > 0 ? pHoja : null;
+    const a = { isin, hoja, gq, dif: null, estado: '', usa: 'hoja', motivo: '', edad };
+    if (!hoja && !gq) { a.estado = 'sin datos'; return a; }
+    if (!hoja) { a.estado = 'sin hoja'; a.usa = FUENTE_PRECIO === 'hoja' ? 'hoja' : 'getquin'; a.motivo = 'la hoja no da precio'; return a; }
+    if (!gq) { a.estado = 'sin Getquin'; return a; }
+    a.dif = (gq / hoja - 1) * 100;
+    const tol = (g.mon && g.mon !== 'EUR') ? 9 : 6, fx = gqFxIndep(g);
+    const plaus = p => (g.min52 > 0 && g.max52 > g.min52 && fx) ? (p >= g.min52 * fx * 0.95 && p <= g.max52 * fx * 1.05) : null;
+    if (Math.abs(a.dif) <= tol) { a.estado = 'coinciden'; }
+    else {
+        const ph = plaus(hoja), pg = plaus(gq), ref = precioHistUltimo(isin);   // último cierre guardado en tu histórico: tercer testigo
+        const refApoyaHoja = ref > 0 && Math.abs(gq / ref - 1) > 0.4 && Math.abs(hoja / ref - 1) <= 0.4;
+        if (ph === false && pg !== false && !refApoyaHoja) { a.estado = 'hoja dudosa'; a.motivo = 'el precio de la hoja cae fuera del rango de 52 semanas de Getquin'; a.usa = 'getquin'; }
+        else if (refApoyaHoja) { a.estado = 'difieren'; a.motivo = 'Getquin se aleja más del 40% del último cierre guardado: se mantiene la hoja'; }
+        else if (pg === false && ph !== false) { a.estado = 'Getquin dudoso'; a.motivo = 'el precio de Getquin cae fuera de su propio rango de 52 semanas'; }
+        else { a.estado = 'difieren'; a.motivo = 'diferencia de ' + Math.abs(a.dif).toFixed(1).replace('.', ',') + '% sin poder saber cuál falla: se mantiene la hoja (va en directo)'; }
+    }
+    if (FUENTE_PRECIO === 'hoja') a.usa = 'hoja'; else if (FUENTE_PRECIO === 'getquin') a.usa = 'getquin';
+    return a;
+}
+// Sustituye en el dashboard el precio de la hoja por el de Getquin SOLO donde la auditoría lo decide (la hoja no se modifica)
+function aplicarFuentePrecio() {
+    PRECIO_AUD = {}; _cache52 = {};
+    const RM = {}; for (const [k, v] of Object.entries(MAP)) RM[v] = k;
+    (POSICIONES_GS || []).forEach(p => {
+        if (!p.isin) return;
+        const a = auditoriaPrecio(p.isin, p.pActual); a.n = p.nombre; PRECIO_AUD[p.isin] = a;
+        if (a.usa === 'getquin' && a.gq > 0) { PA[p.nombre] = a.gq; if (RM[p.nombre]) PA[RM[p.nombre]] = a.gq; PA[p.isin] = a.gq; }
+    });
+    (TRAMPAS_GS || []).forEach(r => {
+        const isin = String(r[15] || '').trim().toUpperCase(); if (!isin) return;
+        if (r._ph === undefined) r._ph = cn(r[4]);
+        const a = PRECIO_AUD[isin] && PRECIO_AUD[isin].hoja === r._ph ? PRECIO_AUD[isin] : auditoriaPrecio(isin, r._ph);
+        if (!PRECIO_AUD[isin]) { a.n = r[0]; PRECIO_AUD[isin] = a; }
+        if (a.usa === 'getquin' && a.gq > 0) { r[4] = a.gq; const tr = cn(r[3]); if (tr > 0) r[5] = (tr - a.gq) / a.gq * 100; }
+        else if (r._ph > 0) { r[4] = r._ph; const tr = cn(r[3]); if (tr > 0) r[5] = (tr - r._ph) / r._ph * 100; }
+    });
+    _cachePosicionesVivas = null;
+    const malas = Object.values(PRECIO_AUD).filter(a => a.estado === 'hoja dudosa' || a.estado === 'sin hoja');
+    if (malas.length && !window._avisadoPrecio) { window._avisadoPrecio = true; try { notificar('📉 Precio dudoso en la hoja', malas.map(a => a.n).slice(0, 4).join(', ') + ': se usa el de Getquin', 'warn'); } catch (e) {} }
+}
+// 52 semanas de una trampa/posición: elige entre las columnas Q-R de la hoja y Getquin
+function rango52Isin(isin, pa, hMin, hMax) {
+    isin = String(isin || '').trim().toUpperCase();
+    const key = isin + '|' + (pa || 0) + '|' + hMin + '|' + hMax; if (_cache52[key]) return _cache52[key];
+    const ok = (mn, mx) => mn > 0 && mx > mn && (!(pa > 0) || (pa >= mn * 0.97 && pa <= mx * 1.03));
+    const hoja = (hMin > 0 && hMax > hMin) ? { min: hMin, max: hMax } : null, vH = !!hoja && ok(hMin, hMax);
+    const g = isin ? gqFicha(isin) : null, fx = g ? gqFx52(g, pa) : null;
+    const gq = (g && fx && g.min52 > 0 && g.max52 > g.min52) ? { min: g.min52 * fx, max: g.max52 * fx } : null, vG = !!gq && ok(gq.min, gq.max), fresco = g ? gqEdadDias(g) <= 5 : false;
+    const out = { hoja, gq, vH, vG, dif: null, estado: '', usa: '', motivo: '' };
+    if (hoja && gq) out.dif = Math.max(Math.abs(gq.min / hoja.min - 1), Math.abs(gq.max / hoja.max - 1)) * 100;
+    let elegido = null;
+    if (FUENTE_52S === 'hoja') elegido = hoja ? 'hoja' : (gq ? 'getquin' : null);
+    else if (FUENTE_52S === 'getquin') elegido = gq ? 'getquin' : (hoja ? 'hoja' : null);
+    else if (vG && vH) { elegido = fresco ? 'getquin' : 'hoja'; out.motivo = 'ambos coherentes con el precio'; }
+    else if (vG) { elegido = 'getquin'; out.motivo = hoja ? 'el rango de la hoja no encaja con el precio' : 'la hoja no tiene rango'; }
+    else if (vH) { elegido = 'hoja'; out.motivo = gq ? 'el rango de Getquin no encaja con el precio' : 'sin datos de Getquin'; }
+    else elegido = hoja ? 'hoja' : (gq ? 'getquin' : null);
+    out.estado = !hoja || !gq ? (hoja || gq ? 'una sola fuente' : 'sin datos') : out.dif <= 5 ? 'coinciden' : out.dif <= 15 ? 'difieren' : 'muy distintos';
+    out.usa = elegido || '';
+    const src = elegido === 'getquin' ? gq : elegido === 'hoja' ? hoja : null;
+    out.r = src ? { min: pa > 0 ? Math.min(src.min, pa) : src.min, max: pa > 0 ? Math.max(src.max, pa) : src.max, fuente: elegido === 'getquin' ? 'Getquin' : 'hoja TRAMPAS' } : null;
+    return (_cache52[key] = out);
+}
+// Para el código antiguo que leía r[16] / r[17]: devuelve el mínimo y el máximo elegidos
+function r52Fila(r) {
+    if (!r) return { min: 0, max: 0 };
+    const hMin = Number(String(r[16]).replace(',', '.')) || 0, hMax = Number(String(r[17]).replace(',', '.')) || 0;
+    const o = rango52Isin(r[15], cn(r[4]), hMin, hMax);
+    return o.r ? { min: o.r.min, max: o.r.max } : { min: hMin, max: hMax };
+}
+// Mínimo y máximo de 52 semanas de una posición (hoja TRAMPAS si la tiene; si no, Getquin)
 function rango52De(p) {
+    const pa = precioDe(p) || 0;
     const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
-    const mn = tr ? cn(tr[16]) : 0, mx = tr ? cn(tr[17]) : 0;
-    return (mn > 0 && mx > mn) ? { min: mn, max: mx } : null;
+    const o = rango52Isin(p.isin || (tr && tr[15]), pa, tr ? (Number(String(tr[16]).replace(',', '.')) || 0) : 0, tr ? (Number(String(tr[17]).replace(',', '.')) || 0) : 0);
+    return o.r || null;
 }
-// Datos de Getquin (hoja GETQUIN) de una posición, si ya se han descargado
-function gqDe(p) {
-    return gqPorIsin(p.isin);
-}
+// Datos de Getquin con dividendo (fuente del DIV/ACC y del «cubierto»)
+function gqDe(p) { return gqPorIsin(p.isin); }
 function revEtiquetaDiv(pct) { return pct == null || isNaN(pct) ? '' : (pct > 0.5 ? 'Sube' : pct < -0.5 ? 'Baja' : 'Igual'); }
 function revPct(v, k = 1) { return v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') + Number(v).toFixed(k).replace('.', ',') + '%'; }
 
@@ -7705,19 +8199,23 @@ function estadoRevision() {
     return { nunca: false, vencida: faltan <= 0, ultima, proxima, dias, faltan };
 }
 
-// Métricas y avisos automáticos de cada posición
+// ── Revisión: ficha completa de cada posición + propuesta automática ────────────────────────────
+const REV_COL_DEC = { Mantener: 'var(--mt)', Reforzar: 'var(--gn)', Reducir: 'var(--am)', Vender: 'var(--rd)', Vigilar: 'var(--am)' };
+function esEspPos(p) { return String(p.tipo || '').toLowerCase().startsWith('especulativ'); }
+
 function datosRevision() {
     const pos = posicionesVivas();
     const valorTotal = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
     const sectores = {};
     pos.forEach(p => { if (!esEtfPos(p)) { const k = sectorBase(p.sector); sectores[k] = (sectores[k] || 0) + (precioDe(p) || 0) * p.sh / valorTotal * 100; } });
     const hoy = Date.now(), ts = f => { const [d, m, y] = String(f).split('/'); return new Date(+y, +m - 1, +d).getTime(); };
-    const C = GOTEO_CFG, mesHoy = _hoyISO().slice(0, 7);
+    const C = GOTEO_CFG, mesHoy = _hoyISO().slice(0, 7), pc1 = v => v.toFixed(1).replace('.', ',');
     return pos.map(p => {
         const pa = precioDe(p) || 0, valor = pa * p.sh;
         const peso = valor / valorTotal * 100, rent = p.ct ? (valor - p.ct) / p.ct * 100 : 0;
-        const esEtf = esEtfPos(p), sector = sectorBase(p.sector), pesoSector = esEtf ? null : sectores[sector];
+        const esEtf = esEtfPos(p), esEsp = esEspPos(p), sector = sectorBase(p.sector), pesoSector = esEtf ? null : sectores[sector];
         const dpa = divAccDe(p), yoc = (dpa > 0 && p.pm > 0) ? dpa / p.pm * 100 : null;   // DIV/ACC anual ÷ precio medio de compra
+        const yld = (dpa > 0 && pa > 0) ? dpa / pa * 100 : null;                          // DIV/ACC anual ÷ precio de hoy
         const mios = (divsEnVivo() || []).filter(d => d.n === p.n || (p.isin && d.isin && d.isin === p.isin)).sort((a, b) => ts(a.f) - ts(b.f));
         let tendDiv = null; // cambio del dividendo por acción entre los dos últimos cobros
         if (mios.length >= 2) { const a = mios[mios.length - 2], b = mios[mios.length - 1]; if (a.sh > 0 && b.sh > 0 && a.bruto > 0) tendDiv = ((b.bruto / b.sh) / (a.bruto / a.sh) - 1) * 100; }
@@ -7725,31 +8223,165 @@ function datosRevision() {
         const dist = tr ? Math.abs(cn(tr[5])) : null;
         const hist = (REVISIONES_GS || []).filter(r => r.n === p.n || (p.isin && r.isin === p.isin)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
         const ult = hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
-        const r52 = rango52De(p), gq = gqDe(p);
+        const r52 = rango52De(p), gq = gqDe(p), gf = gqFicha(p.isin);
         const pos52 = r52 ? Math.max(0, Math.min(100, (pa - r52.min) / (r52.max - r52.min) * 100)) : null;
         const vsMax = r52 ? (pa / r52.max - 1) * 100 : null, vsMin = r52 ? (pa / r52.min - 1) * 100 : null;
-        // Sugerencia de variación del dividendo: Getquin (1 año) → si no, entre los dos últimos cobros
-        const sugDiv = (gq && gq.crec1 != null) ? { pct: gq.crec1, fuente: 'Getquin, último año' } : (tendDiv != null ? { pct: tendDiv, fuente: 'entre tus dos últimos cobros' } : null);
+        const fx = gf ? gqFx52(gf, pa) : null, obj = gf && gf.obj > 0 && fx ? gf.obj * fx : null, upside = obj && pa > 0 ? (obj / pa - 1) * 100 : null;
+        // Variación del dividendo: Getquin (último año) → si no, entre los dos últimos cobros
+        const fd = esEtf ? null : divFicha(p);
+        const sugDiv = (gq && gq.crec1 != null) ? { pct: gq.crec1, fuente: 'Getquin, último año' } : (fd && fd.subUlt != null && fd.enEur ? { pct: fd.subUlt, fuente: 'tu histórico, ' + (fd.Y - 1) + ' frente a ' + (fd.Y - 2) } : (tendDiv != null ? { pct: tendDiv, fuente: 'entre tus dos últimos cobros' } : null));
         const flags = []; // [clase, texto]  w = rojo · i = ámbar · g = verde
         if (!esEtf) {
-            if (peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + peso.toFixed(1).replace('.', ',') + '% > tope ' + C.MAX_PESO_ACCION + '%']);
-            else if (peso >= REV_CERCA_ACCION) flags.push(['i', 'Cerca del tope por acción (' + peso.toFixed(1).replace('.', ',') + '% de ' + C.MAX_PESO_ACCION + '%)']);
-            if (pesoSector > C.MAX_PESO_SECTOR) flags.push(['w', 'Sector ' + sector + ' ' + pesoSector.toFixed(1).replace('.', ',') + '% > tope ' + C.MAX_PESO_SECTOR + '%']);
-            else if (pesoSector >= REV_CERCA_SECTOR) flags.push(['i', 'Sector ' + sector + ' cerca del tope (' + pesoSector.toFixed(1).replace('.', ',') + '% de ' + C.MAX_PESO_SECTOR + '%)']);
+            if (peso > C.MAX_PESO_ACCION) flags.push(['w', 'Peso ' + pc1(peso) + '% > tope ' + C.MAX_PESO_ACCION + '%']);
+            else if (peso >= REV_CERCA_ACCION) flags.push(['i', 'Cerca del tope por acción (' + pc1(peso) + '% de ' + C.MAX_PESO_ACCION + '%)']);
+            if (pesoSector > C.MAX_PESO_SECTOR) flags.push(['w', 'Sector ' + sector + ' ' + pc1(pesoSector) + '% > tope ' + C.MAX_PESO_SECTOR + '%']);
+            else if (pesoSector >= REV_CERCA_SECTOR) flags.push(['i', 'Sector ' + sector + ' cerca del tope (' + pc1(pesoSector) + '% de ' + C.MAX_PESO_SECTOR + '%)', false]);
         }
-        if (rent <= -10) flags.push(['w', 'En pérdida ' + rent.toFixed(1).replace('.', ',') + '%: ¿sigue la tesis?']);
-        if (String(p.tipo).toLowerCase().startsWith('especulativ') && rent >= 12) flags.push(['g', 'Objetivo de venta alcanzado (+' + rent.toFixed(0) + '%)']);
-        if (tendDiv != null && tendDiv <= -5) flags.push(['w', 'Dividendo a la baja ' + tendDiv.toFixed(0) + '%']);
-        if (tendDiv != null && tendDiv >= 5) flags.push(['g', 'Dividendo al alza +' + tendDiv.toFixed(0) + '%']);
-        if (dist != null && dist <= 3) flags.push(['i', 'A ' + dist.toFixed(1).replace('.', ',') + '% de su trampa']);
-        if (ult && diasUlt > REV_DIAS_ATRASO) flags.push(['w', 'Revisión atrasada: hace ' + diasUlt + ' días']);
+        if (rent <= -10) flags.push(['w', 'En pérdida ' + pc1(rent) + '%: ¿sigue la tesis?']);
+        if (esEsp && rent >= 12) flags.push(['g', 'Objetivo de venta alcanzado (+' + rent.toFixed(0) + '%)']);
+        if (sugDiv && sugDiv.pct <= -5) flags.push(['w', 'Dividendo a la baja ' + sugDiv.pct.toFixed(0) + '%']);
+        if (sugDiv && sugDiv.pct >= 5) flags.push(['g', 'Dividendo al alza +' + sugDiv.pct.toFixed(0) + '%']);
+        if (dist != null && dist <= 3) flags.push(['i', 'A ' + pc1(dist) + '% de su trampa']);
+        if (ult && diasUlt > REV_DIAS_ATRASO) flags.push(['w', 'Revisión atrasada: hace ' + diasUlt + ' días', false]);
         const pendiente = !ult || String(ult.f).slice(0, 7) !== mesHoy || diasUlt > REV_DIAS_ATRASO;
-        return { p, pa, valor, peso, rent, yoc, dpa, tendDiv, dist, flags, esEtf, sector, pesoSector, hist, ult, diasUlt, pendiente, r52, gq, pos52, vsMax, vsMin, sugDiv };
+        const d = { fd, p, pa, valor, peso, rent, yoc, yld, dpa, tendDiv, dist, flags, esEtf, esEsp, sector, pesoSector, hist, ult, diasUlt, pendiente, r52, gq, gf, pos52, vsMax, vsMin, sugDiv, obj, upside };
+        d.cubAuto = revCubierto(d);
+        d.termo = revTermometro(d);
+        d.prop = revPropuesta(d);
+        return d;
     });
+}
+// ══════════ TERMÓMETRO DE LA REVISIÓN: ¿sigue sano el negocio? ══════════
+// Verde = negocio intacto · Naranja = estable pero con matices · Rojo = negocio deteriorado, valorar salida.
+// Mide el NEGOCIO y su dividendo (no si el precio está barato: eso es la propuesta Reforzar/Mantener). Puntuación 0-100 ponderada:
+// calidad del dividendo (40) · cobertura por flujo de caja (25) · tendencia del dividendo (15) · analistas (10) · evolución del precio frente a tu compra (10).
+// Reglas duras que mandan sobre la nota: recorte + sin cubrir, dividendo sin cubrir en un dividendo ya frágil, o pérdida ≥25 % con señales malas → rojo.
+const REV_TERMO = { verde: { ic: '🟢', col: 'var(--gn)', tit: 'Negocio intacto', sub: 'seguir como está' }, naranja: { ic: '🟠', col: 'var(--am)', tit: 'Estable, con matices', sub: 'vigilar los matices' }, rojo: { ic: '🔴', col: 'var(--rd)', tit: 'Negocio deteriorado', sub: 'valorar la salida' } };
+let REV_BLOQUES = 'peor';   // 'peor' = rojo arriba · 'mejor' = verde arriba
+function revTermometro(d) {
+    const out = { nivel: 'naranja', score: null, grave: false, sinDatos: false, motivos: [], matices: 0, partes: [] };
+    if (d.esEtf) { out.nivel = 'verde'; out.score = 100; out.motivos.push(['g', 'ETF de la base de la cartera: no depende de un solo negocio']); return out; }
+    const fd = d.fd, cub = d.cubAuto, pcs = v => v.toFixed(1).replace('.', ',');
+    const hayFd = !!fd && fd.nivel !== 'Sin datos', pct = d.sugDiv ? d.sugDiv.pct : null;
+    const recorte = pct != null && pct <= -5, baja = pct != null && pct < -0.5 && !recorte;
+    const partes = [];   // [nombre, nota 0-100 | null, peso]
+    partes.push(['Calidad del dividendo', hayFd ? fd.score : null, 40]);
+    partes.push(['Cobertura', cub.v === 'Sí' ? 100 : cub.v === 'Justo' ? 55 : cub.v === 'No' ? 0 : null, 25]);
+    partes.push(['Tendencia del dividendo', pct == null ? null : pct >= 3 ? 100 : pct >= 0 ? 80 : pct > -5 ? 40 : 0, 15]);
+    const venden = d.gf && d.gf.nVen != null && d.gf.nCom != null && d.gf.nVen > d.gf.nCom;
+    partes.push(['Analistas', d.upside == null ? null : venden ? 20 : d.upside < 0 ? 30 : d.upside >= 10 ? 100 : 70, 10]);
+    partes.push(['Precio frente a tu compra', d.rent >= -5 ? 100 : d.rent >= -10 ? 70 : d.rent >= -20 ? 35 : 0, 10]);
+    const util = partes.filter(x => x[1] != null), pesoUtil = util.reduce((t, x) => t + x[2], 0);
+    out.partes = partes;
+    if (!hayFd && !d.gf) { out.sinDatos = true; out.score = null; out.nivel = 'naranja'; out.motivos.push(['i', 'Sin datos suficientes (ni histórico ni Getquin) para confirmar que el negocio sigue intacto']); return out; }
+    out.score = Math.round(util.reduce((t, x) => t + x[1] * x[2], 0) / pesoUtil);
+    // ── motivos y matices
+    const w = t => out.motivos.push(['w', t]), i = t => { out.motivos.push(['i', t]); out.matices++; }, g = t => out.motivos.push(['g', t]);
+    if (recorte) w('El dividendo bajó ' + pcs(-pct) + '% en el último año');
+    else if (baja) i('Dividendo algo a la baja (' + pcs(pct) + '%)');
+    else if (pct != null && pct >= 3) g('Dividendo al alza (' + (pct >= 0 ? '+' : '') + pcs(pct) + '%)');
+    if (cub.v === 'No') w('Dividendo sin cubrir: ' + cub.why);
+    else if (cub.v === 'Justo') i('Cubierto justo: ' + cub.why);
+    else if (cub.v === 'Sí') g('Dividendo cubierto: ' + cub.why);
+    if (hayFd) {
+        if (fd.nivel === 'En riesgo') w('Dividendo de calidad baja (' + fd.score + '/100)');
+        else if (fd.nivel === 'A vigilar') i('Dividendo a vigilar (' + fd.score + '/100)' + (fd.motivoNivel ? ': ' + fd.motivoNivel : ''));
+        else g('Dividendo de calidad ' + fd.nivel.toLowerCase() + ' (' + fd.score + '/100)');
+        const rec = (fd.recortes || []).filter(r => r.a >= fd.Y - 2);
+        if (rec.length) w('Recorte reciente en el histórico: ' + rec.map(r => r.a + ' (' + r.pct.toFixed(0) + '%)').join(', '));
+    }
+    if (d.rent <= -25) w('Pierde ' + pcs(-d.rent) + '% sobre lo que pagaste: la tesis está en cuestión');
+    else if (d.rent <= -10) i('Pierde ' + pcs(-d.rent) + '% sobre lo que pagaste');
+    if (venden) i('Más analistas dicen vender (' + d.gf.nVen + ') que comprar (' + d.gf.nCom + ')');
+    else if (d.upside != null && d.upside < 0) i('El precio ya supera el objetivo medio de los analistas (' + revPct(d.upside, 0) + ')');
+    // ── nivel: reglas duras primero, después la nota
+    const malDiv = fd && fd.nivel === 'En riesgo', recRec = hayFd && (fd.recortes || []).some(r => r.a >= fd.Y - 2);
+    const duro = (recorte && (cub.v === 'No' || malDiv)) || (cub.v === 'No' && malDiv) || (recRec && cub.v !== 'Sí') || (d.rent <= -25 && (recorte || cub.v === 'No' || malDiv));
+    if (duro) { out.nivel = 'rojo'; out.grave = true; }
+    else if (out.score < 45) out.nivel = 'rojo';
+    else if (out.score < 72 || out.matices > 0 || recorte || cub.v === 'No') out.nivel = 'naranja';
+    else out.nivel = 'verde';
+    if (out.nivel === 'naranja' && !out.motivos.some(m => m[0] !== 'g')) out.motivos.push(['i', 'Nota intermedia (' + out.score + '/100): faltan datos para confirmar el negocio']);
+    return out;
 }
 function revAvisosRojos(d) { return d.flags.filter(f => f[0] === 'w').length; }
 function revProximaAuto(d, dec) { // +1 mes; +6 meses si Mantener y sin avisos (rojos o ámbar)
-    return _isoMasMeses(_hoyISO(), (dec === 'Mantener' && !d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ? 6 : 1);
+    return _isoMasMeses(_hoyISO(), (dec === 'Mantener' && !d.prop.excepcion) ? 6 : 1);
+}
+
+// «Cubierto por beneficios»: dividendo ÷ flujo de caja libre (Getquin). En bancos y aseguradoras el flujo de caja no vale, así que se usa el payout sobre beneficios.
+function revCubierto(d) {
+    if (d.esEtf) return { v: '', why: '' };
+    const g = d.gq; if (!g) return { v: 'No sé', why: '' };
+    const fin = /financ|banc|asegur|seguro/i.test(d.sector + ' ' + (d.gf && d.gf.sectorGq || '') + ' ' + (d.gf && d.gf.indGq || ''));
+    const inmo = /inmob|reit|real estate/i.test(d.sector + ' ' + (d.gf && d.gf.sectorGq || '') + ' ' + (d.gf && d.gf.indGq || ''));
+    const nota = (x, a, b) => x <= a ? 'Sí' : x <= b ? 'Justo' : 'No';
+    if (!fin && g.pfcf != null) return { v: nota(g.pfcf, 75, 95), why: 'dividendo = ' + g.pfcf.toFixed(0) + '% del flujo de caja libre' };
+    if (g.payoutEps != null && !inmo && g.payoutEps > 0) return { v: nota(g.payoutEps, 60, 80), why: 'dividendo = ' + g.payoutEps.toFixed(0) + '% de los beneficios' };
+    return { v: 'No sé', why: '' };
+}
+
+// Propuesta automática para un activo: decisión, dividendo, cubierto y una nota con los motivos.
+// Reglas (de arriba abajo, gana la primera que se cumple): ver el cuadro «Cómo decide» en la pestaña.
+function revPropuesta(d) {
+    const C = GOTEO_CFG, pc1 = v => v.toFixed(1).replace('.', ','), cub = d.cubAuto, motivos = [], hechos = [], exc = [];
+    const divEt = d.esEtf ? '' : (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '');
+    let dec = 'Mantener';
+    if (d.esEtf) {
+        hechos.push('ETF de la base de la cartera');
+    } else {
+        const recorte = d.sugDiv && d.sugDiv.pct <= -5, baja = d.sugDiv && d.sugDiv.pct < -0.5;
+        if (d.esEsp && d.rent >= 12) { dec = 'Vender'; motivos.push('objetivo de venta de +12% alcanzado (' + pc1(d.rent) + '%)'); }
+        else if (d.peso > C.MAX_PESO_ACCION) { dec = 'Reducir'; motivos.push('peso ' + pc1(d.peso) + '% por encima del tope de ' + C.MAX_PESO_ACCION + '%'); }
+        else if (recorte && cub.v === 'No') { dec = 'Reducir'; motivos.push('el dividendo baja ' + pc1(d.sugDiv.pct) + '% y no está cubierto'); }
+        else if (d.termo.nivel === 'rojo') {
+            dec = d.termo.grave ? 'Reducir' : 'Vigilar';
+            motivos.push('negocio deteriorado (' + d.termo.motivos.filter(m => m[0] === 'w').slice(0, 2).map(m => m[1].toLowerCase()).join('; ') + ')' + (d.termo.grave ? ': valorar la salida' : ''));
+        }
+        else if (recorte || cub.v === 'No' || d.rent <= -10 || d.pesoSector > C.MAX_PESO_SECTOR || (d.fd && d.fd.nivel === 'En riesgo')) {
+            dec = 'Vigilar';
+            if (d.fd && d.fd.nivel === 'En riesgo') motivos.push('dividendo de calidad baja (' + d.fd.score + '/100)');
+            if (recorte) motivos.push('el dividendo baja ' + pc1(d.sugDiv.pct) + '%');
+            if (cub.v === 'No') motivos.push('dividendo sin cubrir (' + cub.why + ')');
+            if (d.rent <= -10) motivos.push('pierde ' + pc1(-d.rent) + '%: ¿sigue la tesis?');
+            if (d.pesoSector > C.MAX_PESO_SECTOR) motivos.push('sector ' + d.sector + ' por encima del tope');
+        } else {
+            const peque = d.peso < C.MAX_PESO_ACCION * 0.6, barata = d.pos52 != null && d.pos52 <= 35, enTrampa = d.dist != null && d.dist <= 3;
+            const conUpside = d.upside != null && d.upside >= 15 && d.pos52 != null && d.pos52 <= 60;
+            const sectorLibre = d.pesoSector == null || d.pesoSector < C.MAX_PESO_SECTOR - 3;
+            if (!d.esEsp && peque && sectorLibre && !baja && d.rent > -10 && d.termo.nivel === 'verde' && (barata || enTrampa || conUpside)) {
+                dec = 'Reforzar';
+                motivos.push('peso bajo (' + pc1(d.peso) + '%)');
+                if (barata) motivos.push('precio en el ' + d.pos52.toFixed(0) + '% de su rango de 52 semanas');
+                if (enTrampa) motivos.push('a ' + pc1(d.dist) + '% de su trampa');
+                if (conUpside) motivos.push('objetivo de analistas ' + revPct(d.upside));
+            }
+        }
+        if (!motivos.some(m => /^peso/.test(m))) hechos.push('peso ' + pc1(d.peso) + '%');
+        if (d.pos52 != null) hechos.push('rango 52 s. al ' + d.pos52.toFixed(0) + '%');
+        if (d.sugDiv) hechos.push('dividendo ' + revPct(d.sugDiv.pct));
+        if (cub.why) hechos.push(cub.why);
+        if (d.upside != null) hechos.push('objetivo analistas ' + revPct(d.upside));
+        if (d.fd && d.fd.nivel !== 'Sin datos') hechos.push('calidad dividendo ' + d.fd.nivel.toLowerCase() + ' ' + d.fd.score);
+        if (d.fd && d.fd.subida && d.fd.sig && d.fd.subida.pct >= 5) hechos.push('subida prevista ' + revPct(d.fd.subida.pct, 0));
+    }
+    // Qué necesita ojos humanos
+    if (dec !== 'Mantener') exc.push(dec);
+    if (d.termo.nivel === 'rojo') exc.push('termómetro rojo');
+    d.flags.forEach(f => { if ((f[0] === 'w' || f[0] === 'i') && f[2] !== false) exc.push(f[1]); });
+    if (!d.esEtf && cub.v === 'No') exc.push('cubierto: No');
+    if (!d.esEtf && d.sugDiv && d.sugDiv.pct <= -5) exc.push('dividendo a la baja');
+    const nota = ((dec === 'Mantener' ? 'Sin novedades. ' : motivos.join('; ') + '. ') + hechos.join(' · ')).slice(0, 300);
+    return { dec, div: divEt, cub: cub.v, nota, motivos, hechos, exc, excepcion: exc.length > 0 };
+}
+
+// Valores finales de un activo: lo que has cambiado tú o, si no, la propuesta automática
+function revEfectivo(d) {
+    const b = Object.assign({ dec: '', div: '', divpct: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {}), a = d.prop;
+    const dec = b.dec || a.dec;
+    const divpct = d.esEtf ? '' : (b.divpct !== '' ? b.divpct : (d.sugDiv ? +d.sugDiv.pct.toFixed(2) : ''));
+    return { b, dec, divpct, div: d.esEtf ? '' : (b.div || (divpct !== '' ? revEtiquetaDiv(divpct) : '')), cub: d.esEtf ? '' : (b.cub || a.cub), deu: b.deu, nota: b.nota || a.nota,
+        prox: b.prox || revProximaAuto(d, dec), manual: !!(b.dec || b.div || b.divpct !== '' || b.cub || b.deu || b.nota || b.prox) };
 }
 
 function revFiltrar(f) { REV_FILTRO = f; renderRevisionSemestral(); }
@@ -7758,57 +8390,90 @@ function revSet(idx, campo, valor) {
     const d = window._revDatos[idx]; if (!d) return;
     const b = REV_BORRADOR[d.p.n] = Object.assign({ dec: '', div: '', divpct: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {}, { [campo]: valor });
     if (campo === 'divpct') { const n = parseFloat(String(valor).replace(',', '.')); b.divpct = isNaN(n) ? '' : n; if (b.divpct !== '') b.div = revEtiquetaDiv(b.divpct); }
-    if (!b.dec && !b.div && b.divpct === '' && !b.cub && !b.deu && !b.nota) delete REV_BORRADOR[d.p.n];
+    if (!b.dec && !b.div && b.divpct === '' && !b.cub && !b.deu && !b.nota && !b.prox) delete REV_BORRADOR[d.p.n];
     revGuardarBorrador();
     const el = document.getElementById('revc-' + idx);
     if (el) el.outerHTML = revTarjetaHtml(d, idx);   // solo se repinta esa tarjeta (no se cierran los historiales ni se pierde el foco)
     revPintarBoton(); revPintarKpis();
 }
-function revSelect(idx, campo, opciones, actual, vacio) {
-    return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + vacio + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
+// Desplegable cuya primera opción («🤖 …») significa «dejar la propuesta automática»
+function revSelect(idx, campo, opciones, actual, auto) {
+    return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + (auto ? '🤖 ' + auto : '—') + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
 }
 function revTarjetaHtml(d, idx) {
-    const b = Object.assign({ dec: '', div: '', divpct: '', cub: '', deu: '', nota: '', prox: '' }, REV_BORRADOR[d.p.n] || {});
-    const tope = GOTEO_CFG.MAX_PESO_ACCION, pc = (v, k = 1) => (v >= 0 ? '+' : '') + v.toFixed(k).replace('.', ',') + '%';
+    const e = revEfectivo(d), a = d.prop, b = e.b, pc = (v, k = 1) => (v >= 0 ? '+' : '') + v.toFixed(k).replace('.', ',') + '%', n1 = v => v.toFixed(1).replace('.', ',');
+    const tope = GOTEO_CFG.MAX_PESO_ACCION;
     const anchoPeso = Math.min(100, d.peso / (d.esEtf ? 40 : tope * 1.5) * 100), colPeso = (!d.esEtf && d.peso > tope) ? 'var(--rd)' : (!d.esEtf && d.peso >= REV_CERCA_ACCION) ? 'var(--am)' : 'var(--ac)';
-    const ult = d.ult ? 'Última revisión (' + revFmt(d.ult.f) + '): <b>' + revEsc(d.ult.dec) + '</b>' + (d.ult.nota ? ' — ' + revEsc(d.ult.nota) : '') : 'Nunca revisado';
-    // precio fijado en la revisión anterior vs hoy
     const pAnt = d.ult && d.ult.precio !== '' && d.ult.precio != null ? Number(d.ult.precio) : null;
-    const bloque52 = d.r52 ? '<div class="rev-52" title="Mínimo y máximo de 52 semanas (hoja TRAMPAS, columnas Q y R)"><div class="rev-52b"><span style="left:' + d.pos52.toFixed(1) + '%"></span></div><div class="rev-52t"><span>mín ' + fe(d.r52.min, 2) + '</span><b>' +
-        d.pos52.toFixed(0) + '% del rango · ' + revPct(d.vsMax, 1) + ' del máx</b><span>máx ' + fe(d.r52.max, 2) + '</span></div></div>' :
-        '<div class="rev-pf">52 semanas: sin datos (solo hay mín/máx de los valores que están en TRAMPAS)</div>';
-    const lineaPrecio = '<div class="rev-pf">Precio fijado al guardar: <b>' + fe(d.pa, 2) + '</b>' + (pAnt ? ' · en la revisión del ' + revFmt(d.ult.f) + ': ' + fe(pAnt, 2) + ' (<b>' + revPct((d.pa / pAnt - 1) * 100) + '</b>)' : '') + '</div>';
-    const g = d.gq;
-    const lineaGq = g ? '<div class="rev-gq" title="Datos de la hoja GETQUIN">Getquin (' + revEsc(String(g.act).slice(0, 10)) + '): dividendo anual <b>' + fe(g.div, 2) + '</b>' + (g.yld != null ? ' · yield <b>' + g.yld.toFixed(1).replace('.', ',') + '%</b>' : '') +
-        (g.crec1 != null ? ' · vs año anterior <b>' + revPct(g.crec1) + '</b>' : '') + (g.crec3 != null ? ' · 3 años <b>' + revPct(g.crec3) + '</b>' : '') + (g.pfcf != null ? ' · dividendo/FCF <b>' + g.pfcf.toFixed(0) + '%</b>' : '') +
-        (d.dpa > 0 && Math.abs(g.div / d.dpa - 1) > 0.1 ? '<br>⚠️ Tu DIV/ACC (' + d.dpa.toFixed(2).replace('.', ',') + ' €) difiere ' + revPct((g.div / d.dpa - 1) * 100, 0) + ' de Getquin' : '') + '</div>' : '';
-    const hist5 = d.hist.slice(0, 5);
-    const historial = '<details class="rev-hist"><summary>Historial (' + d.hist.length + ')</summary>' + (hist5.length ? hist5.map(r => '<div>' + revFmt(r.f) + ' · <b>' + revEsc(r.dec) + '</b> · peso ' +
-        (r.peso !== '' && r.peso != null ? Number(r.peso).toFixed(1).replace('.', ',') + '%' : '—') +
-        (r.precio !== '' && r.precio != null ? ' · precio ' + fe(Number(r.precio), 2) : '') + (r.divpct !== '' && r.divpct != null ? ' · div ' + revPct(Number(r.divpct)) : '') + (r.nota ? ' · ' + revEsc(r.nota) : '') + '</div>').join('') : '<div>Sin revisiones guardadas</div>') + '</details>';
-    const calidad = d.esEtf ? '<div class="rev-q"><span class="rev-na">Dividendo · cobertura · deuda: n/a (ETF)</span></div>' :
-        '<div class="rev-q"><label title="' + (d.sugDiv ? 'Sugerido: ' + revPct(d.sugDiv.pct) + ' (' + d.sugDiv.fuente + ')' : 'Sin dato automático: escribe el % si lo sabes') + '">Dividendo vs año anterior<span class="rev-dv">' + revSelect(idx, 'div', REV_OPC_DIV, b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : ''), '—') +
-            '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : (d.sugDiv ? d.sugDiv.pct.toFixed(1) : '')) + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span></label><label title="' + (d.gq && d.gq.pfcf != null ? 'Dividendo ÷ flujo de caja libre (Getquin): ' + d.gq.pfcf.toFixed(0) + '%' : '') + '">Cubierto por beneficios' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub || (d.gq && d.gq.cub && d.gq.cub !== 'No sé' ? d.gq.cub : ''), '—') + '</label><label>Deuda' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '—') + '</label></div>';
-    const prox = b.prox || (b.dec ? revProximaAuto(d, b.dec) : '');
-    return '<div class="rev-c' + (b.dec ? ' dec' : '') + '" id="revc-' + idx + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.sector) + '</span></div>' +
-        '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
-        '<div class="rev-m"><div><b>' + d.peso.toFixed(1).replace('.', ',') + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
-        '<div title="' + (d.dpa > 0 ? 'DIV/ACC ' + d.dpa.toFixed(2).replace('.', ',') + ' € ÷ precio medio de compra ' + d.p.pm.toFixed(2).replace('.', ',') + ' €' : 'Sin DIV/ACC en CARTERA ni TRAMPAS') + '"><b>' + (d.yoc != null ? d.yoc.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Yield coste</i></div>' +
-        '<div><b>' + (d.dist != null ? d.dist.toFixed(1).replace('.', ',') + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
-        bloque52 + lineaPrecio + lineaGq + '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' +
-        '<div class="rev-ult">' + ult + '</div>' + historial +
-        '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, 'Decisión…') + '<input type="text" maxlength="300" placeholder="Nota (opcional)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)"></div>' +
-        calidad +
-        '<div class="rev-prox"><label>Próxima revisión <input type="date" value="' + prox + '" ' + (b.dec ? '' : 'disabled ') + 'onchange="revSet(' + idx + ',\'prox\',this.value)"></label>' +
-        (b.dec ? '<span class="mt2">' + (b.prox ? 'editada' : (b.dec === 'Mantener' && !d.flags.some(f => f[0] === 'w' || f[0] === 'i') ? '+6 meses: mantener y sin avisos' : '+1 mes')) + '</span>' : '<span class="mt2">se rellena al elegir decisión</span>') + '</div></div>';
+    const bloque52 = d.r52 ? '<div class="rev-52" title="Mínimo y máximo de 52 semanas (' + d.r52.fuente + '). Se guardan en cada revisión."><div class="rev-52b"><span style="left:' + d.pos52.toFixed(1) + '%"></span></div><div class="rev-52t"><span>mín ' + fe(d.r52.min, 2) + '</span><b>' +
+        d.pos52.toFixed(0) + '% del rango · ' + pc(d.vsMax) + ' del máx</b><span>máx ' + fe(d.r52.max, 2) + '</span></div></div>' : '<div class="rev-line">52 semanas: sin datos (ni en TRAMPAS ni en Getquin)</div>';
+    const lPrecio = '<div class="rev-line">Precio fijado al guardar: <b>' + fe(d.pa, 2) + '</b>' + (pAnt ? ' · en la revisión del ' + revFmt(d.ult.f) + ': ' + fe(pAnt, 2) + ' (<b>' + pc((d.pa / pAnt - 1) * 100) + '</b>)' : '') + '</div>';
+    const lDiv = d.esEtf ? '' : '<div class="rev-line">Dividendo anual <b>' + (d.dpa > 0 ? fe(d.dpa, 2) : '—') + '</b>' + (d.sugDiv ? ' · <b>' + pc(d.sugDiv.pct) + '</b> vs año anterior <i>(' + d.sugDiv.fuente + ')</i>' : '') +
+        (a.cub && a.cub !== 'No sé' ? ' · cubierto: <b>' + a.cub + '</b>' + (d.cubAuto.why ? ' <i>(' + d.cubAuto.why + ')</i>' : '') : '') +
+        (d.gq && d.dpa > 0 && Math.abs(d.gq.div / d.dpa - 1) > 0.1 ? '<br>⚠️ Getquin dice ' + fe(d.gq.div, 2) + ' (' + pc((d.gq.div / d.dpa - 1) * 100, 0) + ' frente a tu DIV/ACC)' : '') + '</div>';
+    const lQ = (d.fd && !d.esEtf && d.fd.nivel !== 'Sin datos') ? '<div class="rev-line">Calidad del dividendo: ' + divChip(d.fd) + (d.fd.aniosDatos >= 3 ? ' · ' + (d.fd.sinRecorte >= 10 ? '10+' : d.fd.sinRecorte) + ' años sin recortar' : '') + (d.fd.subida ? ' · subida esperada <b>' + divPc(d.fd.subida.pct, 1) + '</b> <i>(' + d.fd.subida.fuente + ')</i>' : '') + (d.fd.ex && !d.fd.exPasado && d.fd.ex.dias <= 21 ? '<br>✂️ Corte en ' + d.fd.ex.dias + ' días (' + _fechaTxt(d.fd.ex.fecha) + ')' : '') + '</div>' : '';
+    const lAn = (d.obj && d.gf) ? '<div class="rev-line">Analistas: objetivo <b>' + fe(d.obj, 2) + '</b> (<b>' + pc(d.upside) + '</b>)' + (d.gf.nCom != null ? ' · ' + d.gf.nCom + ' comprar / ' + (d.gf.nMan || 0) + ' mantener / ' + (d.gf.nVen || 0) + ' vender' : '') + '</div>' : '';
+    const porque = '<div class="rev-why">🤖 ' + (a.dec === 'Mantener' ? 'Sin novedades' : '<b>' + a.dec + '</b>: ' + revEsc(a.motivos.join('; '))) + '</div>';
+    const h6 = d.hist.slice(0, 6);
+    const historial = '<details class="rev-hist"><summary>Historial (' + d.hist.length + ')</summary>' + (h6.length ? '<table><thead><tr><th>Fecha</th><th>Precio</th><th>52 semanas</th><th>Yield</th><th>Div.</th><th>Decisión</th></tr></thead><tbody>' + h6.map(r =>
+        '<tr><td>' + revFmt(r.f) + '</td><td>' + (r.precio !== '' && r.precio != null ? fe(Number(r.precio), 2) : '—') + '</td><td>' + (r.min52 !== '' && r.min52 != null ? Number(r.min52).toFixed(0) + '–' + Number(r.max52).toFixed(0) : '—') + '</td><td>' +
+        (r.yld !== '' && r.yld != null ? n1(Number(r.yld)) + '%' : '—') + '</td><td>' + (r.divpct !== '' && r.divpct != null ? pc(Number(r.divpct)) : '—') + '</td><td><b>' + revEsc(r.dec) + '</b>' + (r.origen === 'MANUAL' ? ' ✏️' : '') + '</td></tr>').join('') + '</tbody></table>' : '<div>Sin revisiones guardadas</div>') + '</details>';
+    const ajustes = d.esEtf ? '' : '<details class="rev-hist"><summary>Ajustar dividendo · cubierto · deuda</summary><div class="rev-q"><label>Dividendo vs año anterior<span class="rev-dv">' + revSelect(idx, 'div', REV_OPC_DIV, b.div, d.prop.div) +
+        '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : '') + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span></label><label>Cubierto' + revSelect(idx, 'cub', REV_OPC_CUB, b.cub, a.cub) +
+        '</label><label>Deuda (sin dato automático)' + revSelect(idx, 'deu', REV_OPC_DEU, b.deu, '') + '</label></div></details>';
+    const T = REV_TERMO[d.termo.nivel], tm = d.termo.motivos.filter(m => m[0] === 'w').concat(d.termo.motivos.filter(m => m[0] === 'i')).concat(d.termo.motivos.filter(m => m[0] === 'g')).slice(0, 3);
+    const termoHtml = '<div class="rev-termo-c" style="--c:' + T.col + '"><span class="rt-chip" title="' + revEsc(d.termo.partes.map(x => x[0] + ': ' + (x[1] == null ? 'sin dato' : Math.round(x[1])) + ' (peso ' + x[2] + ')').join('\n')) + '">' + T.ic + ' ' + (d.termo.score != null ? d.termo.score : '—') + '</span><div>' + tm.map(m => '<div class="' + m[0] + '">' + revEsc(m[1]) + '</div>').join('') + '</div></div>';
+    return '<div class="rev-c t-' + d.termo.nivel + (a.excepcion ? ' exc' : '') + '" id="revc-' + idx + '"><div class="rev-h"><span class="rev-n">' + revEsc(d.p.n) + '</span><span class="rev-dec" style="--c:' + (REV_COL_DEC[e.dec] || 'var(--mt)') + '">' + e.dec + (e.manual ? ' ✏️' : ' 🤖') + '</span></div>' +
+        '<div class="rev-t">' + revEsc(d.p.tipo) + ' · ' + revEsc(d.sector) + '</div>' + termoHtml + '<div class="rev-peso" title="Peso en la cartera"><span style="width:' + anchoPeso + '%;background:' + colPeso + '"></span></div>' +
+        '<div class="rev-m"><div><b>' + n1(d.peso) + '%</b><i>Peso</i></div><div><b style="color:' + (d.rent >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + pc(d.rent) + '</b><i>Rentab.</i></div>' +
+        '<div title="DIV/ACC ÷ precio de hoy"><b>' + (d.yld != null ? n1(d.yld) + '%' : '—') + '</b><i>Yield hoy</i></div>' +
+        '<div title="' + (d.dpa > 0 ? 'DIV/ACC ' + d.dpa.toFixed(2).replace('.', ',') + ' € ÷ precio medio de compra ' + d.p.pm.toFixed(2).replace('.', ',') + ' €' : 'Sin DIV/ACC') + '"><b>' + (d.yoc != null ? n1(d.yoc) + '%' : '—') + '</b><i>Yield coste</i></div>' +
+        '<div><b>' + (d.dist != null ? n1(d.dist) + '%' : '—') + '</b><i>Dist. trampa</i></div></div>' +
+        bloque52 + lPrecio + lDiv + lQ + lAn + '<div class="rev-f">' + (d.flags.length ? d.flags.map(f => '<span class="' + f[0] + '">' + revEsc(f[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div>' + porque + historial +
+        '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, a.dec) + '<input type="text" maxlength="300" placeholder="Tu nota (vacía = se guarda la automática)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)"></div>' + ajustes +
+        '<div class="rev-prox"><label>Próxima revisión <input type="date" value="' + e.prox + '" onchange="revSet(' + idx + ',\'prox\',this.value)"></label><span class="mt2">' + (b.prox ? 'editada' : (e.dec === 'Mantener' && !a.excepcion ? '+6 meses: mantener y sin avisos' : '+1 mes')) + '</span></div></div>';
 }
+
 // ── Getquin: botón para actualizar la hoja GETQUIN desde la web (por tandas, hasta que no queden pendientes)
 function revPintarGq() {
     const el = document.getElementById('rev-gqbar'); if (!el) return;
     const g = GETQUIN_GS || [], ok = g.filter(x => x.div > 0).length, ult = g.map(x => String(x.act || '')).filter(Boolean).sort().pop();
-    const estado = g.length ? ok + ' valores con datos de ' + g.length + (ult ? ' · última actualización ' + revFmt(ult.slice(0, 10)) + ' ' + ult.slice(11, 16) : '') : 'Aún sin datos de Getquin (hoja GETQUIN vacía)';
+    const fallosG = g.filter(x => x.fallo && String(x.fallo) > String(x.act || '')), estado = g.length ? ok + ' valores con datos de ' + g.length + (ult ? ' · última descarga correcta ' + revFmt(ult.slice(0, 10)) + ' ' + ult.slice(11, 16) : '') +
+        (fallosG.length ? ' · <span style="color:var(--am)">⚠️ ' + fallosG.length + ' fallaron en el último intento (' + revEsc(fallosG.slice(0, 3).map(x => x.n).join(', ')) + '): se siguen usando sus últimos datos buenos guardados</span>' : '') : 'Aún sin datos de Getquin (hoja GETQUIN vacía)';
     el.innerHTML = '<div class="rev-gq" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">📡 <span>Getquin: <b>' + estado + '</b></span>' +
-        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;flex-basis:100%">' + (window._gqMsg || '') + '</span></div>' + (ok ? revGqPanelHtml() : '') + gqPanelPegarHtml();
+        '<button class="btn" id="gq-btn" onclick="gqActualizar()"' + (window._gqBusy ? ' disabled' : '') + '>🔄 Actualizar datos</button><span id="gq-msg" style="font-size:10.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;flex-basis:100%">' + (window._gqMsg || '') + '</span></div>' + (ok ? revGqPanelHtml() + revFuentesHtml() : '') + gqPanelPegarHtml();
+}
+function fuenteSet(que, v) {
+    if (que === 'precio') { FUENTE_PRECIO = v; try { localStorage.setItem('fuente_precio', v); } catch (e) {} }
+    else { FUENTE_52S = v; try { localStorage.setItem('fuente_52s', v); } catch (e) {} }
+    aplicarFuentePrecio();
+    renderDashboard(); renderProximaAccion();
+    _secundariasRenderizadas = false; renderSecundariasSiHaceFalta();
+    renderRevisionSemestral();
+}
+// Panel: precio y 52 semanas, hoja de Google frente a Getquin, y cuál se usa en cada valor
+function revFuentesHtml() {
+    const filas = Object.keys(PRECIO_AUD).map(isin => {
+        const a = PRECIO_AUD[isin], tr = (TRAMPAS_GS || []).find(r => String(r[15] || '').toUpperCase() === isin);
+        const pa = PA[isin] || a.hoja || 0;
+        const r52 = rango52Isin(isin, pa, tr ? (Number(String(tr[16]).replace(',', '.')) || 0) : 0, tr ? (Number(String(tr[17]).replace(',', '.')) || 0) : 0);
+        return { isin, n: a.n, a, r52, peor: Math.max(a.dif == null ? 0 : Math.abs(a.dif), r52.dif == null ? 0 : r52.dif) };
+    }).filter(x => x.a.gq || x.r52.gq).sort((a, b) => b.peor - a.peor);
+    if (!filas.length) return '';
+    const f2 = v => v == null ? '—' : Number(v).toFixed(2).replace('.', ','), cd = d => d == null ? 'var(--mt)' : Math.abs(d) <= 5 ? 'var(--gn)' : Math.abs(d) <= 15 ? 'var(--am)' : 'var(--rd)';
+    const nP = filas.filter(x => x.a.usa === 'getquin').length, nDifP = filas.filter(x => x.a.estado === 'difieren' || x.a.estado === 'hoja dudosa' || x.a.estado === 'Getquin dudoso').length;
+    const n52G = filas.filter(x => x.r52.usa === 'getquin').length, n52D = filas.filter(x => x.r52.dif != null && x.r52.dif > 5).length;
+    const radio = (que, actual, val, txt) => '<label><input type="radio" name="fu-' + que + '" ' + (actual === val ? 'checked ' : '') + 'onchange="fuenteSet(\'' + que + '\',\'' + val + '\')"> ' + txt + '</label>';
+    const rango = o => o ? f2(o.min) + ' – ' + f2(o.max) : '—';
+    return '<details class="rev-gq" style="margin-top:6px"' + (window._fuAbierto ? ' open' : '') + ' ontoggle="window._fuAbierto=this.open"><summary style="cursor:pointer;font-weight:600">Precio y 52 semanas: hoja de Google frente a Getquin · ' + filas.length + ' valores' +
+        (nDifP ? ' · <span style="color:var(--am)">' + nDifP + ' precios a revisar</span>' : '') + (n52D ? ' · <span style="color:var(--am)">' + n52D + ' rangos con diferencia &gt; 5%</span>' : '') + '</summary>' +
+        '<div style="margin:8px 0;display:grid;gap:6px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><b>Precio actual:</b>' + radio('precio', FUENTE_PRECIO, 'auto', 'Automático (hoja; Getquin solo si la hoja falla)') + radio('precio', FUENTE_PRECIO, 'hoja', 'Siempre la hoja') + radio('precio', FUENTE_PRECIO, 'getquin', 'Siempre Getquin') + '</div>' +
+        '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><b>Mín. y máx. 52 semanas:</b>' + radio('52s', FUENTE_52S, 'auto', 'Automático (Getquin si ambos son coherentes)') + radio('52s', FUENTE_52S, 'hoja', 'Siempre la hoja') + radio('52s', FUENTE_52S, 'getquin', 'Siempre Getquin') + '</div></div>' +
+        '<div class="mt2" style="margin-bottom:6px">Ahora: precio de Getquin en ' + nP + ' valores · 52 semanas de Getquin en ' + n52G + ' valores. No se modifica ninguna fórmula de tu hoja.</div>' +
+        '<div style="overflow-x:auto"><table class="dt" style="font-size:10.5px"><thead><tr><th style="text-align:left">Valor</th><th>Precio hoja</th><th>Precio Getquin</th><th>Dif.</th><th>Usa</th><th>52 s. hoja</th><th>52 s. Getquin</th><th>Dif.</th><th>Usa</th></tr></thead><tbody>' +
+        filas.map(x => '<tr><td style="text-align:left">' + revEsc(x.n) + '</td><td>' + f2(x.a.hoja) + '</td><td>' + f2(x.a.gq) + '</td><td style="color:' + cd(x.a.dif) + ';font-weight:700" title="' + revEsc(x.a.motivo) + '">' + (x.a.dif == null ? '—' : revPct(x.a.dif, 1)) + '</td><td>' + (x.a.usa === 'getquin' ? '<b>Getquin</b>' : 'hoja') + (x.a.estado === 'difieren' ? ' ⚠️' : '') +
+            '</td><td>' + rango(x.r52.hoja) + '</td><td>' + rango(x.r52.gq) + '</td><td style="color:' + cd(x.r52.dif) + ';font-weight:700" title="' + revEsc(x.r52.motivo) + '">' + (x.r52.dif == null ? '—' : f2(x.r52.dif) + '%') + '</td><td>' + (x.r52.usa === 'getquin' ? '<b>Getquin</b>' : x.r52.usa || '—') + '</td></tr>').join('') +
+        '</tbody></table></div><div class="mt2" style="font-size:9px;margin-top:4px">Getquin se descarga una vez al día (cierre anterior); la fórmula de Google va en directo, así que una diferencia de pocos puntos en el precio es normal. El precio de Getquin solo sustituye al de la hoja si la hoja no da precio o cae fuera del rango de 52 semanas de Getquin. Los rangos de Getquin en dólares se pasan a euros con el cambio implícito de su propio rango del día.</div></details>';
 }
 function revGqPanelHtml() {
     const f = gqComparacion(), pc = v => v == null ? '—' : fe(v, 2), col = d => d == null ? 'var(--mt)' : Math.abs(d) <= 5 ? 'var(--gn)' : Math.abs(d) <= 15 ? 'var(--am)' : 'var(--rd)';
@@ -7856,7 +8521,7 @@ function gqLeerTextoPegado(texto) {
     if (fut.length) { const nx = fut[0]; o.proxEx = nx.ex; o.proxPago = nx.pago; o.proxEstado = nx.est; if (nx.imp != null) o.proxImp = nx.imp; }
     // Visión general (si se ha pegado también)
     const capT = tras(/^Capitalizaci[oó]n/i), fcfT = tras(/^(Flujo de caja libre|FCF)/i);
-    o.capT = capT || ''; o.fcfT = fcfT || ''; o.gpa = gqNumEs(tras(/^(GPA|BPA)/i)); o.per = gqNumEs(tras(/^PER/i));
+    o.capT = capT || ''; o.fcfT = fcfT || ''; o.gpa = gqNumEs(tras(/^(GPA|BPA)/i)); o.per = gqNumEs(tras(/^(PER(?![A-Za-zÀ-ÿ])|relaci[oó]n precio)/i));
     const cap = capT ? gqMagEs(capT) : null, fcf = fcfT ? gqMagEs(fcfT) : null;
     if (o.div > 0 && o.precio > 0 && cap && fcf != null) {
         if (fcf <= 0) { o.cub = 'No'; } else { const p = o.div * (cap / o.precio) / fcf * 100; o.pfcf = Math.round(p * 10) / 10; o.cub = (p > 400 || p < 3) ? 'No sé' : p <= 75 ? 'Sí' : p <= 95 ? 'Justo' : 'No'; }
@@ -7938,43 +8603,109 @@ async function gqActualizar() {
     window._gqMsg = error ? '⚠️ ' + error + (hechos ? ' Se actualizaron ' + hechos + '.' : '') : '✅ ' + hechos + ' actualizados' + (fallos.length ? ' · no encontrados: ' + fallos.length + ' de ' + total + (hechos ? '' : '\nDiagnóstico (cópialo y pásamelo):\n' + diags.join('\n')) : '');
     renderRevisionSemestral();
 }
+function revSaludCartera(datos) { // nota media ponderada por el valor de cada posición (solo los que tienen nota)
+    const c = datos.filter(d => d.termo.score != null), v = c.reduce((t, d) => t + d.valor, 0);
+    return v ? Math.round(c.reduce((t, d) => t + d.termo.score * d.valor, 0) / v) : null;
+}
+function revPintarTermometro(datos) {
+    const el = document.getElementById('rev-termo'); if (!el) return;
+    const total = datos.reduce((t, d) => t + d.valor, 0) || 1, salud = revSaludCartera(datos);
+    const g = nv => { const l = datos.filter(d => d.termo.nivel === nv); return { l, n: l.length, pct: l.reduce((t, d) => t + d.valor, 0) / total * 100 }; };
+    const G = { rojo: g('rojo'), naranja: g('naranja'), verde: g('verde') }, colS = salud == null ? 'var(--mt)' : salud >= 72 ? 'var(--gn)' : salud >= 50 ? 'var(--am)' : 'var(--rd)';
+    const tile = nv => { const T = REV_TERMO[nv], x = G[nv];
+        return '<a class="rt-tile" style="--c:' + T.col + '" href="#rev-bloque-' + nv + '" onclick="var e=document.getElementById(\'rev-bloque-' + nv + '\');if(e){e.scrollIntoView({behavior:\'smooth\',block:\'start\'});}return false"><div class="rt-top"><span>' + T.ic + ' ' + T.tit + '</span><b>' + x.n + '</b></div><div class="rt-sub">' + x.pct.toFixed(0) + '% de la cartera · ' + T.sub + '</div>' +
+            '<div class="rt-names">' + (x.l.slice(0, nv === 'verde' ? 4 : 6).map(d => revEsc(d.p.n)).join(', ') + (x.n > (nv === 'verde' ? 4 : 6) ? '…' : '') || '—') + '</div></a>'; };
+    el.innerHTML = '<div class="rt-wrap"><div class="rt-gauge"><div class="rt-num" style="color:' + colS + '">' + (salud == null ? '—' : salud) + '<small>/100</small></div><div class="rt-lbl">Salud de la cartera<br><span>media ponderada por tamaño</span></div></div>' +
+        '<div class="rt-meter"><div class="rt-seg">' + ['rojo', 'naranja', 'verde'].map(nv => G[nv].pct > 0 ? '<span style="width:' + G[nv].pct + '%;background:' + REV_TERMO[nv].col + '" title="' + REV_TERMO[nv].tit + ': ' + G[nv].pct.toFixed(0) + '%">' + (G[nv].pct >= 9 ? G[nv].pct.toFixed(0) + '%' : '') + '</span>' : '').join('') + '</div>' +
+        '<div class="rt-scale"><span>deteriorado</span><span>con matices</span><span>intacto</span></div></div></div><div class="rt-tiles">' + tile('rojo') + tile('naranja') + tile('verde') + '</div>';
+}
 function revPintarBoton() {
-    const n = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
+    const datos = window._revDatos || [], n = datos.length, man = datos.filter(d => revEfectivo(d).manual).length;
     const el = document.getElementById('rev-guardar'); if (!el) return;
-    el.innerHTML = '<button class="btn ac" ' + (n ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar revisión (' + n + ' activo' + (n === 1 ? '' : 's') + ')</button>' +
-        '<span id="rev-msg" style="font-size:11px;font-weight:600">' + (window._revMsg || (n ? 'Solo se guardan los activos con decisión elegida.' : 'Elige una decisión en al menos un activo.')) + '</span>';
+    const btn = '<button class="btn ac" ' + (n && !window._revGuardando ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar revisión completa (' + n + ' activo' + (n === 1 ? '' : 's') + ')</button>';
+    el.innerHTML = btn + '<span id="rev-msg" style="font-size:11px;font-weight:600">' + (window._revMsg || ('Se guardan TODOS los activos con la propuesta automática' + (man ? ' y tus ' + man + ' cambio' + (man === 1 ? '' : 's') : '') + ' · precio, 52 semanas y dividendo quedan fijados a hoy.')) + '</span>';
+    const top = document.getElementById('rev-guardar-top'); if (top) top.innerHTML = btn;
 }
 function revPintarKpis() {
     const datos = window._revDatos || [], st = estadoRevision();
-    const nAvisos = datos.filter(d => revAvisosRojos(d)).length, pend = datos.filter(d => d.pendiente).length;
-    const decididas = Object.keys(REV_BORRADOR).filter(k => REV_BORRADOR[k].dec).length;
+    const efs = datos.map(d => ({ d, e: revEfectivo(d) })), cuenta = k => efs.filter(x => x.e.dec === k).length;
+    const rev = datos.filter(d => d.prop.excepcion).length, pend = datos.filter(d => d.pendiente).length, man = efs.filter(x => x.e.manual).length;
     document.getElementById('kg12').innerHTML = [
         { l: 'Última revisión', v: st.nunca ? 'Nunca' : revFmt(st.ultima), s: st.nunca ? 'Aún sin historial' : 'hace ' + st.dias + ' días', c: '#C9A24B' },
         { l: 'Próxima revisión', v: st.nunca ? 'Ya toca' : revFmt(st.proxima), s: st.nunca ? 'Haz la primera hoy' : (st.vencida ? '⚠️ atrasada ' + (-st.faltan) + ' días' : 'en ' + st.faltan + ' días'), c: st.vencida ? '#E85A5A' : '#34C77B' },
-        { l: 'Pendientes', v: pend + ' / ' + datos.length, s: 'sin revisar este mes o atrasadas', c: pend ? '#E29A3E' : '#34C77B' },
-        { l: 'Con avisos rojos', v: nAvisos + ' / ' + datos.length, s: 'señales automáticas', c: nAvisos ? '#E85A5A' : '#34C77B' },
-        { l: 'Decididos ahora', v: decididas + ' / ' + datos.length, s: 'sin guardar todavía', c: '#5B8FD9' },
+        { l: 'Para mirar tú', v: rev + ' / ' + datos.length, s: 'el resto se rellena solo', c: rev ? '#E29A3E' : '#34C77B' },
+        { l: 'Termómetro', v: datos.filter(d => d.termo.nivel === 'rojo').length + '🔴 ' + datos.filter(d => d.termo.nivel === 'naranja').length + '🟠 ' + datos.filter(d => d.termo.nivel === 'verde').length + '🟢', s: 'salud de cada negocio', c: datos.some(d => d.termo.nivel === 'rojo') ? '#E85A5A' : '#34C77B' },
+        { l: 'Cambios míos', v: String(man), s: 'sobre la propuesta (sin guardar)', c: '#5B8FD9' },
+        { l: 'Pendientes', v: pend + ' / ' + datos.length, s: 'sin revisar este mes', c: pend ? '#E29A3E' : '#34C77B' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' + k.c + ';white-space:nowrap">' + k.v + '</div><div class="ks">' + k.s + '</div></div>').join('');
+    const rs = document.getElementById('rev-resumen');
+    if (rs) rs.innerHTML = REV_DECISIONES.map(k => { const l = efs.filter(x => x.e.dec === k); return l.length ? '<span class="rev-dec" style="--c:' + REV_COL_DEC[k] + '" title="' + revEsc(l.map(x => x.d.p.n).join(', ')) + '">' + k + ' ' + l.length + '</span>' : ''; }).join('');
 }
+
+// ── Evolución por activo: lo que se fue guardando en cada revisión (precio, 52 semanas, dividendo, yield…)
+function revSparkline(vals, color) {
+    const v = vals.filter(x => x != null && !isNaN(x)); if (v.length < 2) return '<span class="mt2">—</span>';
+    const mn = Math.min(...v), mx = Math.max(...v), W = 120, H = 28, sx = i => 2 + i * (W - 4) / (vals.length - 1), sy = x => H - 3 - (mx === mn ? 0.5 : (x - mn) / (mx - mn)) * (H - 6);
+    let pts = []; vals.forEach((x, i) => { if (x != null && !isNaN(x)) pts.push(sx(i).toFixed(1) + ',' + sy(x).toFixed(1)); });
+    const ult = pts[pts.length - 1].split(',');
+    return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="vertical-align:middle"><polyline fill="none" stroke="' + color + '" stroke-width="1.6" points="' + pts.join(' ') + '"/><circle cx="' + ult[0] + '" cy="' + ult[1] + '" r="2.4" fill="' + color + '"/></svg>';
+}
+function revEvoActivo(n) { REV_EVO = n; renderRevisionEvo(); }
+function renderRevisionEvo() {
+    const el = document.getElementById('rev-evo'); if (!el) return;
+    const nombres = [...new Set((REVISIONES_GS || []).map(r => r.n))].sort((a, b) => a.localeCompare(b, 'es'));
+    if (!nombres.length) { el.innerHTML = '<div class="mt2" style="padding:16px">Cuando guardes la primera revisión aquí aparecerá, por activo, cómo van cambiando con los años el precio, el rango de 52 semanas, lo que paga y su yield.</div>'; return; }
+    if (!nombres.includes(REV_EVO)) REV_EVO = nombres[0];
+    const filas = (REVISIONES_GS || []).filter(r => r.n === REV_EVO).sort((a, b) => String(a.f).localeCompare(String(b.f)) || String(a.id).localeCompare(String(b.id)));
+    const num = (v, f) => (v !== '' && v != null) ? f(Number(v)) : '—', pc = v => (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '%', f2 = v => v.toFixed(2).replace('.', ',');
+    const yldDe = r => r.yld !== '' && r.yld != null ? Number(r.yld) : ((r.dpa > 0 && r.precio > 0) ? r.dpa / r.precio * 100 : (r.gqyld !== '' && r.gqyld != null ? Number(r.gqyld) : null));
+    const ys = filas.map(yldDe), ps = filas.map(r => r.precio === '' ? null : Number(r.precio)), ds = filas.map(r => r.dpa === '' ? null : Number(r.dpa));
+    const resumen = '<div class="rev-sp"><div><i>Precio</i>' + revSparkline(ps, 'var(--ac)') + '</div><div><i>Dividendo / acción</i>' + revSparkline(ds, 'var(--gn)') + '</div><div><i>Yield</i>' + revSparkline(ys, 'var(--am)') + '</div></div>';
+    el.innerHTML = '<div style="padding:10px 16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="mt2">Activo <select onchange="revEvoActivo(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:5px 8px;font-size:12px">' +
+        nombres.map(x => '<option' + (x === REV_EVO ? ' selected' : '') + '>' + revEsc(x) + '</option>').join('') + '</select></label><span class="mt2">' + filas.length + ' revisión' + (filas.length === 1 ? '' : 'es') + '</span></div>' + resumen +
+        '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Precio</th><th>52 semanas</th><th>Posición</th><th>Dividendo</th><th>Yield</th><th>Yield coste</th><th>Var. div.</th><th>Cubierto</th><th>Termómetro</th><th>Decisión</th><th>Origen</th></tr></thead><tbody>' +
+        filas.slice().reverse().map((r, j) => '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="text-align:left;font-weight:600">' + revFmt(r.f) + '</td><td>' + num(r.precio, f2) + '</td><td>' + (r.min52 !== '' && r.min52 != null ? f2(Number(r.min52)) + ' – ' + f2(Number(r.max52)) : '—') +
+            '</td><td>' + num(r.rango52, v => v.toFixed(0) + '%') + '</td><td>' + num(r.dpa, f2) + '</td><td>' + (yldDe(r) != null ? f2(yldDe(r)) + '%' : '—') + '</td><td>' + num(r.yoc, v => f2(v) + '%') + '</td><td>' + num(r.divpct, pc) +
+            '</td><td>' + revEsc(r.cub || '—') + '</td><td>' + (r.termo && REV_TERMO[r.termo] ? REV_TERMO[r.termo].ic + (r.salud !== '' && r.salud != null ? ' ' + r.salud : '') : '—') + '</td><td><b>' + revEsc(r.dec) + '</b></td><td>' + (r.origen === 'MANUAL' ? '✏️ manual' : r.origen === 'AUTO' ? '🤖 auto' : '—') + '</td></tr>').join('') + '</tbody></table></div>';
+}
+
 function renderRevisionSemestral() {
     const lista = document.getElementById('rev-lista'); if (!lista) return;
     const datos = datosRevision(), st = estadoRevision();
-    datos.sort((a, b) => REV_ORDEN === 'nombre' ? a.p.n.localeCompare(b.p.n, 'es') : REV_ORDEN === 'avisos' ? (revAvisosRojos(b) - revAvisosRojos(a)) || (b.flags.length - a.flags.length) || (b.peso - a.peso) : b.peso - a.peso);
+    const rangoNivel = { rojo: 0, naranja: 1, verde: 2 }, dirB = REV_BLOQUES === 'peor' ? 1 : -1, saludDe = d => d.termo.score == null ? 50 : d.termo.score;
+    const dentro = (a, b) => REV_ORDEN === 'nombre' ? a.p.n.localeCompare(b.p.n, 'es') : REV_ORDEN === 'peso' ? b.peso - a.peso : REV_ORDEN === 'avisos' ? (b.prop.exc.length - a.prop.exc.length) || (b.peso - a.peso) : (saludDe(a) - saludDe(b)) || (b.peso - a.peso);
+    datos.sort((a, b) => (rangoNivel[a.termo.nivel] - rangoNivel[b.termo.nivel]) * dirB || dentro(a, b));
     window._revDatos = datos;
     revPintarKpis();
-    document.getElementById('rev-aviso').innerHTML = st.vencida ?
-        '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Repasa cada activo, elige decisión y pulsa guardar: así queda fijada la primera foto de la cartera.' : 'Ha pasado más de ' + REV_MESES + ' mes desde la última revisión: toca revisar la cartera.') + '</span></div>' : '';
+    const nRev = datos.filter(d => d.prop.excepcion).length;
+    document.getElementById('rev-aviso').innerHTML = (st.vencida ?
+        '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Todo está ya propuesto: mira solo lo marcado, y pulsa «Guardar revisión completa» para fijar la primera foto de la cartera.' : 'Ha pasado más de ' + REV_MESES + ' mes desde la última revisión: toca revisar la cartera.') + '</span></div>' : '') +
+        '<div class="mt2" style="font-size:11px;line-height:1.5;margin-top:' + (st.vencida ? 8 : 0) + 'px">🤖 Las decisiones, el dividendo, el «cubierto» y la nota se rellenan solos con los datos de Getquin, tu hoja y las reglas de la cartera. <b>' + nRev + ' de ' + datos.length + '</b> piden que les eches un vistazo; el resto son «sin novedades».</div>' +
+        '<details class="rev-hist" style="margin-top:6px"><summary>Cómo decide el sistema</summary><div style="line-height:1.6;margin-top:4px">Por orden, gana la primera regla que se cumple:<br>' +
+        '1. <b>Vender</b>: especulativa con +12% o más.<br>2. <b>Reducir</b>: peso por encima del tope por acción (' + GOTEO_CFG.MAX_PESO_ACCION + '%), o dividendo que baja 5% o más y no está cubierto.<br>' +
+        '3. <b>Vigilar</b>: dividendo a la baja, dividendo sin cubrir, pérdida de 10% o más, o sector por encima de su tope (' + GOTEO_CFG.MAX_PESO_SECTOR + '%).<br>' +
+        '4. <b>Reforzar</b> (no especulativas): peso por debajo del 60% del tope, sector con margen, dividendo sin bajar, y además precio en el 35% inferior de su rango de 52 semanas, a 3% o menos de su trampa, o con objetivo de analistas +15% y precio por debajo del 60% del rango.<br>' +
+        '5. <b>Mantener</b>: todo lo demás. Los ETF siempre se mantienen.<br><b>Cubierto</b>: dividendo ÷ flujo de caja libre (Getquin): hasta 75% Sí, hasta 95% Justo, más No. En bancos y aseguradoras se usa el payout sobre beneficios (60% / 80%). En inmobiliarias queda «No sé».<br>' +
+        '<b>Próxima revisión</b>: +6 meses si es Mantener y sin avisos; si no, +1 mes. Todo lo que cambies a mano queda marcado ✏️ y se guarda como origen MANUAL.</div></details>';
     revPintarGq();
-    const filtros = [['todos', 'Todos'], ['pendientes', '⏳ Pendientes'], ['avisos', '⚠️ Con avisos'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
+    const filtros = [['todos', 'Todos (' + datos.length + ')'], ['revisar', '👀 A revisar (' + nRev + ')'], ['sin', '✅ Sin novedades (' + (datos.length - nRev) + ')'], ['pendientes', '⏳ Pendientes'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
     document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('') +
         '<span style="margin-left:auto;font-size:10px;color:var(--mt)">Orden <select onchange="revOrdenar(this.value)" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:11px">' +
-        [['peso', 'Peso'], ['avisos', 'Avisos'], ['nombre', 'Nombre']].map(o => '<option value="' + o[0] + '"' + (REV_ORDEN === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></span>';
-    const esEsp = d => String(d.p.tipo).toLowerCase().startsWith('especulativ');
-    const html = datos.map((d, idx) => ({ d, idx })).filter(({ d }) => REV_FILTRO === 'todos' || (REV_FILTRO === 'pendientes' && d.pendiente) || (REV_FILTRO === 'avisos' && d.flags.some(f => f[0] === 'w' || f[0] === 'i')) ||
-        (REV_FILTRO === 'forever' && !esEsp(d)) || (REV_FILTRO === 'especulativa' && esEsp(d))).map(({ d, idx }) => revTarjetaHtml(d, idx)).join('');
-    lista.innerHTML = html || '<div class="mt2" style="padding:16px">Nada que mostrar con este filtro</div>';
+        [['salud', 'Salud (peor primero)'], ['peso', 'Peso'], ['avisos', 'Avisos'], ['nombre', 'Nombre']].map(o => '<option value="' + o[0] + '"' + (REV_ORDEN === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select> · Bloques <select onchange="REV_BLOQUES=this.value;renderRevisionSemestral()" style="background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:11px"><option value="peor"' + (REV_BLOQUES === 'peor' ? ' selected' : '') + '>🔴 primero</option><option value="mejor"' + (REV_BLOQUES === 'mejor' ? ' selected' : '') + '>🟢 primero</option></select></span>';
+    const pasa = d => REV_FILTRO === 'todos' || (REV_FILTRO === 'revisar' && d.prop.excepcion) || (REV_FILTRO === 'sin' && !d.prop.excepcion) || (REV_FILTRO === 'pendientes' && d.pendiente) || (REV_FILTRO === 'forever' && !d.esEsp) || (REV_FILTRO === 'especulativa' && d.esEsp);
+    lista.className = '';
+    const visibles = datos.map((d, idx) => ({ d, idx })).filter(x => pasa(x.d)), totalValor = datos.reduce((t, d) => t + d.valor, 0) || 1;
+    const niveles = REV_BLOQUES === 'peor' ? ['rojo', 'naranja', 'verde'] : ['verde', 'naranja', 'rojo'];
+    lista.innerHTML = visibles.length ? niveles.map(nv => {
+        const its = visibles.filter(x => x.d.termo.nivel === nv), T = REV_TERMO[nv], pctB = its.reduce((t, x) => t + x.d.valor, 0) / totalValor * 100;
+        if (!its.length) return '';
+        return '<div class="rev-bloque t-' + nv + '" id="rev-bloque-' + nv + '"><span class="rb-t">' + T.ic + ' ' + T.tit + ' <i>· ' + T.sub + '</i></span><span class="rb-n">' + its.length + ' activo' + (its.length === 1 ? '' : 's') + ' · ' + pctB.toFixed(0) + '% de la cartera</span></div>' +
+            '<div class="rev-grid">' + its.map(x => revTarjetaHtml(x.d, x.idx)).join('') + '</div>';
+    }).join('') : '<div class="mt2" style="padding:16px">Nada que mostrar con este filtro 🎉</div>';
+    revPintarTermometro(datos);
     revPintarBoton();
-    // Historial general: una línea por revisión (mismo ID_REVISION) y el detalle de las últimas filas
+    renderRevisionEvo();
+    // Historial general: una línea por revisión (mismo ID_REVISION)
     const grupos = {}; (REVISIONES_GS || []).forEach(r => { const k = r.id || r.f; (grupos[k] = grupos[k] || { id: k, f: r.f, filas: [] }).filas.push(r); });
     const lg = Object.values(grupos).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id))).slice(0, 24);
     const tbI = document.getElementById('tb-rev-ids');
@@ -7989,38 +8720,44 @@ function renderRevisionSemestral() {
         '<tr><td colspan="11" class="mt2">Aún no hay revisiones guardadas</td></tr>';
 }
 
+// Guarda TODOS los activos: la propuesta automática salvo lo que hayas cambiado tú. Cada fila fija precio, 52 semanas, dividendo y yield de hoy.
 async function guardarRevision() {
+    if (window._revGuardando) return;
     const datos = window._revDatos || [], hoy = _hoyISO(), ahora = new Date();
     const id = 'R-' + hoy.replace(/-/g, '') + '-' + _pad2(ahora.getHours()) + _pad2(ahora.getMinutes());
-    const filas = datos.filter(d => REV_BORRADOR[d.p.n] && REV_BORRADOR[d.p.n].dec).map(d => { const b = REV_BORRADOR[d.p.n];
-        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: b.dec, divvs: d.esEtf ? '' : (b.div || (d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '')), cub: d.esEtf ? '' : (b.cub || (d.gq && d.gq.cub && d.gq.cub !== 'No sé' ? d.gq.cub : '')), deuda: d.esEtf ? '' : (b.deu || ''),
-            peso: +d.peso.toFixed(2), rent: +d.rent.toFixed(2), precio: +d.pa.toFixed(4), nota: (b.nota || '').slice(0, 300), prox: b.prox || revProximaAuto(d, b.dec),
-            min52: d.r52 ? d.r52.min : '', max52: d.r52 ? d.r52.max : '', rango52: d.pos52 != null ? +d.pos52.toFixed(1) : '', dpa: d.dpa > 0 ? +d.dpa.toFixed(4) : '',
-            divpct: d.esEtf ? '' : (b.divpct !== '' ? +b.divpct : (d.sugDiv ? +d.sugDiv.pct.toFixed(2) : '')), gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '' }; });
+    const filas = datos.map(d => { const e = revEfectivo(d), r = (x, k) => (x == null || isNaN(x)) ? '' : +Number(x).toFixed(k);
+        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: e.dec, divvs: e.div, cub: e.cub, deuda: e.deu, peso: r(d.peso, 2), rent: r(d.rent, 2), precio: r(d.pa, 4), nota: (e.nota || '').slice(0, 300), prox: e.prox,
+            min52: d.r52 ? r(d.r52.min, 4) : '', max52: d.r52 ? r(d.r52.max, 4) : '', rango52: r(d.pos52, 1), dpa: d.dpa > 0 ? r(d.dpa, 4) : '', divpct: r(e.divpct, 2),
+            gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '',
+            termo: d.termo.nivel, salud: d.termo.score == null ? '' : d.termo.score, yld: r(d.yld, 2), yoc: r(d.yoc, 2), payeps: d.gf && d.gf.payoutEps != null ? d.gf.payoutEps : '', per: d.gf && d.gf.per != null ? d.gf.per : '', obj: d.obj ? r(d.obj, 2) : '', origen: e.manual ? 'MANUAL' : 'AUTO' }; });
     if (!filas.length) return;
     let clave = '';
-    try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    try { clave = localStorage.getItem('goteo_clave') || ''; } catch (err) {}
     if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
     const msg = t => { window._revMsg = t; const el = document.getElementById('rev-msg'); if (el) el.textContent = t; };
     if (!clave) { msg('⚠️ Sin clave: no se ha guardado nada.'); return; }
-    let ok = 0;
-    for (const fila of filas) {
-        msg('⏳ guardando ' + (ok + 1) + ' de ' + filas.length + '…');
-        try {
-            const q = 'accion=guardarRevision&clave=' + encodeURIComponent(clave) + '&id=' + encodeURIComponent(fila.id) + '&fecha=' + fila.f + '&activo=' + encodeURIComponent(fila.n) + '&isin=' + encodeURIComponent(fila.isin) +
-                '&decision=' + encodeURIComponent(fila.dec) + '&divvs=' + encodeURIComponent(fila.divvs) + '&cubierto=' + encodeURIComponent(fila.cub) + '&deuda=' + encodeURIComponent(fila.deuda) +
-                '&peso=' + fila.peso + '&rent=' + fila.rent + '&precio=' + fila.precio + '&nota=' + encodeURIComponent(fila.nota) + '&proxima=' + encodeURIComponent(fila.prox) +
-                '&min52=' + fila.min52 + '&max52=' + fila.max52 + '&rango52=' + fila.rango52 + '&dpa=' + fila.dpa + '&divpct=' + fila.divpct + '&gqdiv=' + fila.gqdiv + '&gqyld=' + fila.gqyld + '&gqpfcf=' + fila.gqpfcf;
-            const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q)).json();
-            if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} msg('⚠️ Clave incorrecta. Se han guardado ' + ok + ' de ' + filas.length + '.'); } else msg('⚠️ Error al guardar. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
-            try { localStorage.setItem('goteo_clave', clave); } catch (e) {}
-            REVISIONES_GS.push({ id: fila.id, f: fila.f, n: fila.n, isin: fila.isin, dec: fila.dec, divvs: fila.divvs, cub: fila.cub, deuda: fila.deuda, peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, prox: fila.prox,
-                min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct, gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf });
-            delete REV_BORRADOR[fila.n]; ok++;
-        } catch (e) { msg('⚠️ Sin conexión con la hoja. Se han guardado ' + ok + ' de ' + filas.length + '.'); break; }
+    window._revGuardando = true; revPintarBoton();
+    let ok = 0, fallo = '';
+    const guardarUna = async fila => {
+        const q = new URLSearchParams({ accion: 'guardarRevision', clave, id: fila.id, fecha: fila.f, activo: fila.n, isin: fila.isin, decision: fila.dec, divvs: fila.divvs, cubierto: fila.cub, deuda: fila.deuda,
+            peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, proxima: fila.prox, min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct,
+            gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf, yld: fila.yld, yoc: fila.yoc, payeps: fila.payeps, per: fila.per, objetivo: fila.obj, origen: fila.origen, termometro: fila.termo, salud: fila.salud });
+        const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q.toString())).json();
+        if (!j || !j.ok) { const er = new Error(j && j.error === 'clave' ? 'clave' : 'hoja'); throw er; }
+        if (!(REVISIONES_GS || []).some(x => x.id === fila.id && x.n === fila.n)) REVISIONES_GS.push(Object.assign({}, fila, { cub: fila.cub, obj: fila.obj }));
+        delete REV_BORRADOR[fila.n]; ok++;
+    };
+    for (let i = 0; i < filas.length && !fallo; i += 4) {
+        msg('⏳ guardando ' + Math.min(i + 4, filas.length) + ' de ' + filas.length + '…');
+        const res = await Promise.allSettled(filas.slice(i, i + 4).map(guardarUna));
+        const mal = res.find(x => x.status === 'rejected');
+        if (mal) fallo = mal.reason && mal.reason.message === 'clave' ? 'clave' : 'red';
     }
+    if (fallo === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (err) {} }
     revGuardarBorrador();
-    window._revMsg = ok === filas.length ? '✅ ' + ok + ' activo' + (ok === 1 ? '' : 's') + ' guardado' + (ok === 1 ? '' : 's') + ' (' + id + ')' : window._revMsg;
+    window._revGuardando = false;
+    window._revMsg = !fallo && ok === filas.length ? '✅ ' + ok + ' activos guardados (' + id + '). Puedes ver su evolución más abajo.' :
+        '⚠️ ' + (fallo === 'clave' ? 'Clave incorrecta. ' : 'No se pudo guardar todo. ') + 'Guardados ' + ok + ' de ' + filas.length + (ok ? '; vuelve a pulsar para completar (no se duplican).' : '.');
     renderRevisionSemestral();
 }
 
