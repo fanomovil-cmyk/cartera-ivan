@@ -8773,13 +8773,19 @@ function revDelta(hoy, ant, k, pp) { // variación frente a la última revisión
     const v = pp ? hoy - ant : (ant ? (hoy / ant - 1) * 100 : null); if (v == null || isNaN(v)) return '';
     return ' <i class="rk-d">' + REV_SGN(v, k) + (pp ? ' pp' : '%') + '</i>';
 }
+// Deuda neta/EBITDA efectiva: la de la ficha (manual) manda; si está vacía, la que dé Getquin (si su página la muestra o se puede calcular)
+function revDeudaEb(d) {
+    if (d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null) return { v: Number(d.ficha.deudaebitda), fuente: 'ficha' };
+    const x = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase());
+    return x && x.deuda != null ? { v: x.deuda, fuente: 'Getquin' } : null;
+}
 function revClaveHtml(d) {
     const u = d.ult || {}, hay = !!d.ult, nz = v => (v === '' || v == null) ? null : Number(v);
     const f = d.factor, fr = (u.factor > 0 ? f / u.factor : f);                 // si el factor cambió desde la última revisión, se compara con lo ajustado
     const dpaAnt = nz(u.dpaaj) != null ? nz(u.dpaaj) : nz(u.dpa);
     const dpaAntAj = dpaAnt != null ? dpaAnt / (fr > 0 ? fr : 1) : null;
     const gfq = d.gq || {}, pf = gfq.pfcf != null ? gfq.pfcf : null;
-    const affo = d.ficha && d.ficha.affo > 0 ? d.ficha.affo : null, deuda = d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null ? Number(d.ficha.deudaebitda) : null;
+    const affo = d.ficha && d.ficha.affo > 0 ? d.ficha.affo : null, gx0 = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase()), deuda = d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null ? Number(d.ficha.deudaebitda) : (gx0 && gx0.deuda != null ? gx0.deuda : null);   // la ficha manda; si está vacía, la de Getquin (si la página la da)
     const pfLabel = d.esReit ? 'Payout AFFO' : 'Payout FCF', pfHoy = d.esReit ? affo : pf, pfAnt = d.esReit ? nz(u.affo) : nz(u.gqpfcf);
     const c5 = d.adj ? d.adj.crec5 : null, per = d.gf && d.gf.per != null ? d.gf.per : null;
     const fila = (lab, tip, hoy, ant, sen) => '<tr title="' + revEsc(tip) + '"><td>' + lab + '</td><td>' + hoy + '</td><td class="mt2">' + (hay ? ant : '—') + '</td><td>' + sen + '</td></tr>';
@@ -8793,7 +8799,7 @@ function revClaveHtml(d) {
         fila('Crec. dividendo ' + (c5 ? c5.n + 'a' : '5a'), c5 ? 'Crecimiento anual compuesto de tu histórico (hoja)' + (f !== 1 ? ', ajustado por acciones gratis' : '') + ': ' + c5.fuente : 'Sin histórico suficiente en la hoja', c5 ? REV_SGN(c5.pct) + '%' : '—', nz(u.crec5) != null ? REV_SGN(u.crec5) + '%' : '—', c5 ? revSenal(c5.pct, 3, 0, false) : '<span class="rk-s">—</span>'),
         fila('Payout BPA', 'Dividendo ÷ beneficio por acción (Getquin)', d.gf && d.gf.payoutEps != null ? REV_NUM(d.gf.payoutEps, 0) + '%' : '—', nz(u.payeps) != null ? REV_NUM(u.payeps, 0) + '%' : '—', revSenal(d.gf ? d.gf.payoutEps : null, 75, 95)),
         fila(pfLabel, d.esReit ? 'Inmobiliarias: dividendo ÷ AFFO. Se apunta a mano en la ficha (Getquin no lo da)' : 'Dividendo ÷ flujo de caja libre (Getquin)', pfHoy != null ? (!d.esReit && pfHoy > 120 ? REV_NUM(pfHoy, 0) + '% <i class="rk-b" style="color:var(--am)">dato dudoso</i>' : REV_NUM(pfHoy, 0) + '%') : (d.esReit ? '<i class="rk-b">falta AFFO</i>' : '—'), pfAnt != null ? REV_NUM(pfAnt, 0) + '%' : '—', (!d.esReit && pfHoy > 120) ? '<span class="rk-s i">?</span>' : revSenal(pfHoy, d.esReit ? 80 : 75, d.esReit ? 95 : 95)),
-        fila('Deuda neta/EBITDA', 'Se apunta a mano en la ficha (no hay dato automático)', deuda != null ? REV_NUM(deuda) + '×' : '<i class="rk-b">en la ficha</i>', nz(u.deudaebitda) != null ? REV_NUM(u.deudaebitda) + '×' : '—', revSenal(deuda, 3, 4.5)),
+        fila('Deuda neta/EBITDA', 'La de la ficha manda; si está vacía, la de Getquin cuando su página la da (' + ((revDeudaEb(d) || {}).fuente || 'sin dato') + ')', deuda != null ? REV_NUM(deuda) + '×' : '<i class="rk-b">en la ficha</i>', nz(u.deudaebitda) != null ? REV_NUM(u.deudaebitda) + '×' : '—', revSenal(deuda, 3, 4.5)),
         ...(() => { const x = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase()); if (!x || d.esEtf) return [];
             const dudoso = !d.esReit && pf != null && pf > 120, hint = dudoso && x.fcfEbitda != null && x.fcfEbitda < 40 ? ' · el flujo de caja es solo el ' + REV_NUM(x.fcfEbitda, 0) + '% del EBITDA (inversión alta): el %FCF puede ser real, contrástalo con el payout BPA' : '';
             return [x.margen != null ? fila('Margen EBITDA', 'EBITDA ÷ ingresos (Getquin, TTM)' + hint, REV_NUM(x.margen, 0) + '%', nz(u.margen) != null ? REV_NUM(u.margen, 0) + '%' : '—', '<span class="rk-s">·</span>') : '',
@@ -8813,7 +8819,7 @@ function revEval(d, idx, b) {
     const sel = (campo, ops, act) => '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">—</option>' + ops.map(x => '<option' + (act === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
     const sugT = { verde: 'Intacta', naranja: 'En duda', rojo: 'Rota' }[d.termo.nivel];
     const sugD = d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '', sugC = d.cubAuto && d.cubAuto.v !== 'No sé' ? d.cubAuto.v : '';
-    const dd = d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null ? Number(d.ficha.deudaebitda) : null, du = d.ult && d.ult.deudaebitda !== '' && d.ult.deudaebitda != null ? Number(d.ult.deudaebitda) : null;
+    const dd = (revDeudaEb(d) || {}).v ?? null, du = d.ult && d.ult.deudaebitda !== '' && d.ult.deudaebitda != null ? Number(d.ult.deudaebitda) : null;
     const sugU = dd == null ? '' : (du != null && dd > du + 0.3) ? 'Sube' : dd > 3 ? 'Vigilar' : 'OK';
     return '<div class="rk-blk"><div class="rk-t">Mi evaluación <i>(solo se guarda lo que eliges tú)</i></div><div class="rk-ev">' +
         '<label>Tesis' + sel('tesis', REV_OPC_TES, b.tesis) + revSug(idx, 'tesis', sugT, 'Según el termómetro del negocio') + '</label>' +
@@ -9574,7 +9580,7 @@ async function guardarRevision() {
             min52: d.r52 ? r(d.r52.min, 4) : '', max52: d.r52 ? r(d.r52.max, 4) : '', rango52: r(d.pos52, 1), dpa: d.dpa > 0 ? r(d.dpa, 4) : '', divpct: r(e.divpct, 2),
             gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '',
             termo: d.termo.nivel, salud: d.termo.score == null ? '' : d.termo.score, yld: r(d.yld, 2), yoc: r(d.yoc, 2), payeps: d.gf && d.gf.payoutEps != null ? d.gf.payoutEps : '', per: d.gf && d.gf.per != null ? d.gf.per : '', obj: d.obj ? r(d.obj, 2) : '', origen: e.manual ? 'MANUAL' : 'AUTO',
-            tesis: e.tesis || '', dpaaj: d.dpa > 0 ? r(d.dpa, 4) : '', factor: d.factor, divbase: d.dpaBase || '', crec5: d.adj && d.adj.crec5 ? r(d.adj.crec5.pct, 2) : '', affo: d.ficha && d.ficha.affo > 0 ? d.ficha.affo : '', deudaebitda: d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null ? d.ficha.deudaebitda : '', sector: d.esEtf ? 'ETF' : d.sector, tope: d.tope, netoanual: revNetoAnual(d), calidad: d.calidad ? d.calidad.nivel : '' }; });
+            tesis: e.tesis || '', dpaaj: d.dpa > 0 ? r(d.dpa, 4) : '', factor: d.factor, divbase: d.dpaBase || '', crec5: d.adj && d.adj.crec5 ? r(d.adj.crec5.pct, 2) : '', affo: d.ficha && d.ficha.affo > 0 ? d.ficha.affo : '', deudaebitda: revDeudaEb(d) ? revDeudaEb(d).v : '', sector: d.esEtf ? 'ETF' : d.sector, tope: d.tope, netoanual: revNetoAnual(d), calidad: d.calidad ? d.calidad.nivel : '' }; });
     if (!filas.length) { window._revMsg = 'ℹ️ No hay nada que guardar: solo se guardan los activos que revisas tú (cambia algo o pulsa «✔ Confirmar» en la tarjeta). Las decisiones automáticas sin tocar no se guardan.'; const m0 = document.getElementById('rev-msg'); if (m0) m0.textContent = window._revMsg; return; }
     let clave = '';
     try { clave = localStorage.getItem('goteo_clave') || ''; } catch (err) {}
