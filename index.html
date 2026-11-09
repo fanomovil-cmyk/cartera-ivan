@@ -1139,7 +1139,7 @@ let OBJETIVOS_GS = [];
 let HISTORICO_GOTEO_GS = [];
 let COMPRAS_DETALLE_GS = [];
 let FLUJOS_CAJA_GS = [];
-let CALENDARIO_DIVIDENDOS_GS = [], IMPORTES_MAN_GS = [], PRECIOS_GQ_GS = [], PREVISION_GQ_GS = [], FICHAS_GS = [], DIV_EXTRA_GS = [], GQ_EXTRA_GS = [];
+let CALENDARIO_DIVIDENDOS_GS = [], IMPORTES_MAN_GS = [], PRECIOS_GQ_GS = [], PREVISION_GQ_GS = [], FICHAS_GS = [], DIV_EXTRA_GS = [], GQ_EXTRA_GS = [], GQ_FIN_GS = {};
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
 let HISTORICO_DIVIDENDOS_LARGO_GS = [];
@@ -1174,7 +1174,7 @@ let PERIODO_SELECCIONADO = 'todo'; // 'mes' | un año concreto (string) | 'todo'
 let ANIO_TERMO = null; // null = año actual por defecto; también puede ser 'prevision' o un año pasado (string)
 let HISTORICO_CIERRES = [];
 let POS_ORDEN = { k: 'orig', dir: 1 }; // orden de la tabla Posiciones del Mando
-const REV_DECISIONES = ['Mantener', 'Reforzar', 'Reducir', 'Vender', 'Vigilar'];
+const REV_DECISIONES = ['Mantener', 'Mantener sin compras', 'Reforzar', 'Reducir', 'Vender', 'Vigilar'];
 const REV_OPC_TES = ['Intacta', 'En duda', 'Rota'];
 function REV_VACIO() { return { dec: '', div: '', divpct: '', cub: '', deu: '', tesis: '', nota: '', prox: '' }; }
 const REV_OPC_DIV = ['Sube', 'Igual', 'Baja'], REV_OPC_CUB = ['Sí', 'Justo', 'No', 'No sé'], REV_OPC_DEU = ['OK', 'Sube', 'Vigilar'];
@@ -2736,6 +2736,7 @@ async function recargar(modoRapido) {
         if (data.preciosGetquin) PRECIOS_GQ_GS = data.preciosGetquin;
         if (data.divExtra) DIV_EXTRA_GS = data.divExtra;
         if (data.getquinExtra) GQ_EXTRA_GS = data.getquinExtra;
+        if (data.getquinFinanzas) GQ_FIN_GS = data.getquinFinanzas;
         if (data.previsionGetquin) PREVISION_GQ_GS = data.previsionGetquin;
         if (data.fichas) FICHAS_GS = data.fichas;
         if (data.picosEspeculativas) {
@@ -5815,8 +5816,11 @@ function divPesosMes(isin, meses) {
 // Importe del pago de un mes escrito a mano por ti (por acción, bruto, €): manda sobre cualquier cálculo
 function importeManual(isin, mes) {
     const x = (IMPORTES_MAN_GS || []).find(y => y.isin && esMismoISIN(y.isin, isin) && Number(y.mes) === Number(mes));
-    return x && x.imp > 0 ? Number(x.imp) : null;
+    if (x && x.imp > 0) return Number(x.imp);
+    const d = IMPORTE_DEF[String(isin || '').trim().toUpperCase()];   // semilla: solo si no hay importe en la hoja para ese mes
+    return d && d[Number(mes)] > 0 ? d[Number(mes)] : null;
 }
+const IMPORTE_DEF = { FR0000121014: { 12: 5.5, 4: 7.5 } };   // LVMH: diciembre 5,50 € (anticipo) y abril 7,50 € (saldo)
 // Dividendo anual por acción según Getquin con la mejor base disponible: tus importes manuales (si cubren todos los pagos) → próximo importe × nº de pagos → últimos 12 meses.
 function divAnualGq(isin) {
     const g = isin ? gqFicha(isin) : null; if (!g) return null;
@@ -5843,7 +5847,11 @@ function divPrevisto(isin) {
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const pv = (PREVISION_GQ_GS || []).filter(x => esMismoISIN(x.isin, k)).map(x => ({ x, f: _parseFechaGq(x.pago || x.ex) })).filter(y => y.f && y.f >= new Date(hoy.getTime() - 5 * 86400000) && (y.f - hoy) / 86400000 <= 365 && (!y.x.act || (Date.now() - new Date(String(y.x.act).replace(' ', 'T')).getTime()) / 86400000 <= 20));
     const g = gqFicha(k), nP = meses ? meses.length : (g && g.frec ? (/mensual|monthly/i.test(g.frec) ? 12 : /trimest|quarter/i.test(g.frec) ? 4 : /semest|semi/i.test(g.frec) ? 2 : /anual|annual|year/i.test(g.frec) ? 1 : null) : null);
-    if (pv.length && nP && pv.length >= nP) return { v: pv.slice().sort((a, b) => a.f - b.f).slice(0, nP).reduce((t, y) => t + y.x.imp, 0), fuente: 'Getquin', txt: 'previsión de pagos de Getquin (' + nP + ' pagos)' };
+    if (pv.length && nP && pv.length >= nP) {
+        const sel = pv.slice().sort((a, b) => a.f - b.f).slice(0, nP);
+        // Anuales y semestrales: la previsión de Getquin solo cuenta cuando está ANUNCIADA (declarada); hasta entonces el yield usa lo último pagado
+        if (nP > 2 || sel.every(y => /anunciado/i.test(String(y.x.est || '')))) return { v: sel.reduce((t, y) => t + y.x.imp, 0), fuente: 'Getquin', txt: 'previsión de pagos de Getquin (' + nP + ' pagos)' };
+    }
     const ga = divAnualGq(k);
     if (ga && /^(pr[oó]ximo importe|tus importes)/.test(ga.t)) return { v: ga.v, fuente: 'Getquin', txt: ga.t };
     return null;
@@ -5935,6 +5943,7 @@ function divFichaIsin(o) {
     f.estado = g && g.proxEstado ? g.proxEstado : '';
     // ── cobertura y rentabilidad
     f.cub = revCubierto({ esEtf: false, gq: g, gf: g, sector: o.sector || '' });
+    { const rc = revCubGuardada(isin, o.n); if (rc) f.cub = { v: rc.cub, why: 'tu revisión guardada' }; }
     f.yld = dpa > 0 && pa > 0 ? dpa / pa * 100 : null;
     f.yoc = dpa > 0 && o.pm > 0 ? dpa / o.pm * 100 : null;
     f.payoutEps = g && g.payoutEps != null ? g.payoutEps : null; f.pfcf = g && g.pfcf != null ? g.pfcf : null;
@@ -8439,12 +8448,13 @@ function estadoRevision() {
 }
 
 // ── Revisión: ficha completa de cada posición + propuesta automática ────────────────────────────
-const REV_COL_DEC = { Mantener: 'var(--mt)', Reforzar: 'var(--gn)', Reducir: 'var(--am)', Vender: 'var(--rd)', Vigilar: 'var(--am)' };
+const REV_COL_DEC = { Mantener: 'var(--mt)', 'Mantener sin compras': 'var(--am)', Reforzar: 'var(--gn)', Reducir: 'var(--am)', Vender: 'var(--rd)', Vigilar: 'var(--am)' };
 function esTipoEsp(t) { return /^e[sx]?pecul/i.test(String(t || '').trim()); }
 function normTipo(t) { return esTipoEsp(t) ? 'Especulativa' : String(t || ''); }
 function esEspPos(p) { return esTipoEsp(p.tipo); }
 
 // Peso por sector hoy y SI SE EJECUTAN las órdenes puestas en TR (trampas con orden activa): Salud ~29 %, Inmobiliario ~27 %…
+const SECTOR_DEF = [[/cincinnati/i, 'Financiero'], [/miquel/i, 'Materiales'], [/procter|p&g|p\s*&\s*g/i, 'Consumo'], [/^dover/i, 'Industrial']];   // semillas: se usan solo si la columna T de TRAMPAS está vacía
 function sectoresConOrdenes() {
     const pos = posicionesVivas(), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1, val = {};
     pos.forEach(p => { if (!esEtfPos(p)) { const k = sectorBase(p.sector); val[k] = (val[k] || 0) + (precioDe(p) || 0) * p.sh; } });
@@ -8453,7 +8463,8 @@ function sectoresConOrdenes() {
     const sectorDe = (r, isin) => {
         const p = pos.find(x => (isin && String(x.isin || '').toUpperCase() === isin) || x.n === r[0] || x.n === (MAP[r[0]] || r[0]));
         if (p) return esEtfPos(p) ? null : sectorBase(p.sector);
-        const man = String(r[19] || '').trim();   // sector manual de TRAMPAS (columna T)
+        // Sector manual: columna T de TRAMPAS; si está vacía, una semilla por nombre (la hoja siempre manda)
+        const man = String(r[19] || '').trim() || ((SECTOR_DEF.find(x => x[0].test(String(r[0] || ''))) || [])[1] || '');
         const g = isin ? gqFicha(isin) : null, t = norm(man || (g ? (g.sectorGq || '') + ' ' + (g.indGq || '') : '')).trim(); if (!t) return null;
         const m = mapa.find(([a]) => a.test(t)); const k = m ? claves.find(c => m[1].test(norm(c))) : claves.find(c => norm(c) === t);
         return k || (man ? sectorBase(man) : null);
@@ -8476,11 +8487,17 @@ function fichaDe(p) {
 }
 let REV_FICHA_BORR = {};
 // Dividendo por acción de tu histórico (hoja), ajustado por acciones gratis: el valor del año más antiguo de cada comparación se divide entre el factor (Air Liquide 1,1).
-function revDivAjustado(fd, dpa, factor, tendDiv, isin) {
+function revDivAjustado(fd, dpa, factor, tendDiv, isin, gf, slot, nPag) {
     const Y = new Date().getFullYear(), ser = {}; ((fd && fd.serie) || []).forEach(x => { ser[x.a] = x.v; });
     const aj = v => v / factor, f2 = v => v.toFixed(2).replace('.', ','), fx = factor !== 1 ? ', ajustado ÷' + String(factor).replace('.', ',') + ' por acciones gratis' : '';
     let sug = null;
-    if (dpa > 0 && ser[Y - 1]) sug = { pct: (dpa / aj(ser[Y - 1]) - 1) * 100, fuente: 'previsto ' + f2(dpa) + ' frente a pagado ' + (Y - 1) + ' ' + f2(ser[Y - 1]) + fx };
+    // Base de comparación: lo previsto frente a los ÚLTIMOS 12 MESES pagados (Getquin), no frente al año natural pasado (que infla a Visa, Mastercard, McDonald's, Lowe's…).
+    // Si hay acciones gratis (factor≠1) el 12m de Getquin no está ajustado como tu hoja: ahí se mantiene el histórico ajustado.
+    if (slot && slot.prox && slot.a > 0 && slot.b > 0) sug = { pct: (slot.b / aj(slot.a) - 1) * 100, fuente: 'próximo pago ' + f2(slot.b) + ' × ' + slot.nPag + ' frente a ' + (slot.est ? 'pago medio ' : 'último pago ') + f2(aj(slot.a)) + ' × ' + slot.nPag + ' (' + slot.fa + ')' + fx };
+    else if (slot && slot.a > 0 && slot.b > 0) sug = { pct: (slot.b / aj(slot.a) - 1) * 100, fuente: 'último pago ' + f2(slot.b) + ' (' + slot.fb + ') frente al ' + (slot.nPag === 1 ? 'anterior' : 'de hace un año') + ' ' + f2(aj(slot.a)) + ' (' + slot.fa + ')' + fx };
+    else if (nPag && nPag <= 2 && nPag === 1 && ser[Y] && ser[Y - 1]) sug = { pct: (ser[Y] / aj(ser[Y - 1]) - 1) * 100, fuente: 'pago de ' + Y + ' frente al de ' + (Y - 1) + ' (' + f2(ser[Y]) + ' vs ' + f2(aj(ser[Y - 1])) + ')' + fx };
+    else if (nPag && nPag <= 2 && ser[Y - 1] && ser[Y - 2]) sug = { pct: (ser[Y - 1] / aj(ser[Y - 2]) - 1) * 100, fuente: 'pagado ' + (Y - 1) + ' frente a ' + (Y - 2) + ' (pagador ' + (nPag === 1 ? 'anual' : 'semestral') + ': se compara con tu hoja, no con Getquin)' + fx };
+    else if (dpa > 0 && ser[Y - 1]) sug = { pct: (dpa / aj(ser[Y - 1]) - 1) * 100, fuente: 'previsto ' + f2(dpa) + ' frente a pagado ' + (Y - 1) + ' ' + f2(ser[Y - 1]) + fx };
     else if (ser[Y - 1] && ser[Y - 2]) sug = { pct: (ser[Y - 1] / aj(ser[Y - 2]) - 1) * 100, fuente: 'pagado ' + (Y - 1) + ' frente a ' + (Y - 2) + fx };
     else if (tendDiv != null) sug = { pct: tendDiv, fuente: 'entre tus dos últimos cobros' };
     // Ruido: el histórico está en euros y el año natural no coincide con el ejercicio; un -0,5 % o un -2 % en un valor en dólares no es un recorte
@@ -8536,6 +8553,7 @@ function datosRevision() {
         const tr = (TRAMPAS_GS || []).find(r => r[0] === p.n || r[0] === (MAP[p.n] || p.n));
         const dist = tr ? Math.abs(cn(tr[5])) : null;
         const hist = (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO' && (r.n === p.n || (p.isin && r.isin === p.isin))).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
+        for (let i = hist.length - 1; i > 0; i--) { const x = hist[i], y = hist[i - 1]; if (x.f === y.f && x.dec === y.dec && String(x.nota) === String(y.nota) && String(x.tesis || '') === String(y.tesis || '') && String(x.fuente || '') === String(y.fuente || '') && String(x.origen || '') === String(y.origen || '')) hist.splice(i, 1); }   // filas idénticas (doble guardado): se muestra una
         const ult = hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
         const r52 = rango52De(p), gq = gqDe(p), gf = gqFicha(p.isin);
         const pos52 = r52 ? Math.max(0, Math.min(100, (pa - r52.min) / (r52.max - r52.min) * 100)) : null;
@@ -8548,7 +8566,24 @@ function datosRevision() {
         const fd = esEtf ? null : divFicha(p);
         // El crecimiento del dividendo sale de la hoja (tu histórico) ajustada por acciones gratis, NO de Getquin
         const ficha = fichaDe(p), factor = ficha && ficha.factor > 0 ? ficha.factor : 1, tope = ficha && ficha.tope > 0 ? ficha.tope : C.MAX_PESO_ACCION;
-        const adj = esEtf ? null : revDivAjustado(fd, dpa, factor, tendDiv, p.isin), sugDiv = adj ? adj.sug : null;
+        // Pagadores anuales/semestrales: se compara el ÚLTIMO PAGO de tu hoja con el de su mismo hueco (1 pago antes si es anual, 2 si es semestral), nunca con el 12m de Getquin
+        let slot = null; const nPag = fd && fd.nPagos;
+        if (!esEtf && nPag && nPag > 2 && mios.length && fd.impSh > 0) { const bb = mios[mios.length - 1]; if (bb.sh > 0 && bb.bruto > 0) slot = { a: bb.bruto / bb.sh, b: fd.impSh, fa: bb.f, fb: 'próximo', nPag, prox: true }; }   // mensual/trimestral: próximo pago × frecuencia frente a último pago × frecuencia
+        if (!slot && !esEtf && nPag && nPag > 2 && fd.impSh > 0 && !mios.length) {   // sin cobros tuyos en la hoja: pago medio de este año según Getquin (lo pagado ÷ pagos que ya tocaban)
+            const gx = (GQ_EXTRA_GS || []).find(y => y.isin === String(p.isin || '').toUpperCase()), pagados = Math.floor((new Date().getMonth() + 1) / (12 / nPag));
+            if (gx && gx.divAnio > 0 && pagados >= 1) slot = { a: gx.divAnio / pagados, b: fd.impSh, fa: 'media de ' + gx.divAnio.toFixed(2).replace('.', ',') + ' € pagados en ' + (gx.anio || new Date().getFullYear()) + ' ÷ ' + pagados + ' pagos, según Getquin', fb: 'próximo', nPag, prox: true, est: true };
+        }
+        if (!esEtf && nPag && nPag <= 2 && mios.length > nPag) { const bb = mios[mios.length - 1], aa = mios[mios.length - 1 - nPag]; if (aa.sh > 0 && bb.sh > 0 && aa.bruto > 0 && bb.bruto > 0) slot = { a: (aa.bruto / aa.sh), b: (bb.bruto / bb.sh), fa: aa.f, fb: bb.f, nPag }; }
+        const adj = esEtf ? null : revDivAjustado(fd, dpa, factor, tendDiv, p.isin, gf, slot, nPag);
+        let sugDiv = adj ? adj.sug : null;
+        const sugDivAuto = sugDiv;
+        // Una revisión guardada (IMPORT o manual) con dividendo / % de variación manda sobre la sugerencia automática (y el termómetro la respeta)
+        const uDivOk = ult && diasUlt != null && diasUlt <= 400 && !esEtf && ((ult.divpct !== '' && ult.divpct != null && !isNaN(Number(ult.divpct))) || ult.divvs);
+        if (uDivOk) {
+            const au = sugDivAuto ? sugDivAuto.pct : null, lb = ult.divvs;
+            const pc = (ult.divpct !== '' && ult.divpct != null && !isNaN(Number(ult.divpct))) ? Number(ult.divpct) : (lb === 'Igual' ? 0 : lb === 'Sube' ? (au != null && au > 0.5 ? au : 1) : lb === 'Baja' ? (au != null && au < -0.5 ? au : -1) : au);
+            if (pc != null) sugDiv = { pct: pc, fuente: 'tu revisión ' + revCorto(ult.f) + (au != null ? ' (auto ' + (au >= 0 ? '+' : '') + au.toFixed(1).replace('.', ',') + '%)' : ''), deRevision: true };
+        }
         const esReit = /inmob|real estate|reit/i.test(sector + ' ' + (gf ? (gf.sectorGq || '') + ' ' + (gf.indGq || '') : ''));
         const flags = []; // [clase, texto]  w = rojo · i = ámbar · g = verde
         if (!esEtf) {
@@ -8563,15 +8598,17 @@ function datosRevision() {
         if (sugDiv && sugDiv.pct <= -5) flags.push(['w', 'Dividendo a la baja ' + sugDiv.pct.toFixed(0) + '%']);
         if (sugDiv && sugDiv.pct >= 5) flags.push(['g', 'Dividendo al alza +' + sugDiv.pct.toFixed(0) + '%']);
         if (dist != null && dist <= 3) flags.push(['i', 'A ' + pc1(dist) + '% de su trampa']);
-        if (ult && diasUlt > REV_DIAS_ATRASO) flags.push(['w', 'Revisión atrasada: hace ' + diasUlt + ' días', false]);
+        const proxOk = ult && /^\d{4}-\d{2}-\d{2}$/.test(String(ult.prox || ''));   // la fecha de próxima revisión que guardaste (IMPORT o manual) manda; la cadencia de 35 días solo si está vacía
+        if (ult && (proxOk ? _hoyISO() > ult.prox : diasUlt > REV_DIAS_ATRASO)) flags.push(['w', proxOk ? 'Revisión atrasada: tocaba el ' + revFmt(ult.prox) : 'Revisión atrasada: hace ' + diasUlt + ' días', false]);
         const pendiente = !ult || String(ult.f).slice(0, 7) !== mesHoy || diasUlt > REV_DIAS_ATRASO;
         // Fuente única del DIV/ACC y contraste con «próximo importe × pagos» en pagadores iguales (REIT, EE. UU. mensual/trimestral)
         if (!esEtf && dpa > 0 && fd && fd.g && fd.nPagos && divPagosIguales(fd.g, fd.nPagos) && fd.g.proxImp > 0) {
             const gx = fd.g.proxImp * fd.nPagos, dif = (gx / dpa - 1) * 100;
             if (Math.abs(dif) > 5) flags.push(['i', 'DIV/ACC usado ' + dpa.toFixed(2).replace('.', ',') + ' (' + revDpaBase(p.isin, dpa) + ') frente a próximo importe × ' + fd.nPagos + ' = ' + gx.toFixed(2).replace('.', ',') + ' (' + (dif >= 0 ? '+' : '') + dif.toFixed(0) + '%): revisa cuál es el bueno']);
         }
-        const d = { divCob, divPrev: p.divPrev || 0, divPrevFuente: p.divPrevFuente || '', ficha, factor, tope, adj, esReit, dpaBase: revDpaBase(p.isin, dpa), fd, p, pa, valor, peso, rent, yoc, yld, dpa, tendDiv, dist, flags, esEtf, esEsp, sector, pesoSector, hist, ult, diasUlt, pendiente, r52, gq, gf, pos52, vsMax, vsMin, sugDiv, obj, upside, objDudoso };
+        const d = { revVigente: !!(ult && (proxOk ? _hoyISO() <= ult.prox : diasUlt <= REV_DIAS_ATRASO)), sugDivAuto, divCob, divPrev: p.divPrev || 0, divPrevFuente: p.divPrevFuente || '', ficha, factor, tope, adj, esReit, dpaBase: revDpaBase(p.isin, dpa), fd, p, pa, valor, peso, rent, yoc, yld, dpa, tendDiv, dist, flags, esEtf, esEsp, sector, pesoSector, hist, ult, diasUlt, pendiente, r52, gq, gf, pos52, vsMax, vsMin, sugDiv, obj, upside, objDudoso };
         d.cubAuto = revCubierto(d);
+        { const rc = d.esEtf ? null : revCubGuardada(p.isin, p.n); if (rc) d.cubAuto = { v: rc.cub, why: 'tu revisión ' + revCorto(rc.f) + ' (auto ' + d.cubAuto.v + ')', deRevision: true, auto: d.cubAuto }; }   // lo que guardaste manda sobre la sugerencia
         d.termo = revTermometro(d);
         d.calidad = revCalidadDatos(d);
         d.prop = revPropuesta(d);
@@ -8599,6 +8636,8 @@ function revTermometro(d) {
     const venden = d.gf && d.gf.nVen != null && d.gf.nCom != null && d.gf.nVen > d.gf.nCom;
     partes.push(['Analistas', d.upside == null ? null : venden ? 20 : d.upside < 0 ? 30 : d.upside >= 10 ? 100 : 70, 10]);
     partes.push(['Precio frente a tu compra', d.rent >= -5 ? 100 : d.rent >= -10 ? 70 : d.rent >= -20 ? 35 : 0, 10]);
+    const deuE = (d.esEtf || sinDiv) ? null : revDeudaEb(d), reit = !!d.esReit;   // deuda neta/EBITDA (ficha, revisión guardada o Getquin): en REIT se tolera más
+    partes.push(['Deuda', deuE == null ? null : reit ? (deuE.v <= 5.5 ? 100 : deuE.v <= 6.5 ? 65 : 30) : (deuE.v <= 2 ? 100 : deuE.v <= 3 ? 80 : deuE.v <= 4 ? 55 : 25), 10]);
     out.sinDiv = sinDiv;
     // La pérdida sobre coste NO entra en la nota del negocio ni en los matices: sale como aviso aparte («En pérdida…») y en la puntuación de la acción
     const util = partes.map((x, ix) => ix === 4 ? [x[0], 100, x[2]] : x).filter(x => x[1] != null), pesoUtil = util.reduce((t, x) => t + x[2], 0);
@@ -8607,7 +8646,7 @@ function revTermometro(d) {
     out.score = Math.round(util.reduce((t, x) => t + x[1] * x[2], 0) / pesoUtil);
     // Dos notas que juntas dan la global: el DIVIDENDO (calidad + tendencia) y la ACCIÓN en sí (cobertura por caja, analistas, precio frente a tu compra)
     const media = ix => { const u = ix.map(i => partes[i]).filter(x => x[1] != null), pw = u.reduce((t, x) => t + x[2], 0); return pw ? Math.round(u.reduce((t, x) => t + x[1] * x[2], 0) / pw) : null; };
-    out.sDiv = sinDiv ? null : media([0, 2]); out.sAcc = (partes[1][1] != null || partes[3][1] != null) ? media([1, 3, 4]) : null; // sin cobertura ni analistas solo quedaría «precio frente a tu compra»: no basta para puntuar la acción
+    out.sDiv = sinDiv ? null : media([0, 2]); out.sAcc = (partes[1][1] != null || partes[3][1] != null) ? media([1, 3, 4, 5]) : null; // sin cobertura ni analistas solo quedaría «precio frente a tu compra»: no basta para puntuar la acción
     // ── motivos y matices
     const w = t => out.motivos.push(['w', t]), i = t => { out.motivos.push(['i', t]); out.matices++; }, g = t => out.motivos.push(['g', t]);
     if (recorte) w('El dividendo bajó ' + pcs(-pct) + '% en el último año');
@@ -8616,6 +8655,7 @@ function revTermometro(d) {
     if (cub.v === 'No') w('Dividendo sin cubrir: ' + cub.why);
     else if (cub.v === 'Justo') i('Cubierto justo: ' + cub.why);
     else if (cub.v === 'Sí') g('Dividendo cubierto: ' + cub.why);
+    if (deuE != null && partes[5][1] != null && partes[5][1] <= 55) i('Deuda neta/EBITDA ' + pcs(deuE.v) + '× (' + deuE.fuente + ')');
     if (sinDiv) g('Sin dividendo: se evalúa por beneficios, analistas y precio, no por el dividendo');
     if (hayFd) {
         if (fd.nivel === 'En riesgo') w('Dividendo de calidad baja (' + fd.score + '/100)');
@@ -8643,12 +8683,19 @@ function revProximaAuto(d, dec) { // Mantener y sin avisos: la cadencia de su fi
 }
 
 // «Cubierto por beneficios»: dividendo ÷ flujo de caja libre (Getquin). En bancos y aseguradoras el flujo de caja no vale, así que se usa el payout sobre beneficios.
+function revCubGuardada(isin, n) {
+    const rows = (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO' && (isin && r.isin ? esMismoISIN(r.isin, isin) : r.n === n)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
+    const u = rows[0]; if (!u || !['Sí', 'Justo', 'No'].includes(u.cub)) return null;
+    const t = Date.parse(String(u.f)); return (!isNaN(t) && (Date.now() - t) / 86400000 <= 400) ? u : null;
+}
 function revCubierto(d) {
     if (d.esEtf) return { v: '', why: '' };
+    { const afX = (d.esReit || /inmob|reit|real estate/i.test((d.sector || '') + ' ' + (d.gf && d.gf.sectorGq || '') + ' ' + (d.gf && d.gf.indGq || ''))) && d.p ? revAffo(d) : null; if (afX) return { v: afX.v <= 80 ? 'Sí' : afX.v <= 90 ? 'Justo' : 'No', why: 'payout AFFO ' + afX.v.toFixed(0) + '% (' + afX.fuente + ')' }; }
     const g = d.gq; if (!g) return { v: 'No sé', why: '' };
     const fin = /financ|banc|asegur|seguro/i.test(d.sector + ' ' + (d.gf && d.gf.sectorGq || '') + ' ' + (d.gf && d.gf.indGq || ''));
     const inmo = /inmob|reit|real estate/i.test(d.sector + ' ' + (d.gf && d.gf.sectorGq || '') + ' ' + (d.gf && d.gf.indGq || ''));
     const nota = (x, a, b) => x <= a ? 'Sí' : x <= b ? 'Justo' : 'No';
+    if (!fin && !inmo && g.pfcf != null && (g.pfcf > 120 || g.pfcf < 0) && g.payoutEps != null && g.payoutEps > 0) return { v: nota(g.payoutEps, 70, 90), why: '%FCF ' + g.pfcf.toFixed(0) + '% fuera de rango (dato dudoso): se usa el payout sobre BPA, ' + g.payoutEps.toFixed(0) + '% de los beneficios (umbral 70/90)', viaBpa: true };
     if (!fin && g.pfcf != null && (g.pfcf > 120 || g.pfcf < 0)) return { v: 'No sé', dudoso: true, why: '%FCF ' + g.pfcf.toFixed(0) + '% fuera de rango razonable: dato dudoso, no puntúa' + (g.payoutEps != null ? ' (payout sobre BPA: ' + g.payoutEps.toFixed(0) + '%)' : ' hasta contrastarlo con el payout sobre BPA') };
     if (!fin && g.pfcf != null) return { v: nota(g.pfcf, 75, 95), why: 'dividendo = ' + g.pfcf.toFixed(0) + '% del flujo de caja libre' };
     if (g.payoutEps != null && !inmo && g.payoutEps > 0) return { v: nota(g.payoutEps, 60, 80), why: 'dividendo = ' + g.payoutEps.toFixed(0) + '% de los beneficios' };
@@ -8666,7 +8713,8 @@ function revPropuesta(d) {
     } else {
         const recorte = d.sugDiv && d.sugDiv.pct <= -5, baja = d.sugDiv && d.sugDiv.pct < -0.5;
         if (d.esEsp && d.rent >= 12) { dec = 'Vender'; motivos.push('objetivo de venta de +12% alcanzado (' + pc1(d.rent) + '%)'); }
-        else if (d.peso > d.tope) { dec = 'Reducir'; motivos.push('peso ' + pc1(d.peso) + '% por encima del tope de ' + d.tope + '%'); }
+        else if (d.peso > d.tope && d.peso <= d.tope * 1.5 && !(recorte && cub.v === 'No')) { dec = 'Mantener sin compras'; motivos.push('peso ' + pc1(d.peso) + '% por encima del tope de ' + d.tope + '%: no comprar más, sin vender'); }
+        else if (d.peso > d.tope) { dec = 'Reducir'; motivos.push('peso ' + pc1(d.peso) + '% muy por encima del tope de ' + d.tope + '%'); }
         else if (recorte && cub.v === 'No') { dec = 'Reducir'; motivos.push('el dividendo baja ' + pc1(d.sugDiv.pct) + '% y no está cubierto'); }
         else if (d.termo.nivel === 'rojo') {
             dec = d.termo.grave ? 'Reducir' : 'Vigilar';
@@ -8713,10 +8761,11 @@ function revPropuesta(d) {
 // Valores finales de un activo: lo que has cambiado tú o, si no, la propuesta automática
 function revEfectivo(d) {
     const b = Object.assign(REV_VACIO(), REV_BORRADOR[d.p.n] || {}), a = d.prop;
-    const dec = b.dec || a.dec;
+    const manual0 = !!(b.dec || b.div || b.divpct !== '' || b.cub || b.deu || b.tesis || b.nota || b.prox), conf = (!b.dec && d.revVigente && d.ult && d.ult.dec) ? d.ult : null, manual = manual0;   // conf = decisión de tu última revisión guardada (vigente): se muestra en lugar de la automática
+    const dec = b.dec || (conf && conf.dec) || a.dec;
     // Mi evaluación (tesis, dividendo, cobertura, deuda): SOLO lo que has elegido tú. La sugerencia automática se ve en gris, pero nunca se preselecciona ni se guarda sola.
-    return { b, dec, divpct: b.divpct !== '' ? b.divpct : '', div: d.esEtf ? '' : (b.div || (b.divpct !== '' ? revEtiquetaDiv(b.divpct) : '')), cub: d.esEtf ? '' : b.cub, deu: b.deu, tesis: b.tesis, nota: b.nota || a.nota,
-        prox: b.prox || revProximaAuto(d, dec), manual: !!(b.dec || b.div || b.divpct !== '' || b.cub || b.deu || b.tesis || b.nota || b.prox) };
+    return { b, dec, conf, divpct: b.divpct !== '' ? b.divpct : '', div: d.esEtf ? '' : (b.div || (b.divpct !== '' ? revEtiquetaDiv(b.divpct) : '')), cub: d.esEtf ? '' : b.cub, deu: b.deu, tesis: b.tesis, nota: b.nota || a.nota,
+        prox: b.prox || (manual ? revProximaAuto(d, dec) : ((conf && /^\d{4}-\d{2}-\d{2}$/.test(String(conf.prox || '')) && conf.prox) || revProximaAuto(d, dec))), manual: !!(b.dec || b.div || b.divpct !== '' || b.cub || b.deu || b.tesis || b.nota || b.prox) };
 }
 
 function revDeshacer(idx) {
@@ -8743,8 +8792,8 @@ function revSet(idx, campo, valor) {
     revPintarBoton(); revPintarKpis();
 }
 // Desplegable cuya primera opción («🤖 …») significa «dejar la propuesta automática»
-function revSelect(idx, campo, opciones, actual, auto) {
-    return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + (auto ? '🤖 ' + auto : '—') + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
+function revSelect(idx, campo, opciones, actual, auto, ic) {
+    return '<select onchange="revSet(' + idx + ',\'' + campo + '\',this.value)"><option value="">' + (auto ? (ic || '🤖 ') + auto : '—') + '</option>' + opciones.map(x => '<option' + (actual === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
 }
 // ══════════ TARJETA DE REVISIÓN EN 4 BLOQUES ══════════
 // 1) Cabecera + DATOS CLAVE (hoy / última revisión / señal) · 2) Mi evaluación (sugerencia en gris, nunca preseleccionada ni guardada sola)
@@ -8774,10 +8823,31 @@ function revDelta(hoy, ant, k, pp) { // variación frente a la última revisión
     return ' <i class="rk-d">' + REV_SGN(v, k) + (pp ? ' pp' : '%') + '</i>';
 }
 // Deuda neta/EBITDA efectiva: la de la ficha (manual) manda; si está vacía, la que dé Getquin (si su página la muestra o se puede calcular)
+// Datos numéricos de tu última revisión guardada que tenga ese campo (AFFO, deuda neta/EBITDA, ocupación), de los últimos 400 días
+function revCorto(f) { const m = String(f || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] : String(f || ''); }
+function revValGuardado(isin, n, campo, min) {
+    const rows = (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO' && (isin && r.isin ? esMismoISIN(r.isin, isin) : r.n === n) && r[campo] !== '' && r[campo] != null && !isNaN(Number(r[campo])) && Number(r[campo]) > (min == null ? 0 : min)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
+    const u = rows[0]; if (!u) return null; const t = Date.parse(String(u.f));
+    return (!isNaN(t) && (Date.now() - t) / 86400000 <= 400) ? { v: Number(u[campo]), f: u.f, fuente: 'tu revisión ' + revCorto(u.f) } : null;
+}
+function revAffo(d) {
+    const isin = d.p && d.p.isin, fi = d.ficha || (FICHAS_GS || []).find(x => x.isin === String(isin || '').toUpperCase());
+    if (fi && fi.affo > 0) return { v: Number(fi.affo), fuente: 'ficha' };
+    return revValGuardado(isin, d.p && d.p.n, 'affo');
+}
 function revDeudaEb(d) {
+    { const rv = revValGuardado(d.p.isin, d.p.n, 'deudaebitda', -1e9); if (!(d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null) && rv) return rv; }
     if (d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null) return { v: Number(d.ficha.deudaebitda), fuente: 'ficha' };
     const x = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase());
-    return x && x.deuda != null ? { v: x.deuda, fuente: 'Getquin' } : null;
+    if (x && x.deuda != null) return { v: x.deuda, fuente: 'Getquin' };
+    const fin = GQ_FIN_GS[String(d.p.isin || '').toUpperCase()] || [], num = t => { const m = String(t).replace(/\s/g, '').match(/-?\d[\d.,]*/); if (!m) return null; const k = m[0], c = k.lastIndexOf(','), pt = k.lastIndexOf('.'); return parseFloat(c > pt ? k.replace(/\./g, '').replace(',', '.') : k.replace(/,/g, '')); };
+    const dir = fin.find(r => /deuda neta.*ebitda|net debt.*ebitda/i.test(r[0])); if (dir && num(dir[1]) != null) return { v: num(dir[1]), fuente: 'Getquin' };
+    return null;
+}
+// Sección «Finanzas» de Getquin tal cual (todas las líneas que da la página)
+function revFinanzasGqHtml(d) {
+    const fin = GQ_FIN_GS[String(d.p.isin || '').toUpperCase()]; if (!fin || !fin.length || d.esEtf) return '';
+    return '<details class="rev-hist"><summary>📑 Finanzas de Getquin (' + fin.length + ' datos' + (fin[0][2] ? ' · ' + revEsc(String(fin[0][2]).slice(0, 10)) : '') + ')</summary><div style="display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:10.5px;margin-top:4px">' + fin.map(r => '<span class="mt2">' + revEsc(r[0]) + '</span><b style="text-align:right">' + revEsc(r[1]) + '</b>').join('') + '</div></details>';
 }
 function revClaveHtml(d) {
     const u = d.ult || {}, hay = !!d.ult, nz = v => (v === '' || v == null) ? null : Number(v);
@@ -8785,7 +8855,7 @@ function revClaveHtml(d) {
     const dpaAnt = nz(u.dpaaj) != null ? nz(u.dpaaj) : nz(u.dpa);
     const dpaAntAj = dpaAnt != null ? dpaAnt / (fr > 0 ? fr : 1) : null;
     const gfq = d.gq || {}, pf = gfq.pfcf != null ? gfq.pfcf : null;
-    const affo = d.ficha && d.ficha.affo > 0 ? d.ficha.affo : null, gx0 = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase()), deuda = d.ficha && d.ficha.deudaebitda !== '' && d.ficha.deudaebitda != null ? Number(d.ficha.deudaebitda) : (gx0 && gx0.deuda != null ? gx0.deuda : null);   // la ficha manda; si está vacía, la de Getquin (si la página la da)
+    const affoR = revAffo(d), affo = affoR ? affoR.v : null, gx0 = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase()), deuda = (revDeudaEb(d) || {}).v ?? null;   // la ficha manda; si está vacía, la de Getquin (si la página la da)
     const pfLabel = d.esReit ? 'Payout AFFO' : 'Payout FCF', pfHoy = d.esReit ? affo : pf, pfAnt = d.esReit ? nz(u.affo) : nz(u.gqpfcf);
     const c5 = d.adj ? d.adj.crec5 : null, per = d.gf && d.gf.per != null ? d.gf.per : null;
     const fila = (lab, tip, hoy, ant, sen) => '<tr title="' + revEsc(tip) + '"><td>' + lab + '</td><td>' + hoy + '</td><td class="mt2">' + (hay ? ant : '—') + '</td><td>' + sen + '</td></tr>';
@@ -8797,17 +8867,18 @@ function revClaveHtml(d) {
             d.dpa > 0 && dpaAntAj ? '<span class="rk-s ' + (d.dpa / dpaAntAj - 1 < -0.05 ? 'w' : d.dpa / dpaAntAj - 1 < -0.005 ? 'i' : 'g') + '">●</span>' + revDelta(d.dpa, dpaAntAj, 1) : '<span class="rk-s">—</span>'),
         fila('Yield hoy / s/coste', 'Yield de hoy = DIV PREVISTO ÷ precio de hoy · s/coste = DIV COBRADO (tu hoja) ÷ precio medio de compra', yHoy, yAnt, '<span class="rk-s">·</span>' + revDelta(d.yld, nz(u.yld), 1, true)),
         fila('Crec. dividendo ' + (c5 ? c5.n + 'a' : '5a'), c5 ? 'Crecimiento anual compuesto de tu histórico (hoja)' + (f !== 1 ? ', ajustado por acciones gratis' : '') + ': ' + c5.fuente : 'Sin histórico suficiente en la hoja', c5 ? REV_SGN(c5.pct) + '%' : '—', nz(u.crec5) != null ? REV_SGN(u.crec5) + '%' : '—', c5 ? revSenal(c5.pct, 3, 0, false) : '<span class="rk-s">—</span>'),
-        fila('Payout BPA', 'Dividendo ÷ beneficio por acción (Getquin)', d.gf && d.gf.payoutEps != null ? REV_NUM(d.gf.payoutEps, 0) + '%' : '—', nz(u.payeps) != null ? REV_NUM(u.payeps, 0) + '%' : '—', revSenal(d.gf ? d.gf.payoutEps : null, 75, 95)),
+        d.esReit ? '' : fila('Payout BPA', 'Dividendo ÷ beneficio por acción (Getquin)', d.gf && d.gf.payoutEps != null ? REV_NUM(d.gf.payoutEps, 0) + '%' : '—', nz(u.payeps) != null ? REV_NUM(u.payeps, 0) + '%' : '—', revSenal(d.gf ? d.gf.payoutEps : null, 75, 95)),
         fila(pfLabel, d.esReit ? 'Inmobiliarias: dividendo ÷ AFFO. Se apunta a mano en la ficha (Getquin no lo da)' : 'Dividendo ÷ flujo de caja libre (Getquin)', pfHoy != null ? (!d.esReit && pfHoy > 120 ? REV_NUM(pfHoy, 0) + '% <i class="rk-b" style="color:var(--am)">dato dudoso</i>' : REV_NUM(pfHoy, 0) + '%') : (d.esReit ? '<i class="rk-b">falta AFFO</i>' : '—'), pfAnt != null ? REV_NUM(pfAnt, 0) + '%' : '—', (!d.esReit && pfHoy > 120) ? '<span class="rk-s i">?</span>' : revSenal(pfHoy, d.esReit ? 80 : 75, d.esReit ? 95 : 95)),
-        fila('Deuda neta/EBITDA', 'La de la ficha manda; si está vacía, la de Getquin cuando su página la da (' + ((revDeudaEb(d) || {}).fuente || 'sin dato') + ')', deuda != null ? REV_NUM(deuda) + '×' : '<i class="rk-b">en la ficha</i>', nz(u.deudaebitda) != null ? REV_NUM(u.deudaebitda) + '×' : '—', revSenal(deuda, 3, 4.5)),
+        (() => { const oc = d.esReit ? revValGuardado(d.p.isin, d.p.n, 'ocupacion') : null; return oc ? fila('Ocupación', 'Dato de tu revisión guardada (Getquin no lo da)', REV_NUM(oc.v, 1) + '% <i class="rk-b">' + revEsc(oc.fuente) + '</i>', '—', '<span class="rk-s">·</span>') : ''; })(),
+        fila('Deuda neta/EBITDA', 'Getquin NO la publica en Finanzas: se apunta a mano en la ficha. Si algún día la da, se usa sola (' + ((revDeudaEb(d) || {}).fuente || 'sin dato') + ')', deuda != null ? REV_NUM(deuda) + '×' : '<i class="rk-b" title="Getquin no publica la deuda en su sección Finanzas: se apunta a mano en la ficha de abajo (Deuda neta/EBITDA)">sin dato (Getquin no la da) · ponla en la ficha ↓</i>', nz(u.deudaebitda) != null ? REV_NUM(u.deudaebitda) + '×' : '—', revSenal(deuda, 3, 4.5)),
         ...(() => { const x = (GQ_EXTRA_GS || []).find(y => y.isin === String(d.p.isin || '').toUpperCase()); if (!x || d.esEtf) return [];
             const dudoso = !d.esReit && pf != null && pf > 120, hint = dudoso && x.fcfEbitda != null && x.fcfEbitda < 40 ? ' · el flujo de caja es solo el ' + REV_NUM(x.fcfEbitda, 0) + '% del EBITDA (inversión alta): el %FCF puede ser real, contrástalo con el payout BPA' : '';
             return [x.margen != null ? fila('Margen EBITDA', 'EBITDA ÷ ingresos (Getquin, TTM)' + hint, REV_NUM(x.margen, 0) + '%', nz(u.margen) != null ? REV_NUM(u.margen, 0) + '%' : '—', '<span class="rk-s">·</span>') : '',
                 x.fcfEbitda != null ? fila('FCF / EBITDA', 'Qué parte del EBITDA llega como caja libre (Getquin, TTM)' + hint, REV_NUM(x.fcfEbitda, 0) + '%' + (hint ? ' <i class="rk-b" style="color:var(--am)">explica el %FCF</i>' : ''), '—', revSenal(x.fcfEbitda, 50, 30, false)) : '',
                 x.divAnio != null ? fila('Div. distribuido en ' + (x.anio || 'el año'), 'Dividendo por acción ya pagado este año según Getquin (en €). Contrástalo con tu hoja', fe(x.divAnio, 2), '—', '<span class="rk-s">·</span>') : ''].filter(Boolean); })(),
-        fila('PER', 'Precio ÷ beneficio (Getquin)', per != null ? REV_NUM(per) : '—', nz(u.per) != null ? REV_NUM(u.per) : '—', revSenal(per, 28, 40)),
+        d.esReit ? '' : fila('PER', 'Precio ÷ beneficio (Getquin)', per != null ? REV_NUM(per) : '—', nz(u.per) != null ? REV_NUM(u.per) : '—', revSenal(per, 28, 40)),
     ];
-    return '<table class="rk"><thead><tr><th>Datos clave</th><th>Hoy</th><th>' + (hay ? 'Rev. ' + revFmt(u.f).slice(0, 5) : 'Última rev.') + '</th><th>Señal</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    return '<table class="rk"><thead><tr><th>Datos clave</th><th>Hoy</th><th>' + (hay ? 'Rev. ' + revFmt(u.f).slice(0, 5) : 'Última rev.') + '</th><th>Señal</th></tr></thead><tbody>' + rows.filter(Boolean).join('') + '</tbody></table>';
 }
 // Sugerencia en gris: texto + botón «usar» (solo se guarda si lo pulsas o eliges tú)
 function revSug(idx, campo, valor, razon) {
@@ -8821,7 +8892,9 @@ function revEval(d, idx, b) {
     const sugD = d.sugDiv ? revEtiquetaDiv(d.sugDiv.pct) : '', sugC = d.cubAuto && d.cubAuto.v !== 'No sé' ? d.cubAuto.v : '';
     const dd = (revDeudaEb(d) || {}).v ?? null, du = d.ult && d.ult.deudaebitda !== '' && d.ult.deudaebitda != null ? Number(d.ult.deudaebitda) : null;
     const sugU = dd == null ? '' : (du != null && dd > du + 0.3) ? 'Sube' : dd > 3 ? 'Vigilar' : 'OK';
-    return '<div class="rk-blk"><div class="rk-t">Mi evaluación <i>(solo se guarda lo que eliges tú)</i></div><div class="rk-ev">' +
+    const u = d.ult, ub = u ? ' · <b>' + revEsc(u.dec || '—') + '</b>' : '';
+    const ultHtml = u ? '<div class="rev-line" style="grid-column:1/-1;font-size:11px;line-height:1.6;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px" title="Lo guardado en la hoja REVISIONES en tu última revisión">' + (d.revVigente ? '✔' : '🕓') + ' <b>Última revisión guardada</b> (' + revFmt(String(u.f)) + (u.origen === 'IMPORT' ? ' · 📥 importada' : '') + (u.fuente ? ' · fuente: ' + revEsc(u.fuente) : '') + '): tesis <b>' + revEsc(u.tesis || '—') + '</b> · dividendo <b>' + revEsc(u.divvs || '—') + '</b>' + (u.divpct !== '' && u.divpct != null && !isNaN(Number(u.divpct)) ? ' (' + REV_SGN(Number(u.divpct)) + '%)' : '') + ' · cobertura <b>' + revEsc(u.cub || '—') + '</b> · deuda <b>' + revEsc(u.deuda || '—') + '</b>' + ub + (u.prox ? ' · próxima ' + revFmt(String(u.prox)) : '') + '</div>' : '';
+    return '<div class="rk-blk"><div class="rk-t">Mi evaluación <i>(solo se guarda lo que eliges tú)</i></div>' + ultHtml + '<div class="rk-ev">' +
         '<label>Tesis' + sel('tesis', REV_OPC_TES, b.tesis) + revSug(idx, 'tesis', sugT, 'Según el termómetro del negocio') + '</label>' +
         '<label>Dividendo vs año anterior<span class="rev-dv">' + sel('div', REV_OPC_DIV, b.div) + '<input type="number" step="0.1" placeholder="% var." value="' + (b.divpct !== '' ? b.divpct : '') + '" onchange="revSet(' + idx + ',\'divpct\',this.value)"></span>' +
         revSug(idx, 'div', sugD, d.sugDiv ? d.sugDiv.fuente : '') + (d.sugDiv ? '<i class="rk-b">' + REV_SGN(d.sugDiv.pct) + '% · ' + revEsc(d.sugDiv.fuente) + '</i>' : '') + '</label>' +
@@ -8889,7 +8962,7 @@ function revTarjetaHtml(d, idx) {
     const bloque52 = d.r52 ? '<div class="rev-52" title="Mínimo y máximo de 52 semanas (' + d.r52.fuente + ')"><div class="rev-52b"><span style="left:' + d.pos52.toFixed(1) + '%"></span></div><div class="rev-52t"><span>' + fe(d.r52.min, 2) + '</span><b>52 s.: ' + d.pos52.toFixed(0) + '% del rango</b><span>' + fe(d.r52.max, 2) + '</span></div></div>' : '';
     const h6 = d.hist.slice(0, 8), nv = (v, f) => (v !== '' && v != null) ? f(Number(v)) : '—';
     const historial = '<details class="rev-hist"><summary>Historial (' + d.hist.length + ')</summary>' + (h6.length ? '<div class="sc"><table><thead><tr><th>Fecha</th><th>Decisión</th><th>Precio</th><th>Peso</th><th>DPA</th><th>Payout</th><th style="text-align:left">Nota</th></tr></thead><tbody>' + h6.map(r =>
-        '<tr><td>' + revFmt(r.f) + '</td><td><b>' + revEsc(r.dec) + '</b>' + (r.origen === 'MANUAL' ? ' ✏️' : '') + (r.tesis ? '<br><i style="color:var(--mt);font-style:normal">' + revEsc(r.tesis) + '</i>' : '') + '</td><td>' + nv(r.precio, v => fe(v, 2)) + '</td><td>' + nv(r.peso, v => n1(v) + '%') + '</td><td>' + nv(r.dpaaj !== '' && r.dpaaj != null ? r.dpaaj : r.dpa, v => fe(v, 2)) + '</td><td>' + nv(r.payeps, v => v.toFixed(0) + '%') + '</td><td style="text-align:left;max-width:160px">' + revEsc(String(r.nota || '').slice(0, 90)) + '</td></tr>').join('') + '</tbody></table></div>' : '<div>Sin revisiones guardadas</div>') + '</details>';
+        '<tr><td>' + revFmt(r.f) + '</td><td><b>' + revEsc(r.dec) + '</b>' + (r.origen === 'MANUAL' ? ' ✏️' : r.origen === 'IMPORT' ? ' 📥' : '') + (r.tesis ? '<br><i style="color:var(--mt);font-style:normal">' + revEsc(r.tesis) + '</i>' : '') + '</td><td>' + nv(r.precio, v => fe(v, 2)) + '</td><td>' + nv(r.peso, v => n1(v) + '%') + '</td><td>' + nv(r.dpaaj !== '' && r.dpaaj != null ? r.dpaaj : r.dpa, v => fe(v, 2)) + '</td><td>' + nv(r.payeps, v => v.toFixed(0) + '%') + '</td><td style="text-align:left;max-width:160px">' + revEsc(String(r.nota || '').slice(0, 90)) + '</td></tr>').join('') + '</tbody></table></div>' : '<div>Sin revisiones guardadas</div>') + '</details>';
     const estado = e.manual ? '<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:var(--gn);white-space:nowrap" title="Has tocado esta tarjeta: cuenta como revisada por ti y se guardará">✔ Revisado</span><button class="btn" style="flex:0 0 auto;font-size:10px;padding:4px 7px" title="Descartar mis cambios y volver a la propuesta automática" onclick="revDeshacer(' + idx + ')">↩</button>' :
         '<button class="btn" style="flex:0 0 auto;font-size:10px;padding:4px 9px" title="Dar por buena la propuesta automática: queda como revisada por ti" onclick="revConfirmar(' + idx + ')">✔ Confirmar</button>';
     const proxTxt = b.prox ? 'editada' : (e.dec === 'Mantener' && !a.excepcion ? '+' + ((d.ficha && d.ficha.cad > 0) ? d.ficha.cad : 6) + ' meses: mantener y sin avisos' : '+1 mes');
@@ -8903,11 +8976,12 @@ function revTarjetaHtml(d, idx) {
         // 2) Mi evaluación
         revEval(d, idx, b) +
         // 3) Decisión, nota y próxima revisión
-        '<div class="rk-blk"><div class="rk-t">Decisión</div><div class="rev-why">🤖 ' + (a.dec === 'Mantener' ? 'Sin novedades' : '<b>' + a.dec + '</b>: ' + revEsc(a.motivos.join('; '))) + '</div>' +
-        '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, a.dec) + '<input type="text" maxlength="300" placeholder="Tu nota (vacía = se guarda la automática)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)">' + estado + '</div>' +
+        '<div class="rk-blk"><div class="rk-t">Decisión</div>' + (e.conf ? '<div class="rev-why">✔ <b>Confirmada por ti: ' + revEsc(e.conf.dec) + '</b> (' + revFmt(String(e.conf.f)) + (e.conf.fuente ? ' · ' + revEsc(e.conf.fuente) : '') + ')' + (e.conf.dec !== a.dec ? ' <span style="color:var(--am)">· la automática de hoy dice ' + revEsc(a.dec) + '</span>' : '') + (e.conf.nota ? '<br><i class="rk-b">' + revEsc(e.conf.nota) + '</i>' : '') + '</div>' : '') +
+        '<div class="rev-why">🤖 ' + (a.dec === 'Mantener' ? 'Sin novedades' : '<b>' + a.dec + '</b>: ' + revEsc(a.motivos.join('; '))) + '</div>' +
+        '<div class="rev-ctl">' + revSelect(idx, 'dec', REV_DECISIONES, b.dec, e.dec, e.conf ? '✔ ' : '🤖 ') + '<input type="text" maxlength="300" placeholder="Tu nota (vacía = se guarda la automática)" value="' + revEsc(b.nota) + '" onchange="revSet(' + idx + ',\'nota\',this.value)">' + estado + '<button class="btn" style="flex:0 0 auto;font-size:10px;padding:4px 7px" title="Copia la ficha de este activo para pegarla en Claude" onclick="revCopiarClaude(' + idx + ')">📋 Claude</button></div>' +
         '<div class="rev-prox"><label>Próxima revisión <input type="date" value="' + e.prox + '" onchange="revSet(' + idx + ',\'prox\',this.value)"></label><span class="mt2">' + proxTxt + '</span></div></div>' +
         // 4) Historial (y ficha)
-        historial + (d.esEtf ? '' : revFichaHtml(d, idx)) + '</div>';
+        historial + revFinanzasGqHtml(d) + (d.esEtf ? '' : revFichaHtml(d, idx)) + '</div>';
 }
 
 // ── Getquin: botón para actualizar la hoja GETQUIN desde la web (por tandas, hasta que no queden pendientes)
@@ -9286,7 +9360,7 @@ function revDiagnostico(datos) {
             if (d.dpa > 0 && !fd.meses) add('info', n, 'Sin calendario de pagos (hoja DIVIDENDOS): los cobros se estiman sin fechas');
             if (fd.recortes.length) add('info', n, 'Recortes en el histórico: ' + fd.recortes.map(r => r.a + ' ' + f1(r.pct, 0) + '%').join(', ') + ' (pueden ser divisa, escisión o extra)');
         }
-        if (d.cubAuto.v === 'No sé' && !/inmob|reit/i.test(d.sector)) add('info', n, 'Cobertura del dividendo sin calcular (faltan FCF o payout)');
+        if (d.cubAuto.v === 'No sé' && !/inmob|reit/i.test(d.sector)) add('info', n, d.cubAuto.dudoso ? 'Cobertura sin calcular: ' + d.cubAuto.why : 'Cobertura del dividendo sin calcular (faltan FCF o payout)');
         if (d.peso > C.MAX_PESO_ACCION) add('aviso', n, 'Peso ' + f1(d.peso) + '% por encima del tope por acción (' + C.MAX_PESO_ACCION + '%)');
     });
     // trampas
@@ -9444,10 +9518,182 @@ function revInformeAbrir(txtIn, nombre) {
     document.getElementById('inf-bajar').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/markdown;charset=utf-8' })); a.download = (nombre ? nombre : 'informe_revision_' + _hoyISO()) + '.md'; document.body.appendChild(a); a.click(); a.remove(); };
 }
 
+// ══ REVISIÓN ASISTIDA: copiar la ficha para Claude → pegar su JSON (version 1) → PROPUESTAS → confirmar (solo entonces se escribe en REVISIONES) ══
+function revFichaClaudeTexto(d) {
+    const f = (v, k = 2) => (v == null || v === '' || (typeof v === 'number' && isNaN(v))) ? '—' : String(+Number(v).toFixed(k)).replace('.', ','), L = [];
+    const a = d.prop, g = d.gf, deu = revDeudaEb(d), fi = d.ficha || {};
+    L.push('### ' + d.p.n + ' — ISIN ' + (d.p.isin || 'sin ISIN'));
+    L.push('- Tipo: ' + (d.esEtf ? 'ETF' : (d.p.tipo || '—')) + ' · sector: ' + (d.esEtf ? 'ETF' : (d.sector || '—')) + (d.pesoSector != null ? ' (' + f(d.pesoSector, 1) + '% de la cartera; tope ' + GOTEO_CFG.MAX_PESO_SECTOR + '%)' : '') + (d.esReit ? ' · REIT (se mira AFFO, no BPA ni PER)' : ''));
+    L.push('- Precio ' + f(d.pa) + ' € · peso ' + f(d.peso, 1) + '% (tope ' + d.tope + '%) · rentabilidad ' + f(d.rent, 1) + '%' + (d.r52 ? ' · 52 s.: ' + f(d.r52.min) + '–' + f(d.r52.max) + ' (al ' + f(d.pos52, 0) + '%)' : ''));
+    if (!d.esEtf) {
+        L.push('- Dividendo anual por acción: ' + (d.dpa > 0 ? f(d.dpa) + ' € (' + (d.dpaBase || 'sin base') + ')' : '—') + (d.divCob > 0 && d.divPrev > 0 ? ' · cobrado en la hoja ' + f(d.divCob, 3) : '') + ' · yield hoy ' + f(d.yld) + '% · yield s/coste ' + f(d.yoc) + '%');
+        L.push('- Dividendo vs anterior: ' + (d.sugDiv ? f(d.sugDiv.pct, 1) + '% (' + d.sugDiv.fuente + ')' : '—') + ' · crecimiento ' + (d.adj && d.adj.crec5 ? f(d.adj.crec5.pct, 1) + '% anual (' + d.adj.crec5.fuente + ')' : '—'));
+        L.push('- Cobertura: ' + d.cubAuto.v + (d.cubAuto.why ? ' (' + d.cubAuto.why + ')' : '') + (d.esReit ? ' · payout AFFO ' + (revAffo(d) ? f(revAffo(d).v, 0) + '% (' + revAffo(d).fuente + ')' : 'falta (apúntalo tú)') + (revValGuardado(d.p.isin, d.p.n, 'ocupacion') ? ' · ocupación ' + f(revValGuardado(d.p.isin, d.p.n, 'ocupacion').v, 1) + '%' : '') : ' · payout BPA ' + (g && g.payoutEps != null ? f(g.payoutEps, 0) + '%' : '—') + ' · PER ' + (g && g.per != null ? f(g.per, 1) : '—')));
+        L.push('- Deuda neta/EBITDA: ' + (deu ? f(deu.v, 1) + '× (' + deu.fuente + ')' : 'sin dato') + (d.upside != null ? ' · objetivo de analistas ' + revPct(d.upside) : ''));
+        L.push('- Termómetro: ' + d.termo.nivel + (d.termo.score != null ? ' ' + d.termo.score + '/100' : '') + (d.termo.motivos && d.termo.motivos.length ? ' — ' + d.termo.motivos.slice(0, 4).map(m => m[1]).join('; ') : ''));
+    }
+    const av = revAvisos(d); L.push('- Avisos: ' + (av.length ? av.slice(0, 5).map(x => x[1]).join(' · ') : 'ninguno') + ' · calidad de datos: ' + (d.calidad ? d.calidad.nivel + (d.calidad.motivos.length ? ' (' + d.calidad.motivos.join(', ') + ')' : '') : '—'));
+    L.push('- Mi ficha: tesis «' + (fi.tesis || '—') + '» · qué la rompería «' + (fi.rompe || '—') + '»' + (fi.cad > 0 ? ' · cadencia ' + fi.cad + ' meses' : ''));
+    L.push('- Última revisión mía: ' + (d.ult ? d.ult.f + ' · ' + d.ult.dec + (d.ult.tesis ? ' · tesis ' + d.ult.tesis : '') + (d.ult.nota ? ' · «' + String(d.ult.nota).slice(0, 120) + '»' : '') : 'ninguna'));
+    L.push('- Propuesta automática: ' + a.dec + (a.motivos.length ? ' — ' + a.motivos.join('; ') : ''));
+    return L.join('\n');
+}
+function revPlantillaImport() {
+    return '{"version":1,"revisiones":[{"isin":"","fecha":"AAAA-MM-DD","tesis":"' + REV_OPC_TES.join('|') + '","dividendo":"' + REV_OPC_DIV.join('|') + '","div_var_pct":0,"cobertura":"' + REV_OPC_CUB.join('|') + '","deuda":"' + REV_OPC_DEU.join('|') + '","decision":"' + REV_DECISIONES.join('|') + '","payout_affo":null,"nd_ebitda":null,"ocupacion":null,"nota":"","fuente":"","proxima_revision":"AAAA-MM-DD","pendiente_usuario":[]}]}';
+}
+function revClaudeTexto(lista) {
+    const L = ['# REVISIÓN ASISTIDA — ' + _hoyISO(), '',
+        'Tienes abajo la ficha de ' + (lista.length === 1 ? 'un activo' : lista.length + ' activos') + ' de mi cartera (datos del dashboard). Revísalos con información actual y contrastada (informes oficiales, resultados, hechos relevantes) y responde SOLO con un JSON como este (version 1), sin texto fuera del JSON:', '',
+        '```json', revPlantillaImport(), '```', '',
+        'Reglas: usa exactamente los valores permitidos de tesis, dividendo, cobertura, deuda y decision. Una entrada por activo, identificada por su ISIN. NO incluyas precio, peso, yield, PER ni DPA: los rellena el dashboard con sus datos. payout_affo (%), nd_ebitda (×) y ocupacion (%) solo si los has verificado; si no, null. En «fuente» pon dónde lo has comprobado (documento o URL). Lo que tenga que hacer yo (revisar un documento, decidir algo) va en pendiente_usuario. Si no sabes algo, déjalo null o vacío: no lo inventes.', '', '## FICHAS', ''];
+    lista.forEach(d => { L.push(revFichaClaudeTexto(d), ''); });
+    return L.join('\n');
+}
+async function revCopiarTexto(txt, titulo) {
+    let ok = false; try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {}
+    if (ok) { window._revMsg = '✅ Copiado (' + (txt.length / 1000).toFixed(0) + ' KB): ' + titulo + '. Pégalo en Claude y trae su JSON a «Importar revisión».'; const m = document.getElementById('rev-msg'); if (m) m.textContent = window._revMsg; return; }
+    revInformeAbrir(txt, 'revision_asistida');   // sin permiso de portapapeles: se abre el cuadro con el texto para copiarlo a mano
+}
+function revCopiarClaude(idx) { const d = (window._revDatos || [])[idx]; if (d) revCopiarTexto(revClaudeTexto([d]), d.p.n); }
+function revCopiarClaudeTodos() { const ds = (window._revDatos || []).filter(d => !d.esEtf); revCopiarTexto(revClaudeTexto(ds), ds.length + ' activos'); }
+
+// ── Validación del JSON ──
+const REV_IMP_IGNORADOS = ['precio', 'peso', 'yield', 'yld', 'yoc', 'rentabilidad', 'rent', 'dpa', 'per', 'payout', 'payout_eps', 'sector', 'tope', 'cap', 'capitalizacion'];
+function revImpParsear(txtIn) {
+    const nrm = t => String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    let t = String(txtIn || '').replace(/```(?:json)?/gi, '').trim(); const i0 = t.search(/[\[{]/), i1 = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+    if (i0 < 0 || i1 < i0) return { error: 'No encuentro ningún JSON en el texto pegado.' };
+    let raw; try { raw = JSON.parse(t.slice(i0, i1 + 1)); } catch (e) { return { error: 'El JSON no es válido (' + e.message + '). Pídele a Claude que lo repita sin texto fuera del JSON.' }; }
+    const avGlob = []; let items;
+    if (Array.isArray(raw)) { items = raw; avGlob.push('Sin «version»: se ha leído como lista de revisiones.'); }
+    else if (raw && typeof raw === 'object') {
+        if (raw.version !== 1 && raw.version !== '1') return { error: 'Falta "version": 1 (o es otra versión). No se importa nada.' };
+        items = raw.revisiones || raw.items || raw.activos || (raw.isin ? [raw] : null);
+    }
+    if (!Array.isArray(items) || !items.length) return { error: 'No hay revisiones dentro del JSON (esperaba "revisiones": [ … ]).' };
+    const datos = (window._revDatos && window._revDatos.length) ? window._revDatos : datosRevision(), hoy = _hoyISO(), vistos = new Set();
+    const fechaOk = s => { if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; const y = +s.slice(0, 4), m = +s.slice(5, 7), dd = +s.slice(8, 10), t = new Date(Date.UTC(y, m - 1, dd)); return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === dd; };
+    const canon = (v, ops) => { const k = nrm(v); return ops.find(o => nrm(o) === k) || null; };
+    const num = (v, lo, hi) => { if (v == null || v === '') return { v: null }; const n = typeof v === 'number' ? v : Number(String(v).replace('%', '').replace('×', '').replace(',', '.').trim()); return (isNaN(n) || n < lo || n > hi) ? { mal: true } : { v: n }; };
+    const filas = items.map((it, i) => {
+        const err = [], av = [], v = {};
+        if (!it || typeof it !== 'object') return { i, d: null, err: ['La entrada ' + (i + 1) + ' no es un objeto.'], av, v };
+        const isin = String(it.isin || '').trim().toUpperCase(); v.isin = isin; const d = isin ? datos.find(x => x.p.isin && esMismoISIN(x.p.isin, isin)) : null;
+        if (!isin) err.push('Falta el ISIN.'); else if (!d) err.push('El ISIN ' + isin + ' no está entre tus posiciones.');
+        else if (vistos.has(isin)) av.push('ISIN repetido en el JSON: confirma solo una de las filas.'); vistos.add(isin);
+        // fecha
+        if (it.fecha == null || it.fecha === '') { v.fecha = hoy; av.push('Sin fecha: se usa la de hoy (' + hoy + ').'); }
+        else if (!fechaOk(String(it.fecha))) err.push('Fecha «' + it.fecha + '» no válida (aaaa-mm-dd).');
+        else if (String(it.fecha) > hoy) err.push('La fecha ' + it.fecha + ' es futura.');
+        else v.fecha = String(it.fecha);
+        // desplegables
+        const dec = it.decision == null || it.decision === '' ? null : canon(it.decision, REV_DECISIONES);
+        if (it.decision != null && it.decision !== '' && !dec) err.push('Decisión «' + it.decision + '» no válida. Permitidas: ' + REV_DECISIONES.join(', ') + '.');
+        v.dec = dec; if (!dec && !err.length && (it.decision == null || it.decision === '')) av.push('Sin decisión: se usará la propuesta automática' + (d ? ' (' + d.prop.dec + ')' : '') + '.');
+        [['tesis', 'tesis', REV_OPC_TES], ['dividendo', 'div', REV_OPC_DIV], ['cobertura', 'cub', REV_OPC_CUB], ['deuda', 'deu', REV_OPC_DEU]].forEach(([k, kk, ops]) => {
+            if (it[k] == null || it[k] === '') return; const c = canon(it[k], ops);
+            if (c) v[kk] = c; else av.push('«' + it[k] + '» no vale para ' + k + ' (permitidas: ' + ops.join(', ') + '): se ignora.');
+        });
+        // numéricos
+        const dp = num(it.div_var_pct, -100, 1000); if (dp.mal) av.push('div_var_pct «' + it.div_var_pct + '» no es un número razonable: se ignora.'); else if (dp.v != null) { v.divpct = dp.v; if (!v.div) v.div = revEtiquetaDiv(dp.v); else if (v.div !== revEtiquetaDiv(dp.v) && Math.abs(dp.v) > 0.5) av.push('dividendo «' + v.div + '» no encaja con div_var_pct ' + dp.v + '%.'); }
+        [['payout_affo', 'affo', 0, 300], ['nd_ebitda', 'nd', -5, 30], ['ocupacion', 'ocup', 0, 100]].forEach(([k, kk, lo, hi]) => { const n = num(it[k], lo, hi); if (n.mal) av.push(k + ' «' + it[k] + '» fuera de rango (' + lo + ' a ' + hi + '): se ignora.'); else if (n.v != null) v[kk] = n.v; });
+        const ign = Object.keys(it).filter(k => REV_IMP_IGNORADOS.includes(String(k).toLowerCase()) && it[k] != null && it[k] !== ''); if (ign.length) av.push('Ignorados (los pone el dashboard): ' + ign.join(', ') + '.');
+        // texto
+        v.nota = String(it.nota || '').replace(/\s+/g, ' ').trim(); if (v.nota.length > 300) { v.nota = v.nota.slice(0, 300); av.push('Nota recortada a 300 caracteres.'); }
+        v.fuente = String(it.fuente || '').replace(/\s+/g, ' ').trim().slice(0, 200); if (!v.fuente) av.push('Sin fuente: no podrás saber de dónde sale.');
+        if (it.proxima_revision != null && it.proxima_revision !== '') { if (!fechaOk(String(it.proxima_revision))) av.push('proxima_revision «' + it.proxima_revision + '» no válida: se calcula sola.'); else if (v.fecha && String(it.proxima_revision) <= v.fecha) av.push('proxima_revision no es posterior a la fecha: se calcula sola.'); else v.prox = String(it.proxima_revision); }
+        let pend = it.pendiente_usuario; if (typeof pend === 'string') pend = pend ? [pend] : []; if (pend != null && !Array.isArray(pend)) { av.push('pendiente_usuario debe ser una lista: se ignora.'); pend = []; }
+        v.pend = (pend || []).map(x => String(x == null ? '' : x).replace(/\s*\|\s*/g, ' / ').replace(/\s+/g, ' ').trim().slice(0, 200)).filter(Boolean).slice(0, 10);
+        if ((pend || []).length > 10) av.push('Solo se guardan 10 tareas por activo.');
+        return { i, d, err, av, v, estado: err.length ? 'error' : 'propuesta' };
+    });
+    return { filas, avGlob };
+}
+// ── Modal de importación (PROPUESTAS: nada se guarda hasta pulsar Confirmar) ──
+function revImportarAbrir() {
+    if (document.getElementById('rev-imp-m')) return;
+    const m = document.createElement('div'); m.id = 'rev-imp-m'; m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML = '<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;max-width:1040px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden"><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--bd)"><b style="font-size:14px">📥 Importar revisión (JSON version 1)</b><span class="mt2" style="font-size:11px">Lo importado queda como PROPUESTA: no se guarda nada hasta que pulses Confirmar.</span><span style="flex:1"></span><button class="btn" id="imp-cerrar">✕</button></div>' +
+        '<div style="padding:12px 16px;overflow:auto"><textarea id="imp-txt" placeholder="Pega aquí el JSON que te ha dado Claude…" style="width:100%;box-sizing:border-box;height:130px;border:1px solid var(--bd);border-radius:8px;padding:10px;background:var(--s2);color:var(--tx);font:11px/1.5 ui-monospace,Menlo,Consolas,monospace"></textarea>' +
+        '<div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn ac" id="imp-analizar">🔎 Analizar</button><span id="imp-msg" style="font-size:11px;font-weight:600"></span></div><div id="imp-res"></div></div></div>';
+    document.body.appendChild(m);
+    document.getElementById('imp-cerrar').onclick = () => { m.remove(); }; m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+    document.getElementById('imp-analizar').onclick = () => { const r = revImpParsear(document.getElementById('imp-txt').value); window._revImp = r.error ? null : r; if (r.error) { document.getElementById('imp-msg').style.color = 'var(--rd)'; document.getElementById('imp-msg').textContent = '⛔ ' + r.error; document.getElementById('imp-res').innerHTML = ''; } else revImpPintar(); };
+}
+function revImpPintar() {
+    const r = window._revImp, el = document.getElementById('imp-res'); if (!r || !el) return;
+    const n = (e) => r.filas.filter(x => x.estado === e).length, msg = document.getElementById('imp-msg');
+    msg.style.color = n('error') ? 'var(--am)' : 'var(--gn)'; msg.textContent = n('propuesta') + ' propuestas · ' + n('guardada') + ' guardadas · ' + n('error') + ' rechazadas · ' + n('descartada') + ' descartadas';
+    const col = { Mantener: 'var(--mt)' };
+    el.innerHTML = (r.avGlob || []).map(t => '<div class="mt2" style="font-size:11px">ℹ️ ' + revEsc(t) + '</div>').join('') +
+        '<div style="margin:6px 0"><button class="btn ac" ' + (n('propuesta') ? '' : 'disabled style="opacity:.5"') + ' onclick="revImpConfirmarTodas()">✔ Confirmar todas (' + n('propuesta') + ')</button></div>' +
+        '<div class="sc"><table><thead><tr><th style="text-align:left">Activo</th><th>Fecha</th><th>Decisión</th><th>Tesis</th><th>Dividendo</th><th>Cobertura</th><th>Deuda</th><th>AFFO / ND-EBITDA / Ocup.</th><th style="text-align:left">Nota · fuente · tareas</th><th></th></tr></thead><tbody>' +
+        r.filas.map(x => {
+            const v = x.v, d = x.d, dec = v.dec || (d ? d.prop.dec : '');
+            const ac = x.estado === 'propuesta' ? '<button class="btn ac" style="font-size:10px;padding:4px 9px" onclick="revImpConfirmar(' + x.i + ')">✔ Confirmar</button> <button class="btn" style="font-size:10px;padding:4px 7px" onclick="revImpDescartar(' + x.i + ')" title="Descartar esta propuesta">✕</button>' :
+                x.estado === 'guardada' ? '<span style="color:var(--gn);font-weight:700">✅ Guardada</span>' : x.estado === 'descartada' ? '<span class="mt2">descartada</span>' : '<span style="color:var(--rd);font-weight:700">⛔ Rechazada</span>';
+            const dif = (a, b) => (a && b && a !== b) ? ' <i class="rk-b" title="Lo que propone el dashboard">(auto: ' + revEsc(b) + ')</i>' : '';
+            const mensajes = x.err.map(t => '<div style="color:var(--rd)">⛔ ' + revEsc(t) + '</div>').join('') + x.av.map(t => '<div style="color:var(--am)">⚠️ ' + revEsc(t) + '</div>').join('');
+            return '<tr style="vertical-align:top"><td style="text-align:left"><b>' + revEsc(d ? d.p.n : (x.v.isin || '—')) + '</b><br><span class="mt2" style="font-size:9px">' + revEsc(d && d.p.isin || '') + '</span></td><td>' + revEsc(v.fecha || '—') + '</td><td><b>' + revEsc(dec || '—') + '</b>' + dif(v.dec, d ? d.prop.dec : '') + '</td><td>' + revEsc(v.tesis || '—') + '</td><td>' + revEsc(v.div || '—') + (v.divpct != null ? ' ' + revPct(v.divpct) : '') + '</td><td>' + revEsc(v.cub || '—') + dif(v.cub, d ? d.prop.cub : '') + '</td><td>' + revEsc(v.deu || '—') + '</td>' +
+                '<td>' + [v.affo != null ? v.affo + '%' : '—', v.nd != null ? v.nd + '×' : '—', v.ocup != null ? v.ocup + '%' : '—'].join(' / ') + '</td><td style="text-align:left;font-size:11px;line-height:1.5">' + revEsc(v.nota || '') + (v.fuente ? '<div class="mt2">📎 ' + revEsc(v.fuente) + '</div>' : '') + (v.pend && v.pend.length ? '<div>📝 ' + v.pend.map(revEsc).join(' · ') + '</div>' : '') + mensajes + '</td><td style="white-space:nowrap">' + ac + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+}
+function revImpDescartar(i) { const x = window._revImp && window._revImp.filas[i]; if (x && x.estado === 'propuesta') { x.estado = 'descartada'; revImpPintar(); } }
+function revImpFila(x, id) {
+    const d = x.d, v = x.v, a = d.prop, e = { dec: v.dec || a.dec, divpct: v.divpct != null ? v.divpct : '', div: d.esEtf ? '' : (v.div || ''), cub: d.esEtf ? '' : (v.cub || ''), deu: v.deu || '', tesis: v.tesis || '', nota: v.nota || a.nota, manual: true };
+    e.prox = v.prox || revProximaAuto(d, e.dec);
+    const fila = revFilaDe(d, e, id, v.fecha);
+    fila.origen = 'IMPORT'; fila.fuente = v.fuente; fila.pendiente = (v.pend || []).join(' | '); fila.ocupacion = v.ocup != null ? v.ocup : '';
+    if (v.affo != null) fila.affo = v.affo; if (v.nd != null) fila.deudaebitda = v.nd;
+    return fila;
+}
+async function revImpConfirmarLista(xs) {
+    const msg = document.getElementById('imp-msg'); xs = xs.filter(x => x.estado === 'propuesta'); if (!xs.length || window._revImpOcupado) return;
+    let clave = ''; try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim();
+    if (!clave) { if (msg) { msg.style.color = 'var(--am)'; msg.textContent = '⚠️ Sin clave: no se ha guardado nada.'; } return; }
+    window._revImpOcupado = true; const ah = new Date(), id = 'RI-' + _hoyISO().replace(/-/g, '') + '-' + _pad2(ah.getHours()) + _pad2(ah.getMinutes()) + _pad2(ah.getSeconds());
+    let ok = 0, fallo = '';
+    for (const x of xs) {
+        if (fallo) break;
+        try {
+            const fila = revImpFila(x, id);
+            if ((REVISIONES_GS || []).some(y => (y.isin ? y.isin === fila.isin : y.n === fila.n) && y.f === fila.f && y.dec === fila.dec && String(y.nota) === String(fila.nota) && String(y.fuente || '') === String(fila.fuente) && y.origen === 'IMPORT')) { x.estado = 'guardada'; x.av.push('Ya estaba guardada con los mismos datos: no se duplica.'); ok++; continue; }
+            const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + revParamsFila(fila, clave).toString())).json();
+            if (!j || !j.ok) throw new Error(j && j.error === 'clave' ? 'clave' : 'hoja');
+            if (!(REVISIONES_GS || []).some(y => y.id === fila.id && y.n === fila.n)) REVISIONES_GS.push(fila);
+            x.estado = 'guardada'; ok++;
+        } catch (e) { fallo = e && e.message === 'clave' ? 'clave' : 'red'; }
+    }
+    if (fallo === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} }
+    else if (ok) { try { localStorage.setItem('goteo_clave', clave); } catch (e) {} }
+    window._revImpOcupado = false; revImpPintar();
+    if (msg && fallo) { msg.style.color = 'var(--rd)'; msg.textContent += ' · ⚠️ ' + (fallo === 'clave' ? 'Clave incorrecta.' : 'No se pudo guardar todo (¿script nuevo implementado?).') + ' Guardadas ' + ok + ' de ' + xs.length + '.'; }
+    try { renderRevisionSemestral(); } catch (e) {}
+}
+function revImpConfirmar(i) { const x = window._revImp && window._revImp.filas[i]; return x ? revImpConfirmarLista([x]) : undefined; }
+function revImpConfirmarTodas() { return window._revImp ? revImpConfirmarLista(window._revImp.filas) : undefined; }
+
+// ── Tareas (pendiente_usuario de la última revisión de cada activo) ──
+function revTareasLista() {
+    const ult = {};
+    (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO').forEach(r => { const k = r.isin || r.n; if (!ult[k] || String(r.f) + String(r.id) > String(ult[k].f) + String(ult[k].id)) ult[k] = r; });
+    const out = []; Object.keys(ult).forEach(k => { const r = ult[k]; String(r.pendiente || '').split(' | ').map(t => t.trim()).filter(Boolean).forEach((t, j) => out.push({ key: r.id + '|' + r.n + '|' + j, n: r.n, f: r.f, t, fuente: r.fuente || '' })); });
+    return out;
+}
+function revTareasHechas() { try { return JSON.parse(localStorage.getItem('rev_tareas_ok') || '{}') || {}; } catch (e) { return {}; } }
+function revTareaMarcar(key, ok) { const h = revTareasHechas(); if (ok) h[key] = 1; else delete h[key]; try { localStorage.setItem('rev_tareas_ok', JSON.stringify(h)); } catch (e) {} revTareasPintar(); }
+function revTareasHtml() {
+    const l = revTareasLista(); if (!l.length) return ''; const h = revTareasHechas(), pend = l.filter(x => !h[x.key]);
+    return '<div class="rev-c" style="margin-bottom:10px;padding:10px 14px"><b>📝 Tareas pendientes de revisiones importadas (' + pend.length + ' de ' + l.length + ')</b><div style="margin-top:6px;font-size:12px;line-height:1.7">' +
+        l.map(x => '<label style="display:block;cursor:pointer;' + (h[x.key] ? 'opacity:.5;text-decoration:line-through' : '') + '"><input type="checkbox" data-k="' + revEsc(x.key) + '" ' + (h[x.key] ? 'checked ' : '') + 'onchange="revTareaMarcar(this.dataset.k,this.checked)"> <b>' + revEsc(x.n) + '</b> <span class="mt2">(' + revFmt(x.f) + ')</span> ' + revEsc(x.t) + '</label>').join('') + '</div></div>';
+}
+function revTareasPintar() { const el = document.getElementById('rev-tareas'); if (el) el.innerHTML = revTareasHtml(); }
+
 function revPintarBoton() {
     const datos = window._revDatos || [], n = datos.length, man = datos.filter(d => revEfectivo(d).manual).length;
     const el = document.getElementById('rev-guardar'); if (!el) return;
-    const btn = '<button class="btn ac" ' + (n && !window._revGuardando ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar mis revisiones (' + man + ' de ' + n + ')</button> <button class="btn" onclick="revConfirmarSinAvisos()" title="Da por revisadas (y las guarda como tuyas) las propuestas de los activos sin avisos">✔ Confirmar los que no tienen avisos</button> <button class="btn" onclick="revInformeAbrir()" title="Texto con todos los datos y un diagnóstico de errores, para analizarlo">📤 Informe para análisis</button>';
+    const btn = '<button class="btn ac" ' + (n && !window._revGuardando ? '' : 'disabled style="opacity:.5"') + ' onclick="guardarRevision()">💾 Guardar mis revisiones (' + man + ' de ' + n + ')</button> <button class="btn" onclick="revConfirmarSinAvisos()" title="Da por revisadas (y las guarda como tuyas) las propuestas de los activos sin avisos">✔ Confirmar los que no tienen avisos</button> <button class="btn" onclick="revInformeAbrir()" title="Texto con todos los datos y un diagnóstico de errores, para analizarlo">📤 Informe para análisis</button> <button class="btn" onclick="revCopiarClaudeTodos()" title="Copia la ficha de todos los activos (ISIN, datos clave, señales, avisos) con instrucciones y el formato JSON para Claude">📋 Copiar todo para Claude</button> <button class="btn" onclick="revImportarAbrir()" title="Pega el JSON (version 1) que te devuelva Claude: queda como propuesta hasta que confirmes">📥 Importar revisión</button>';
     el.innerHTML = btn + '<span id="rev-msg" style="font-size:11px;font-weight:600">' + (window._revMsg || ((man ? 'Se guardan los ' + man + ' activo' + (man === 1 ? '' : 's') + ' que has revisado' : 'Nada que guardar todavía: revisa un activo (cambia algo o pulsa «✔ Confirmar») y se guardará con su precio, 52 semanas y dividendo de hoy') + ' · las decisiones automáticas sin tocar no se guardan.')) + '</span>';
     const top = document.getElementById('rev-guardar-top'); if (top) top.innerHTML = btn;
 }
@@ -9530,12 +9776,13 @@ function renderRevisionSemestral() {
         '<div class="alert-box warn"><span class="icon">🧾</span><span>' + (st.nunca ? 'Todavía no has hecho ninguna revisión. Todo está ya propuesto: mira lo marcado, confirma o cambia lo que veas (✔ Confirmar) y pulsa «Guardar mis revisiones». Solo se guarda lo que tú revisas.' : 'Ha pasado más de ' + REV_MESES + ' mes desde la última revisión: toca revisar la cartera.') + '</span></div>' : '') +
         '<div class="mt2" style="font-size:11px;line-height:1.5;margin-top:' + (st.vencida ? 8 : 0) + 'px">🤖 Las decisiones, el dividendo, el «cubierto» y la nota se rellenan solos con los datos de Getquin, tu hoja y las reglas de la cartera. <b>' + nRev + ' de ' + datos.length + '</b> piden que les eches un vistazo; el resto son «sin novedades».</div>' +
         '<details class="rev-hist" style="margin-top:6px"><summary>Cómo decide el sistema</summary><div style="line-height:1.6;margin-top:4px">Por orden, gana la primera regla que se cumple:<br>' +
-        '1. <b>Vender</b>: especulativa con +12% o más.<br>2. <b>Reducir</b>: peso por encima del tope por acción (' + GOTEO_CFG.MAX_PESO_ACCION + '%), o dividendo que baja 5% o más y no está cubierto.<br>' +
+        '1. <b>Vender</b>: especulativa con +12% o más.<br>2. <b>Mantener sin compras</b>: peso entre 1 y 1,5 veces el tope (no se compra más, no se vende).<br>2b. <b>Reducir</b>: peso por encima de 1,5 veces el tope por acción (' + GOTEO_CFG.MAX_PESO_ACCION + '%), o dividendo que baja 5% o más y no está cubierto.<br>' +
         '3. <b>Vigilar</b>: dividendo a la baja, dividendo sin cubrir, pérdida de 10% o más, o sector por encima de su tope (' + GOTEO_CFG.MAX_PESO_SECTOR + '%).<br>' +
         '4. <b>Reforzar</b> (no especulativas): peso por debajo del 60% del tope, sector con margen, dividendo sin bajar, y además precio en el 35% inferior de su rango de 52 semanas, a 3% o menos de su trampa, o con objetivo de analistas +15% y precio por debajo del 60% del rango.<br>' +
         '5. <b>Mantener</b>: todo lo demás. Los ETF siempre se mantienen.<br><b>Cubierto</b>: dividendo ÷ flujo de caja libre (Getquin): hasta 75% Sí, hasta 95% Justo, más No. En bancos y aseguradoras se usa el payout sobre beneficios (60% / 80%). En inmobiliarias queda «No sé».<br>' +
         '<b>Próxima revisión</b>: +6 meses si es Mantener y sin avisos; si no, +1 mes. Todo lo que cambies a mano queda marcado ✏️ y se guarda como origen MANUAL.</div></details>';
     revPintarGq();
+    let rt = document.getElementById('rev-tareas'); if (!rt && lista.parentNode) { rt = document.createElement('div'); rt.id = 'rev-tareas'; lista.parentNode.insertBefore(rt, lista); } revTareasPintar();
     let rc = document.getElementById('rev-cambios'); if (!rc && lista.parentNode) { rc = document.createElement('div'); rc.id = 'rev-cambios'; lista.parentNode.insertBefore(rc, lista); } if (rc) rc.innerHTML = revRentaHtml(datos) + revCambiosHtml(datos);
     const filtros = [['todos', 'Todos (' + datos.length + ')'], ['revisar', '👀 A revisar (' + nRev + ')'], ['sin', '✅ Sin novedades (' + (datos.length - nRev) + ')'], ['pendientes', '⏳ Pendientes'], ['forever', '🌳 Forever'], ['especulativa', '🎲 Especulativas']];
     document.getElementById('rev-filtros').innerHTML = filtros.map(f => '<button class="btn' + (REV_FILTRO === f[0] ? ' ac' : '') + '" onclick="revFiltrar(\'' + f[0] + '\')">' + f[1] + '</button>').join('') +
@@ -9570,17 +9817,26 @@ function renderRevisionSemestral() {
 }
 
 // Guarda TODOS los activos: la propuesta automática salvo lo que hayas cambiado tú. Cada fila fija precio, 52 semanas, dividendo y yield de hoy.
+function revFilaDe(d, e, id, hoy) {
+    const r = (x, k) => (x == null || isNaN(x)) ? '' : +Number(x).toFixed(k);
+        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: e.dec, divvs: e.div, cub: e.cub, deuda: e.deu, peso: r(d.peso, 2), rent: r(d.rent, 2), precio: r(d.pa, 4), nota: (e.nota || '').slice(0, 300), prox: e.prox,
+            min52: d.r52 ? r(d.r52.min, 4) : '', max52: d.r52 ? r(d.r52.max, 4) : '', rango52: r(d.pos52, 1), dpa: d.dpa > 0 ? r(d.dpa, 4) : '', divpct: r(e.divpct, 2),
+            gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '',
+            termo: d.termo.nivel, salud: d.termo.score == null ? '' : d.termo.score, yld: r(d.yld, 2), yoc: r(d.yoc, 2), payeps: d.gf && d.gf.payoutEps != null ? d.gf.payoutEps : '', per: d.gf && d.gf.per != null ? d.gf.per : '', obj: d.obj ? r(d.obj, 2) : '', origen: e.manual ? 'MANUAL' : 'AUTO',
+            tesis: e.tesis || '', dpaaj: d.dpa > 0 ? r(d.dpa, 4) : '', factor: d.factor, divbase: d.dpaBase || '', crec5: d.adj && d.adj.crec5 ? r(d.adj.crec5.pct, 2) : '', affo: revAffo(d) ? revAffo(d).v : '', deudaebitda: revDeudaEb(d) ? revDeudaEb(d).v : '', sector: d.esEtf ? 'ETF' : d.sector, tope: d.tope, netoanual: revNetoAnual(d), calidad: d.calidad ? d.calidad.nivel : '' };
+}
+function revParamsFila(fila, clave) {
+    return new URLSearchParams({ accion: 'guardarRevision', clave, id: fila.id, fecha: fila.f, activo: fila.n, isin: fila.isin, decision: fila.dec, divvs: fila.divvs, cubierto: fila.cub, deuda: fila.deuda,
+        peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, proxima: fila.prox, min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct,
+        gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf, yld: fila.yld, yoc: fila.yoc, payeps: fila.payeps, per: fila.per, objetivo: fila.obj, origen: fila.origen, termometro: fila.termo, salud: fila.salud, tesis: fila.tesis, dpaaj: fila.dpaaj, factor: fila.factor, divbase: fila.divbase, crec5: fila.crec5, affo: fila.affo, deudaebitda: fila.deudaebitda, sector: fila.sector, tope: fila.tope, netoanual: fila.netoanual, calidad: fila.calidad,
+        fuente: fila.fuente || '', pendiente: fila.pendiente || '', ocupacion: fila.ocupacion == null ? '' : fila.ocupacion });
+}
 async function guardarRevision() {
     if (window._revGuardando) return;
     const datos = window._revDatos || [], hoy = _hoyISO(), ahora = new Date();
     const id = 'R-' + hoy.replace(/-/g, '') + '-' + _pad2(ahora.getHours()) + _pad2(ahora.getMinutes());
     // Solo se guardan los activos que TÚ has revisado (cambiando algo o pulsando «Confirmar»): una decisión automática sin tocar no es una revisión.
-    const filas = datos.filter(d => revEfectivo(d).manual).map(d => { const e = revEfectivo(d), r = (x, k) => (x == null || isNaN(x)) ? '' : +Number(x).toFixed(k);
-        return { id, f: hoy, n: d.p.n, isin: d.p.isin || '', dec: e.dec, divvs: e.div, cub: e.cub, deuda: e.deu, peso: r(d.peso, 2), rent: r(d.rent, 2), precio: r(d.pa, 4), nota: (e.nota || '').slice(0, 300), prox: e.prox,
-            min52: d.r52 ? r(d.r52.min, 4) : '', max52: d.r52 ? r(d.r52.max, 4) : '', rango52: r(d.pos52, 1), dpa: d.dpa > 0 ? r(d.dpa, 4) : '', divpct: r(e.divpct, 2),
-            gqdiv: d.gq ? d.gq.div : '', gqyld: d.gq && d.gq.yld != null ? d.gq.yld : '', gqpfcf: d.gq && d.gq.pfcf != null ? d.gq.pfcf : '',
-            termo: d.termo.nivel, salud: d.termo.score == null ? '' : d.termo.score, yld: r(d.yld, 2), yoc: r(d.yoc, 2), payeps: d.gf && d.gf.payoutEps != null ? d.gf.payoutEps : '', per: d.gf && d.gf.per != null ? d.gf.per : '', obj: d.obj ? r(d.obj, 2) : '', origen: e.manual ? 'MANUAL' : 'AUTO',
-            tesis: e.tesis || '', dpaaj: d.dpa > 0 ? r(d.dpa, 4) : '', factor: d.factor, divbase: d.dpaBase || '', crec5: d.adj && d.adj.crec5 ? r(d.adj.crec5.pct, 2) : '', affo: d.ficha && d.ficha.affo > 0 ? d.ficha.affo : '', deudaebitda: revDeudaEb(d) ? revDeudaEb(d).v : '', sector: d.esEtf ? 'ETF' : d.sector, tope: d.tope, netoanual: revNetoAnual(d), calidad: d.calidad ? d.calidad.nivel : '' }; });
+    const filas = datos.filter(d => revEfectivo(d).manual).map(d => revFilaDe(d, revEfectivo(d), id, hoy));
     if (!filas.length) { window._revMsg = 'ℹ️ No hay nada que guardar: solo se guardan los activos que revisas tú (cambia algo o pulsa «✔ Confirmar» en la tarjeta). Las decisiones automáticas sin tocar no se guardan.'; const m0 = document.getElementById('rev-msg'); if (m0) m0.textContent = window._revMsg; return; }
     let clave = '';
     try { clave = localStorage.getItem('goteo_clave') || ''; } catch (err) {}
@@ -9590,9 +9846,7 @@ async function guardarRevision() {
     window._revGuardando = true; revPintarBoton();
     let ok = 0, fallo = '';
     const guardarUna = async fila => {
-        const q = new URLSearchParams({ accion: 'guardarRevision', clave, id: fila.id, fecha: fila.f, activo: fila.n, isin: fila.isin, decision: fila.dec, divvs: fila.divvs, cubierto: fila.cub, deuda: fila.deuda,
-            peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, proxima: fila.prox, min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct,
-            gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf, yld: fila.yld, yoc: fila.yoc, payeps: fila.payeps, per: fila.per, objetivo: fila.obj, origen: fila.origen, termometro: fila.termo, salud: fila.salud, tesis: fila.tesis, dpaaj: fila.dpaaj, factor: fila.factor, divbase: fila.divbase, crec5: fila.crec5, affo: fila.affo, deudaebitda: fila.deudaebitda, sector: fila.sector, tope: fila.tope, netoanual: fila.netoanual, calidad: fila.calidad });
+        const q = revParamsFila(fila, clave);
         const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q.toString())).json();
         if (!j || !j.ok) { const er = new Error(j && j.error === 'clave' ? 'clave' : 'hoja'); throw er; }
         if (!(REVISIONES_GS || []).some(x => x.id === fila.id && x.n === fila.n)) REVISIONES_GS.push(Object.assign({}, fila, { cub: fila.cub, obj: fila.obj }));
