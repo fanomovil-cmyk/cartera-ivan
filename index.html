@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -1061,11 +1062,49 @@ function renderCalendarioResultados() {
 }
 
 // ── ALIAS DE ISIN: Trade Republic usa a veces un ISIN distinto para el mismo activo en
-// compras/dividendos concretos (ej. BlackRock: US09290D1019 en algunas compras sueltas de 1
-// acción, frente al US09247X1019 de la posición principal). Este mapa junta ambos como el mismo.
+// compras/dividendos concretos (ej. BlackRock: US09247X1019 antiguo y US09290D1019 principal). Este mapa junta ambos como el mismo.
+// Un mismo valor con dos ISIN (BlackRock): el principal es el de la columna ISIN y el antiguo/alternativo el de «isin_alt» (CARTERA, FICHAS, REVISIONES).
+// Mapa ISIN alternativo → ISIN principal. Se completa con las columnas isin_alt de tu hoja al cargar los datos; esto es solo el valor de partida.
 const ISIN_ALIAS = {
-    'US09290D1019': 'US09247X1019', // BlackRock
+    'US09247X1019': 'US09290D1019', // BlackRock (antiguo → principal)
 };
+function isinConstruirAlias(data) {
+    window._isinPos = [];
+    const poner = (isin, alt) => { isin = String(isin || '').trim().toUpperCase(); alt = String(alt || '').trim().toUpperCase(); if (!isin || !alt) return; const pr = isinCanonico(isin); if (alt !== pr) ISIN_ALIAS[alt] = pr; };
+    (data.posiciones || []).forEach(p => { poner(p.isin, p.isinAlt); if (p.isinAlt) window._isinPos.push({ n: p.nombre, isin: String(p.isin || '').toUpperCase(), alt: String(p.isinAlt).toUpperCase() }); });
+    (data.fichas || []).forEach(f => poner(f.isin, f.isinAlt));
+    (data.revisiones || []).forEach(r => poner(r.isin, r.isinAlt));
+    // las posiciones de BlackRock sin columna isin_alt todavía en la hoja: se sigue tratando el antiguo como el mismo valor
+    if (!window._isinPos.some(x => x.isin === 'US09290D1019')) (data.posiciones || []).forEach(p => { if (/blackrock/i.test(p.nombre || '')) window._isinPos.push({ n: p.nombre, isin: 'US09290D1019', alt: 'US09247X1019' }); });
+}
+// Sustituye en todos los datos recibidos (listas, filas, claves) cualquier ISIN alternativo por el principal: así los dividendos, revisiones, precios y calendario de los dos ISIN se suman al mismo valor.
+function isinNormalizar(x, prof) {
+    prof = prof || 0; if (prof > 8 || x == null) return x;
+    if (Array.isArray(x)) { for (let i = 0; i < x.length; i++) { const v = x[i]; if (typeof v === 'string') { if (ISIN_ALIAS[v]) x[i] = ISIN_ALIAS[v]; } else if (v && typeof v === 'object') isinNormalizar(v, prof + 1); } return x; }
+    if (typeof x === 'object') {
+        for (const k of Object.keys(x)) {
+            if (k === 'isinAlt') continue;
+            const v = x[k];
+            if (typeof v === 'string') { if (ISIN_ALIAS[v]) x[k] = ISIN_ALIAS[v]; } else if (v && typeof v === 'object') isinNormalizar(v, prof + 1);
+            if (ISIN_ALIAS[k]) { const dest = ISIN_ALIAS[k]; if (x[dest] === undefined) x[dest] = x[k]; else if (Array.isArray(x[dest]) && Array.isArray(x[k])) x[dest] = x[dest].concat(x[k]); delete x[k]; }
+        }
+    }
+    return x;
+}
+function isinAltDe(isin) { const k = String(isin || '').toUpperCase(), p = (window._isinPos || []).find(x => x.isin === k); return p ? p.alt : ''; }
+// ISIN que aparece en los datos de un valor con dos ISIN conocidos pero que no es ninguno de los dos: se avisa, no se ignora.
+function isinAvisos() {
+    const av = [], visto = new Set(), norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(' ')[0];
+    (window._isinPos || []).forEach(g => {
+        const k = norm(g.n); if (!k) return;
+        const ver = (isin, donde, n) => { isin = String(isin || '').trim().toUpperCase(); if (!isin || isin === g.isin || isin === g.alt || norm(n) !== k) return; const c = isin + '|' + donde; if (visto.has(c)) return; visto.add(c); av.push({ n: g.n, isin, donde, isin1: g.isin, alt: g.alt }); };
+        (DIVIDENDOS_GS || []).forEach(d => ver(d.isin, 'dividendos', d.n));
+        (REVISIONES_GS || []).forEach(r => ver(r.isin, 'revisiones', r.n));
+        (FICHAS_GS || []).forEach(f => ver(f.isin, 'fichas', f.n));
+        (TRAMPAS_GS || []).forEach(t => ver(t[15], 'trampas', t[0]));
+    });
+    return av;
+}
 const isinCanonico = isin => ISIN_ALIAS[isin] || isin;
 const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinCanonico(isinPosicion);
 
@@ -2644,6 +2683,7 @@ async function recargar(modoRapido) {
         const res = await fetch(API_GS + '?nocache=' + Date.now() + parametroRapido);
         const data = await res.json();
         if (!data.ok) throw new Error('Respuesta inválida');
+        try { isinConstruirAlias(data); isinNormalizar(data); } catch (eAlias) { console.warn('isin_alt:', eAlias.message); }
 
         // Precios cartera — MAP inverso (GS nombre → TR nombre)
         if (data.posiciones) {
@@ -3674,6 +3714,7 @@ function renderDashboard() {
     }
 
     const alertas = [];
+    try { isinAvisos().forEach(a => alertas.push({ tipo: 'warn', icon: '🔀', msg: 'ISIN sin reconocer en ' + a.donde + ' de ' + revEsc(a.n) + ': ' + a.isin + '. Añádelo a la columna isin_alt (conocidos: ' + a.isin1 + ' / ' + a.alt + ')' })); } catch (eAv) {}
     if (typeof renderProximaAccion === 'function') renderProximaAccion(); // fija la acción elegida para no repetirla abajo
     const textoAccion = window._accionElegidaTexto || '';
     TRAMPAS_GS.forEach(r => {
@@ -9067,7 +9108,7 @@ async function revFichaGuardar(idx) {
     if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim(); if (!clave) { msg('⚠️ Sin clave: no se ha guardado.'); return; }
     msg('⏳ guardando…');
     try {
-        const q = new URLSearchParams({ accion: 'guardarFicha', clave, activo: d.p.n, isin: d.p.isin || '', tesis: f.tesis || '', rompe: f.rompe || '', tope: f.tope ?? '', cadencia: f.cad ?? '', factor: f.factor ?? '', deudaebitda: f.deudaebitda ?? '', affo: f.affo ?? '', divprev: f.divprev ?? '' });
+        const q = new URLSearchParams({ accion: 'guardarFicha', clave, activo: d.p.n, isin: d.p.isin || '', tesis: f.tesis || '', rompe: f.rompe || '', tope: f.tope ?? '', cadencia: f.cad ?? '', factor: f.factor ?? '', deudaebitda: f.deudaebitda ?? '', affo: f.affo ?? '', divprev: f.divprev ?? '', isinalt: isinAltDe(d.p.isin) });
         const j = await (await fetch(API_GS + (API_GS.includes('?') ? '&' : '?') + q.toString())).json();
         if (!j || !j.ok) { if (j && j.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} } msg(j && j.error === 'clave' ? '⚠️ Clave incorrecta.' : '⚠️ No se pudo guardar (¿script nuevo desplegado?).'); return; }
         const reg = Object.assign({ n: d.p.n, isin: String(d.p.isin || '').toUpperCase() }, f, { act: _hoyISO() }), i = FICHAS_GS.findIndex(x => x.n === d.p.n || (reg.isin && x.isin === reg.isin));
@@ -9965,7 +10006,7 @@ function revParamsFila(fila, clave) {
     return new URLSearchParams({ accion: 'guardarRevision', clave, id: fila.id, fecha: fila.f, activo: fila.n, isin: fila.isin, decision: fila.dec, divvs: fila.divvs, cubierto: fila.cub, deuda: fila.deuda,
         peso: fila.peso, rent: fila.rent, precio: fila.precio, nota: fila.nota, proxima: fila.prox, min52: fila.min52, max52: fila.max52, rango52: fila.rango52, dpa: fila.dpa, divpct: fila.divpct,
         gqdiv: fila.gqdiv, gqyld: fila.gqyld, gqpfcf: fila.gqpfcf, yld: fila.yld, yoc: fila.yoc, payeps: fila.payeps, per: fila.per, objetivo: fila.obj, origen: fila.origen, termometro: fila.termo, salud: fila.salud, tesis: fila.tesis, dpaaj: fila.dpaaj, factor: fila.factor, divbase: fila.divbase, crec5: fila.crec5, affo: fila.affo, deudaebitda: fila.deudaebitda, sector: fila.sector, tope: fila.tope, netoanual: fila.netoanual, calidad: fila.calidad,
-        fuente: fila.fuente || '', pendiente: fila.pendiente || '', ocupacion: fila.ocupacion == null ? '' : fila.ocupacion });
+        fuente: fila.fuente || '', pendiente: fila.pendiente || '', ocupacion: fila.ocupacion == null ? '' : fila.ocupacion, isinalt: isinAltDe(fila.isin) });
 }
 async function guardarRevision() {
     if (window._revGuardando) return;
