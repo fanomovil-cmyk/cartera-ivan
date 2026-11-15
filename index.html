@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -2692,6 +2691,15 @@ async function recargar(modoRapido) {
             DATOS_EN_VIVO = true; // a partir de aquí, los números que se muestren son reales, no el snapshot
             const RMAP = {};
             for (const [k, v] of Object.entries(MAP)) RMAP[v] = k;
+            // Si la hoja devuelve el precio vacío o con error en este momento (GOOGLEFINANCE recalculando tras editar la hoja), se usa el último precio bueno guardado (máx. 10 días)
+            let ult = {}; try { ult = JSON.parse(localStorage.getItem('pa_ultimo') || '{}') || {}; } catch (e) { ult = {}; }
+            window._paViejos = [];
+            data.posiciones.forEach(p => {
+                const kU = p.isin || p.nombre;
+                if (p.pActual > 0) ult[kU] = { v: p.pActual, ms: Date.now() };
+                else if (ult[kU] && ult[kU].v > 0 && Date.now() - ult[kU].ms < 10 * 86400000) { p.pActual = ult[kU].v; window._paViejos.push({ n: p.nombre, ms: ult[kU].ms, txt: p.pActualTxt || '' }); }
+            });
+            try { localStorage.setItem('pa_ultimo', JSON.stringify(ult)); } catch (e) {}
             data.posiciones.forEach(p => {
                 if (p.pActual > 0) {
                     // Por nombre GS directo
@@ -8174,6 +8182,7 @@ function pintarPosicionesDash() {
     const cab = (key, txt, izq) => '<th class="ord-th' + (k === key ? ' on' : '') + '"' + (izq ? ' style="text-align:left"' : '') + ' onclick="ordenarPosDash(\'' + key + '\')" title="Ordenar">' + txt + (k === key ? (dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
     th.innerHTML = cab('n', 'Activo', true) + '<th>P.Actual</th><th>P.Compra</th>' + cab('valor', 'Valor') + cab('peso', 'Peso') + cab('rent', 'Rent.') + cab('gp', '€ Rent.') + '<th>Div. cobrado</th>';
     tb.innerHTML = filas.map(f => f.html).join('');
+    const np = document.getElementById('n-pos'); if (np) np.textContent = filas.length + ' activos';
 }
 
 // ── Banner gigante «REVISIÓN»: trampas con el precio a ≤1 % de la trampa o ya por debajo ──
@@ -8197,7 +8206,9 @@ function auditoriaDatos() {
     // 2. Última actualización de TR
     if (ULTIMA_FECHA_CSV_GS) { const dd = diasDesde(ULTIMA_FECHA_CSV_GS); if (dd > 30) w('Extracto de TR sin movimientos', 'El último movimiento es del ' + ULTIMA_FECHA_CSV_GS + ' (hace ' + dd + ' días). Si has operado desde entonces, vuelve a pegar el CSV en TR_DATOS.'); else if (dd > 10) i('Último movimiento de TR hace ' + dd + ' días', 'Normal si no has operado; si lo has hecho, actualiza TR_DATOS.'); }
     // 3. Posiciones sin precio / sin trampa / sin sector
-    const sinPrecio = pos.filter(p => !(precioDe(p) > 0)); if (sinPrecio.length) w('Posiciones sin precio actual', sinPrecio.map(p => p.n).join(', ') + ': revisa la fórmula de precio en CARTERA.');
+    const sinPrecio = pos.filter(p => p.sh > 0 && !(precioDe(p) > 0));   // posiciones ya vendidas (0 acciones: AMD, Alphabet…) no necesitan precio
+    if (sinPrecio.length) w('Posiciones sin precio actual', sinPrecio.map(p => { const g = (POSICIONES_GS || []).find(x => x.nombre === p.n || (x.isin && x.isin === p.isin)); return p.n + (g && g.pActualTxt ? ' (la hoja enseña «' + g.pActualTxt + '»)' : ''); }).join(', ') + ': revisa la fórmula de precio en CARTERA (columna E). Si la acabas de editar, puede estar recalculando.');
+    (window._paViejos || []).length && w('Precio de la hoja vacío: se usa el último conocido', window._paViejos.map(x => x.n + ' (' + radarHoraTxt(x.ms) + (x.txt ? ', hoja: «' + x.txt + '»' : '') + ')').join(', ') + '. Normalmente es la hoja recalculando; si dura, revisa la fórmula de precio.');
     const nombresTrampa = new Set((TRAMPAS_GS || []).map(r => r[0]));
     const sinTrampa = pos.filter(p => !nombresTrampa.has(p.n) && !nombresTrampa.has(MAP[p.n] || p.n)); if (sinTrampa.length) i('Posiciones sin fila en TRAMPAS', sinTrampa.map(p => p.n).join(', '));
     const sinSector = pos.filter(p => !p.sector || /sin clasificar/i.test(p.sector)); if (sinSector.length) i('Posiciones sin sector', sinSector.map(p => p.n).join(', ') + ' (afecta al límite de sector del goteo).');
