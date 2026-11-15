@@ -554,7 +554,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="card">
     <div class="ch"><h3>💰 Detalle cobros — Fiscalidad completa</h3></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:130px">Activo</th><th>País</th><th>Fecha</th><th>Acc.</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES 19%</th><th>Neto cobrado</th><th>Dev.Hacienda</th><th>Neto real</th></tr></thead><tbody id="tb-divs"></tbody><tfoot><tr id="tf-divs"><td colspan="11">—</td></tr></tfoot></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:130px">Activo</th><th>País</th><th>Fecha</th><th>Acc.</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>IRPF a pagar</th><th>Neto tras IRPF</th><th>Deducción</th><th>Neto real</th></tr></thead><tbody id="tb-divs"></tbody><tfoot><tr id="tf-divs"><td colspan="11">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--ac)">
     <div class="ch"><h3>💊 Salud del dividendo — € por acción y año</h3><span class="mt2" style="font-size:8px">esto SÍ es puro: no se contamina si compras más acciones ese año</span></div>
@@ -567,8 +567,8 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div style="padding:14px 16px" id="tendencia-empresas-container"></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
-    <div class="ch"><h3>📊 Acumulado anual por activo — Devolución Hacienda</h3></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Activo</th><th>País</th><th>Año</th><th>Pagos</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>Ret.ES €</th><th>Neto cobrado</th><th>Dev.Hacienda €</th><th>Neto real €</th><th>Rendimiento real</th></tr></thead><tbody id="tb-divs-res"></tbody><tfoot><tr id="tf-divs-res"><td colspan="11">—</td></tr></tfoot></table></div>
+    <div class="ch"><h3>📊 Acumulado anual por activo — IRPF y deducción</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Activo</th><th>País</th><th>Año</th><th>Pagos</th><th>Bruto €</th><th>Ret.Origen</th><th>Llega TR €</th><th>IRPF a pagar €</th><th>Neto tras IRPF</th><th>Deducción doble imp. €</th><th>Neto real €</th><th>Rendimiento real</th></tr></thead><tbody id="tb-divs-res"></tbody><tfoot><tr id="tf-divs-res"><td colspan="11">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px;border:1px solid var(--am)">
     <div class="ch"><h3>🏆 Ranking — Mejores activos por dividendo</h3></div>
@@ -586,12 +586,12 @@ html.light .badge-orden.venta{color:#B33A3A}
     </div>
   </div>
   <div class="card" style="margin-top:12px">
-    <div class="ch"><h3>🏛️ Acumulado por empresa — Devolución Hacienda</h3></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Empresa</th><th>País</th><th>Ret.%</th><th>Pagos</th><th>Bruto acum.</th><th>Ret. origen</th><th>Neto TR</th><th>Ret. Hac.</th><th>Cobrado neto</th><th>A devolver</th><th>Neto real</th></tr></thead><tbody id="tb-acum"></tbody><tfoot><tr id="tf-acum"><td colspan="11">—</td></tr></tfoot></table></div>
+    <div class="ch"><h3>🏛️ Acumulado por empresa — IRPF y deducción</h3></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:150px">Empresa</th><th>País</th><th>Ret.%</th><th>Pagos</th><th>Bruto acum.</th><th>Ret. origen</th><th>Neto TR</th><th>IRPF a pagar</th><th>Neto tras IRPF</th><th>Deducción</th><th>Neto real</th></tr></thead><tbody id="tb-acum"></tbody><tfoot><tr id="tf-acum"><td colspan="11">—</td></tr></tfoot></table></div>
   </div>
   <div class="card" style="margin-top:12px">
     <div class="ch"><h3>⏳ Próximos cobros estimados</h3></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Empresa</th><th>País</th><th>Freq.</th><th>Acciones</th><th>Último cobro</th><th>Próx. estimado</th><th>Bruto est.</th><th>Ret.Origen</th><th>Neto TR est.</th><th>Dev.Hac.</th><th>Neto real est.</th><th>Ya cobrado 2026</th></tr></thead><tbody id="tb-pend"></tbody><tfoot><tr id="tf-pend"><td colspan="12">—</td></tr></tfoot></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:140px">Empresa</th><th>País</th><th>Freq.</th><th>Acciones</th><th>Último cobro</th><th>Próx. estimado</th><th>Bruto est.</th><th>Ret.Origen</th><th>Neto TR est.</th><th>Deducción</th><th>Neto real est.</th><th>Ya cobrado 2026</th></tr></thead><tbody id="tb-pend"></tbody><tfoot><tr id="tf-pend"><td colspan="12">—</td></tr></tfoot></table></div>
   </div>
   <div class="g2" style="margin-top:12px">
     <div class="card"><div class="ch"><h3>📊 Por activo acumulado</h3></div><div class="cw"><canvas id="cd"></canvas></div></div>
@@ -706,9 +706,9 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Activo</th><th>Fecha venta</th><th>Acciones</th><th>P.Compra</th><th>P.Venta</th><th>Coste</th><th>Ingreso</th><th>G/P €</th><th>G/P %</th></tr></thead><tbody id="tb-operaciones"></tbody></table></div>
   </div>
   <div class="card" style="margin-top:12px">
-    <div class="ch"><h3>🧾 Renta del año siguiente por ventas</h3><span class="mt2" style="font-size:9px">lo que saldría a pagar en la declaración (año + 1) por lo vendido, menos la retención de dividendos a devolver</span></div>
+    <div class="ch"><h3>🧾 Renta del año siguiente por ventas</h3><span class="mt2" style="font-size:9px">lo que saldría a pagar en la declaración (año + 1): impuesto por lo vendido + IRPF de dividendos (19 % del bruto − retención ya pagada fuera)</span></div>
     <div class="cw" style="height:230px;padding:6px 12px 0"><canvas id="chart-renta-ventas"></canvas></div>
-    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Ventas de</th><th>G/P ventas €</th><th>Pagar en renta €</th><th>Retención USA a devolver €</th><th style="color:var(--am)">Prevista resto del año €</th><th>Diferencia €</th><th>Con la previsión €</th><th style="text-align:left">Resultado</th></tr></thead><tbody id="tb-renta-ventas"></tbody></table></div>
+    <div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Ventas de</th><th>G/P ventas €</th><th>Pagar en renta €</th><th>IRPF dividendos a pagar €</th><th style="color:var(--am)">Prevista resto del año €</th><th>Total a pagar €</th><th>Con la previsión €</th><th style="text-align:left">Resultado</th></tr></thead><tbody id="tb-renta-ventas"></tbody></table></div>
     <div class="mt2" id="nota-renta-ventas" style="font-size:9px;padding:8px 16px 12px;line-height:1.5"></div>
   </div>
 </div>
@@ -1052,8 +1052,30 @@ const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinC
 
 // Retención en origen para ESTIMAR cobros futuros: si ese valor ya ha pagado alguna vez (con bruto >= 1€ para
 // evitar ruido de céntimos), usamos la retención REAL del último pago; si no, la tasa por país.
+// ── MODELO FISCAL DE DIVIDENDOS ──
+// Impuesto español = 19 % × BRUTO. Deducción por doble imposición = retención pagada fuera, con límite del impuesto español de esa renta.
+// A pagar en la declaración = impuesto español − deducción. España: el pagador ya retiene el 19 % (la retención es el propio impuesto: no queda nada por pagar).
+function tasaOrigenPais(pais) { return pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : pais === 'ESP' ? 0.19 : 0; }
+function paisDeIsin(isin, pais) { if (pais && pais !== '??') return pais; const c = String(isin || '').slice(0, 2).toUpperCase(); return c === 'ES' ? 'ESP' : c === 'FR' ? 'FRA' : c === 'US' ? 'USA' : c === 'IE' ? 'IRL' : (c || '??'); }
+function fiscalDiv(bruto, tasa) {
+    const r = v => Math.round(v * 100) / 100, ret = r(bruto * tasa), netoTr = r(bruto - ret), imp = r(bruto * 0.19), ded = r(Math.min(ret, imp)), pagar = r(imp - ded);
+    return { ret, netoTr, imp, ded, pagar, netoReal: r(netoTr - pagar) };
+}
+// Dividendos españoles: lo que llega de TR/la hoja es el importe YA cobrado, con el 19 % retenido por el pagador (Telefónica 0,15 → 0,1215 por acción;
+// Acerinox 0,31 → 0,2511). Se pasa a bruto (÷ 0,81) para no retener el 19 % dos veces. Poner a false si el extracto de TR muestra el importe bruto.
+const ESP_IMPORTE_COBRADO_NETO = true;
+function normDiv(d) {
+    const pais = paisDeIsin(d.isin, d.pais);
+    if (pais === 'ESP' && ESP_IMPORTE_COBRADO_NETO && !d.esp_neto_tr && d.bruto > 0) d = { ...d, esp_neto_tr: d.bruto, bruto: Math.round(d.bruto / 0.81 * 100) / 100 };
+    const f = fiscalDiv(d.bruto || 0, tasaOrigenPais(pais));
+    return { ...d, pais, ret_origen: f.ret, neto_tr: f.netoTr, tax_es_total: f.imp, deduccion: f.ded, tax_es: f.pagar, neto_final: f.netoReal, devolucion: 0, neto_real: f.netoReal };
+}
+function desglosePaises(arr) {
+    const c = {}; arr.forEach(d => { const k = d.pais === 'FRA' ? 'FR' : d.pais || '??'; c[k] = (c[k] || 0) + 1; });
+    return Object.keys(c).sort((a, b) => c[b] - c[a]).map(k => c[k] + ' ' + k).join(' · ');
+}
 function tasaOrigenEstimada(isin, pais) {
-    const porPais = pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : 0;
+    const porPais = tasaOrigenPais(pais);
     if (!isin) return porPais;
     const pagos = (divsEnVivo() || []).filter(d => d.isin && esMismoISIN(d.isin, isin) && d.bruto >= 1);
     if (!pagos.length) return porPais;
@@ -1062,7 +1084,7 @@ function tasaOrigenEstimada(isin, pais) {
         return new Date(+ya, ma - 1, +da) >= new Date(+yb, mb - 1, +db) ? a : b;
     });
     const real = (ultimo.ret_origen || 0) / ultimo.bruto;
-    const conocidas = [0, 0.128, 0.15, 0.25];
+    const conocidas = [0, 0.128, 0.15, 0.19, 0.25];
     const cercana = conocidas.reduce((a, b) => Math.abs(b - real) < Math.abs(a - real) ? b : a);
     return Math.abs(cercana - real) <= 0.015 ? cercana : real;
 }
@@ -1139,7 +1161,7 @@ let OBJETIVOS_GS = [];
 let HISTORICO_GOTEO_GS = [];
 let COMPRAS_DETALLE_GS = [];
 let FLUJOS_CAJA_GS = [];
-let CALENDARIO_DIVIDENDOS_GS = [], IMPORTES_MAN_GS = [], PRECIOS_GQ_GS = [], PREVISION_GQ_GS = [], FICHAS_GS = [], DIV_EXTRA_GS = [], GQ_EXTRA_GS = [], GQ_FIN_GS = {};
+let CALENDARIO_DIVIDENDOS_GS = [], IMPORTES_MAN_GS = [], PRECIOS_GQ_GS = [], PREVISION_GQ_GS = [], PAGOS_GQ_GS = [], FICHAS_GS = [], DIV_EXTRA_GS = [], GQ_EXTRA_GS = [], GQ_FIN_GS = {};
 let PICOS_ESPECULATIVAS_GS = {};
 let HISTORICO_PRECIOS_POSICIONES_GS = {};
 let HISTORICO_DIVIDENDOS_LARGO_GS = [];
@@ -1256,7 +1278,8 @@ function divsEnVivo() {
     if (_cacheDivs.src === src && _cacheDivs.n === src.length) return _cacheDivs.out;
     const ts = f => { const [d, m, y] = String(f).split('/'); return new Date(+y, +m - 1, +d).getTime(); };
     const out = [], quitados = [];
-    src.forEach(d => {
+    src.forEach(d0 => {
+        const d = normDiv(d0);
         const dup = out.find(o => (o.isin || o.n) === (d.isin || d.n) && Math.abs(o.bruto - d.bruto) < 0.005 &&
             Math.abs((o.sh || 0) - (d.sh || 0)) < 0.001 && Math.abs(ts(o.f) - ts(d.f)) <= 3 * 86400000);
         if (dup) quitados.push(d); else out.push(d);
@@ -1323,12 +1346,8 @@ function proximosCobrosEnVivo() {
 
         const manProx = prox && p.isin ? importeManual(p.isin, prox.mes) : null;   // importe del próximo pago escrito a mano (LVMH dic = 5,50)
         const importePorPago = manProx ? manProx * p.sh : (numPagosReal ? anualTotal / numPagosReal : anualTotal);
-        const origenRate = tasaOrigenEstimada(p.isin, p.pais);
-        const retOEst = importePorPago * origenRate;
-        const subtotalEst = importePorPago - retOEst;
-        const taxEsEst = subtotalEst * 0.19;
-        const netoFinalEst = subtotalEst - taxEsEst;
-        const netoRealEst = netoFinalEst + retOEst;
+        const fxE = fiscalDiv(importePorPago, tasaOrigenEstimada(p.isin, p.pais));
+        const retOEst = fxE.ret, subtotalEst = fxE.netoTr, netoRealEst = fxE.netoReal, dedEst = fxE.ded;
 
         const ultimoCobro = fechasEsta && fechasEsta.length ?
             [...fechasEsta].sort((a, b) => b.fecha - a.fecha)[0].fecha.toLocaleDateString('es-ES') :
@@ -1340,7 +1359,7 @@ function proximosCobrosEnVivo() {
             n: p.n, pais: p.pais, freq: freqTexto, sh: p.sh, ultimo_cobro: ultimoCobro, _prox: prox,
             _meses: mesesPago0 ? mesesPago0.map(m => m + 1) : null, isin: p.isin,
             bruto_est: r2(importePorPago), ret_o_est: r2(retOEst), neto_tr_est: r2(subtotalEst),
-            dev_est: r2(retOEst), neto_real_est: r2(netoRealEst), ya_cobrado_2026: r2(yaCobradoAnio)
+            dev_est: r2(dedEst), neto_real_est: r2(netoRealEst), ya_cobrado_2026: r2(yaCobradoAnio)
         };
     });
 }
@@ -1449,19 +1468,14 @@ function evolucionEnVivo() {
 }
 
 function resumenDivsEnVivo() {
-    const base = RESUMEN_DIVS_GS && RESUMEN_DIVS_GS.length ? RESUMEN_DIVS_GS : D.resumen_divs;
-    const q = divsDuplicadosQuitados();
-    if (!q.length) return base;
-    const r2 = v => Math.round(v * 100) / 100;
-    const copia = base.map(r => ({ ...r }));
-    q.forEach(d => {
-        const anio = String(d.f).split('/')[2];
-        const r = copia.find(x => (x.isin || x.n) === (d.isin || d.n) && String(x.año) === anio);
-        if (!r) return;
-        r.pagos = Math.max(0, r.pagos - 1);
-        ['bruto', 'neto_tr', 'neto_final', 'devolucion', 'neto_real'].forEach(k => { r[k] = r2((r[k] || 0) - (d[k] || 0)); });
+    // Se reconstruye siempre desde los pagos (ya depurados y con el modelo fiscal actual), no desde el resumen guardado en la hoja
+    const r2 = v => Math.round(v * 100) / 100, m = {};
+    (divsEnVivo() || []).forEach(d => {
+        const anio = String(d.f).split('/')[2], k = (d.isin || d.n) + '|' + anio;
+        const r = m[k] || (m[k] = { n: d.n, isin: d.isin, año: anio, pais: d.pais, pagos: 0, bruto: 0, neto_tr: 0, neto_final: 0, devolucion: 0, deduccion: 0, neto_real: 0 });
+        r.n = d.n; r.pagos++; ['bruto', 'neto_tr', 'neto_final', 'deduccion', 'neto_real'].forEach(c => { r[c] = r2(r[c] + (d[c] || 0)); });
     });
-    return copia.filter(r => r.pagos > 0);
+    return Object.values(m);
 }
 
 let DATOS_EN_VIVO = false; // false = todavía mostrando el snapshot estático, no datos reales de hoy
@@ -1522,11 +1536,11 @@ function devolucionPrevistaRestante() {
     const prev = calcularPrevisionDividendosAnual();
     const hoy = new Date(), m = hoy.getMonth(), y = hoy.getFullYear();
     let tot = 0;
-    for (let i = m + 1; i < 12; i++) tot += prev.previstosDevolucion[i] || 0;
+    for (let i = m + 1; i < 12; i++) tot += prev.previstosIRPF[i] || 0;
     const cobradosMes = new Set((divsEnVivo() || []).filter(d => {
         const [, mm, yy] = d.f.split('/'); return +yy === y && +mm - 1 === m;
     }).map(d => isinCanonico(d.isin)));
-    (prev.previstosDetalle[m] || []).forEach(x => { if (!(x.isin && cobradosMes.has(isinCanonico(x.isin)))) tot += x.devolucion || 0; });
+    (prev.previstosDetalle[m] || []).forEach(x => { if (!(x.isin && cobradosMes.has(isinCanonico(x.isin)))) tot += x.irpf || 0; });
     return tot;
 }
 
@@ -1537,7 +1551,7 @@ function renderRentaVentas() {
     if (!tb) return;
     const anios = new Set();
     (OPERACIONES_CERRADAS || []).forEach(o => anios.add(o.fecha.slice(0, 4)));
-    (divsEnVivo() || []).forEach(d => { if (d.devolucion > 0) anios.add(d.f.split('/')[2]); });
+    (divsEnVivo() || []).forEach(d => { if (d.tax_es > 0) anios.add(d.f.split('/')[2]); });
     const lista = [...anios].sort();
     if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" class="mt2">Sin ventas todavía</td></tr>'; return; }
     const hoyAnio = new Date().getFullYear();
@@ -1548,24 +1562,24 @@ function renderRentaVentas() {
             interesesEnVivo().filter(i => (i.fPago || i.f).endsWith('/' + a)).reduce((t, i) => t + (i.bruto || 0), 0) +
             ingresosEnVivo().filter(x => String(x.fecha).startsWith(a)).reduce((t, x) => t + (x.bruto || x.importe), 0);
         const impVentas = gp > 0 ? impuestoMarginalGanancia(base, gp) : 0;
-        const devol = divsA.reduce((t, d) => t + (d.devolucion || 0), 0);
+        const devol = divsA.reduce((t, d) => t + (d.tax_es || 0), 0);   // IRPF de dividendos a pagar en la renta (19 % − deducción)
         const prevista = +a === hoyAnio ? devolucionPrevistaRestante() : 0;
-        return { a, gp, impVentas, devol, prevista, dif: impVentas - devol, difPrev: impVentas - devol - prevista };
+        return { a, gp, impVentas, devol, prevista, dif: impVentas + devol, difPrev: impVentas + devol + prevista };
     });
     tb.innerHTML = datos.map((x, j) => {
         const { a, gp, impVentas, devol, prevista, dif, difPrev } = x;
         const res = dif > 0.005 ? '<span class="rd" style="font-weight:700">En ' + (+a + 1) + ' tendrás que pagar ' + fe(dif) + ' a Hacienda</span>' :
-            dif < -0.005 ? '<span class="gn" style="font-weight:700">En ' + (+a + 1) + ' Hacienda te debe ' + fe(-dif) + '</span>' : '<span class="mt2">Sin diferencia</span>';
+            '<span class="mt2">Nada que pagar</span>';
         return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:700">' + a + (+a === hoyAnio ? ' <span class="mt2" style="font-size:8px">(en curso)</span>' : '') + '</td>' +
             '<td style="color:' + gc(gp) + ';font-family:monospace;font-weight:700">' + (gp >= 0 ? '+' : '') + fe(gp) + '</td>' +
-            '<td class="rd">' + fe(impVentas) + '</td><td class="gn">' + fe(devol) + '</td>' +
+            '<td class="rd">' + fe(impVentas) + '</td><td class="rd">' + fe(devol) + '</td>' +
             '<td style="color:var(--am);font-weight:700">' + (prevista > 0.005 ? '+' + fe(prevista) : '—') + '</td>' +
             '<td style="font-family:monospace;font-weight:800;color:' + (dif > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (dif > 0 ? '+' : '') + fe(dif) + '</td>' +
             '<td style="font-family:monospace;font-weight:800;color:' + (difPrev > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (prevista > 0.005 ? (difPrev > 0 ? '+' : '') + fe(difPrev) : '—') + '</td><td>' + res + '</td></tr>';
     }).join('');
     const nota = document.getElementById('nota-renta-ventas');
     if (nota) nota.textContent = 'Cálculo estimado: ganancias y pérdidas de las ventas del año se compensan entre sí; el impuesto usa los tramos del ahorro (19-30 %) sobre lo ya cobrado ese año en dividendos (bruto), intereses TR y depósitos. ' +
-        'La retención a devolver es la de doble imposición de los dividendos cobrados ese año; la barra naranja es la que aún se espera cobrar en los meses que quedan (misma previsión que el Mando) y "Con la previsión" es la diferencia si se cumple entera. Si es mayor que el impuesto total del ahorro, Hacienda no devuelve el exceso. No tiene en cuenta pérdidas de años anteriores.';
+        'El IRPF de dividendos es el 19 % del bruto menos la retención ya pagada en origen (deducción por doble imposición, con ese límite); no se devuelve dinero: se resta del impuesto. la barra naranja es la que aún se espera cobrar en los meses que quedan (misma previsión que el Mando) y "Con la previsión" es la diferencia si se cumple entera. Si es mayor que el impuesto total del ahorro, Hacienda no devuelve el exceso. No tiene en cuenta pérdidas de años anteriores.';
 
     // Gráfico: por año, lo que pagarías por las ventas, lo que te devuelven y el resultado final (barra de la diferencia)
     const canvas = document.getElementById('chart-renta-ventas');
@@ -1590,9 +1604,9 @@ function renderRentaVentas() {
             labels: datos.map(x => 'Ventas ' + x.a + ' → renta ' + (+x.a + 1)),
             datasets: [
                 { label: 'A pagar por ventas', data: datos.map(x => Math.round(x.impVentas * 100) / 100), backgroundColor: '#E85A5A', borderRadius: 3 },
-                { label: 'Retención USA a devolver', data: datos.map(x => Math.round(x.devol * 100) / 100), backgroundColor: '#34C77B', borderRadius: 3 },
-                { label: 'Retención prevista (resto del año)', data: datos.map(x => Math.round(x.prevista * 100) / 100), backgroundColor: '#F59E0B', borderRadius: 3 },
-                { label: 'Diferencia (+ pagas / − te devuelven)', data: datos.map(x => Math.round(x.dif * 100) / 100), backgroundColor: '#5B8FD9', borderRadius: 3 }
+                { label: 'A pagar por dividendos', data: datos.map(x => Math.round(x.devol * 100) / 100), backgroundColor: '#E29A3E', borderRadius: 3 },
+                { label: 'IRPF dividendos previsto (resto del año)', data: datos.map(x => Math.round(x.prevista * 100) / 100), backgroundColor: '#F59E0B', borderRadius: 3 },
+                { label: 'Total a pagar en la renta', data: datos.map(x => Math.round(x.dif * 100) / 100), backgroundColor: '#5B8FD9', borderRadius: 3 }
             ]
         },
         options: {
@@ -2561,12 +2575,12 @@ async function generarInformeMensual() {
 
     const divsPorEmpresa = (resumenDivsEnVivo() || []).filter(d => d.año === anioActual).sort((a, b) => b
         .neto_real - a.neto_real);
-    const filasDiv = divsPorEmpresa.map(d => [d.n, d.pais, String(d.pagos), fe(d.bruto), fe(d.devolucion), fe(d
+    const filasDiv = divsPorEmpresa.map(d => [d.n, d.pais, String(d.pagos), fe(d.bruto), fe(d.deduccion), fe(d
         .neto_real)]);
     doc.autoTable({
         startY: 24,
         head: [
-            ['Empresa', 'País', 'Pagos', 'Bruto', 'Devolución', 'Neto real']
+            ['Empresa', 'País', 'Pagos', 'Bruto', 'Deducción', 'Neto real']
         ],
         body: filasDiv,
         theme: 'striped',
@@ -2738,6 +2752,7 @@ async function recargar(modoRapido) {
         if (data.getquinExtra) GQ_EXTRA_GS = data.getquinExtra;
         if (data.getquinFinanzas) GQ_FIN_GS = data.getquinFinanzas;
         if (data.previsionGetquin) PREVISION_GQ_GS = data.previsionGetquin;
+        PAGOS_GQ_GS = data.pagosGetquin || [];
         if (data.fichas) FICHAS_GS = data.fichas;
         if (data.picosEspeculativas) {
             PICOS_ESPECULATIVAS_GS = data.picosEspeculativas;
@@ -2907,11 +2922,8 @@ function calcularPrevisionDividendosAnual() {
     // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
     // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
     const brutoAneto = (bruto, pais, isin) => {
-        const origenRate = tasaOrigenEstimada(isin, pais);
-        const retOrigen = bruto * origenRate;
-        const subtotal = bruto - retOrigen;
-        const irpf = subtotal * 0.19;
-        return { netoFinal: subtotal - irpf, devolucion: retOrigen, irpf };
+        const f = fiscalDiv(bruto, tasaOrigenEstimada(isin, pais));
+        return { netoFinal: f.netoReal, devolucion: 0, irpf: f.pagar };
     };
     const previstosNeto = Array(12).fill(0);
     const previstosDevolucion = Array(12).fill(0);
@@ -2980,7 +2992,7 @@ function calcularPrevisionDividendosAnual() {
                 previstosNeto[mes] += netoFinal;
                 previstosDevolucion[mes] += devolucion;
                 previstosIRPF[mes] += irpf;
-                previstosDetalle[mes].push({ n: marca(p.n, cc), isin: p.isin, monto: netoFinal, devolucion });
+                previstosDetalle[mes].push({ n: marca(p.n, cc), isin: p.isin, monto: netoFinal, devolucion, irpf });
             });
             return; // ya resuelto, no hace falta adivinar nada más para esta posición
         }
@@ -3028,7 +3040,7 @@ function calcularPrevisionDividendosAnual() {
                 previstosNeto[mes] += netoPago;
                 previstosDevolucion[mes] += devPago;
                 previstosIRPF[mes] += irpfPago;
-                previstosDetalle[mes].push({ n: marca(p.n, cc), isin: p.isin, monto: netoPago, devolucion: devPago });
+                previstosDetalle[mes].push({ n: marca(p.n, cc), isin: p.isin, monto: netoPago, devolucion: devPago, irpf: irpfPago });
             }
         } else {
             // Posición sin histórico de cobro todavía (muy reciente) — no sabemos ni la frecuencia
@@ -3045,7 +3057,7 @@ function calcularPrevisionDividendosAnual() {
                 previstosDevolucion[mes] += devTrim;
                 previstosIRPF[mes] += irpfTrim;
                 previstosDetalle[mes].push({ n: p.n + ' (sin histórico, estimado)', isin: p.isin, monto:
-                    netoTrim, devolucion: devTrim });
+                    netoTrim, devolucion: devTrim, irpf: irpfTrim });
             }
         }
     });
@@ -3088,7 +3100,7 @@ function renderDashboard() {
     // Totales CON el periodo seleccionado (para los KPIs de la tarjeta de arriba)
     const divsFiltrados = (divsEnVivo() || []).filter(d => fechaEnPeriodo_DDMMYYYY(d.f));
     const divTotalReal2 = divsFiltrados.reduce((s, d) => s + d.neto_real, 0);
-    const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.devolucion, 0);
+    const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.tax_es, 0);
     const intFiltrados = interesesEnVivo().filter(i => fechaEnPeriodo_MMYYYY(i.f));
     const intTotalReal = intFiltrados.reduce((s, i) => s + i.neto, 0);
     const depPeriodo = depositosNetos(fechaEnPeriodo_ISO);
@@ -3109,7 +3121,7 @@ function renderDashboard() {
         { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: divsFiltrados.length + ' pagos · neto real', c: '#34C77B', tab: 3 },
         { l: 'Intereses + depósitos', v: fe(intTotalReal + depPeriodo), s: 'TR ' + fe(intTotalReal) + ' · depós. ' + fe(depPeriodo), c: '#E29A3E', tab: 4 },
         { l: 'Saveback recibido', v: fe(sbTotalReal), s: sbFiltrados.length + ' recibos', c: '#B7A6E8' },
-        { l: 'A devolver Hacienda', v: fe(divDevolucionTotal), s: 'Doble imposición', c: '#5B8FD9', tab: 3 },
+        { l: 'IRPF a pagar en la renta', v: fe(divDevolucionTotal), s: 'Periodo: ' + (PERIODO_SELECCIONADO === 'todo' ? 'todos los años' : PERIODO_SELECCIONADO === 'mes' ? 'este mes' : PERIODO_SELECCIONADO) + ' · 19% × bruto − retención', c: '#5B8FD9', tab: 3 },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + (k.tab !== undefined ? ';cursor:pointer' : '') + '"' + (
             k.tab !== undefined ? ' onclick="sw(' + k.tab + ')"' : '') + '><div class="kl">' + k.l +
         '</div><div class="kv" style="color:' +
@@ -3585,10 +3597,8 @@ function renderDashboard() {
                 rentMediaPagan.toFixed(2) + '%</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">BRUTO TOTAL</div><div style="font-size:15px;font-weight:700;color:var(--mt);font-family:\'JetBrains Mono\',monospace">' +
                 fe(brutoAnio) + '</div></div>' +
-                '<div><div class="mt2" style="font-size:8px">SE LLEVA HACIENDA (IRPF)</div><div style="font-size:15px;font-weight:700;color:var(--rd);font-family:\'JetBrains Mono\',monospace">-' +
-                fe(irpfAnio) + '</div></div>' +
-                '<div><div class="mt2" style="font-size:8px">DEVOLVERÁ HACIENDA</div><div style="font-size:15px;font-weight:700;color:var(--gn);font-family:\'JetBrains Mono\',monospace">+' +
-                fe(devolucionAnio) + '</div></div>';
+                '<div><div class="mt2" style="font-size:8px">IRPF A PAGAR EN LA RENTA</div><div style="font-size:15px;font-weight:700;color:var(--rd);font-family:\'JetBrains Mono\',monospace">-' +
+                fe(irpfAnio) + '</div></div>';
         }
     }
 
@@ -4480,7 +4490,7 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
     const nuevasAcciones = capital / precioActual;
     const numPagosAlAnio = calItem.meses.length;
     const pesosP = divPesosMes(isin, calItem.meses);
-    const porPagoMes = m => { const man = importeManual(isin, m); const bruto = (man ? man : (pesosP && pesosP[m] ? divAcc * pesosP[m] : divAcc / numPagosAlAnio)) * nuevasAcciones; const ret = bruto * origenRate, sub = bruto - ret, neto = sub - sub * 0.19; return { neto, dev: ret }; };
+    const porPagoMes = m => { const man = importeManual(isin, m); const bruto = (man ? man : (pesosP && pesosP[m] ? divAcc * pesosP[m] : divAcc / numPagosAlAnio)) * nuevasAcciones; const fx = fiscalDiv(bruto, origenRate); return { neto: fx.netoReal, dev: 0 }; };
 
     const nombresMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const hoy = new Date();
@@ -5787,6 +5797,29 @@ function divProximaFecha(meses, dia) { // próxima fecha futura según meses de 
     const f = c.filter(d => d >= hoy).sort((a, b) => a - b)[0];
     return f ? { fecha: f, dias: Math.round((f - hoy) / 86400000) } : null;
 }
+// Fechas reales del último ciclo de pagos (tabla «Pagado» de Getquin: corte y pago de cada dividendo ya cobrado). Para un pago aún sin anunciar,
+// se repite el mismo corte/pago del año anterior (mismo mes y día; si cae en fin de semana, el corte pasa al viernes y el pago al lunes).
+function _habil(d, dir) { const r = new Date(d); while (r.getDay() === 0 || r.getDay() === 6) r.setDate(r.getDate() + dir); return r; }
+function divFechasHist(isin, meses) {
+    if (!isin) return null;
+    const hoy = _hoy0(), lim = hoy.getTime() - 800 * 86400000, c = [];
+    (PAGOS_GQ_GS || []).filter(x => esMismoISIN(x.isin, isin)).forEach(x => {
+        const p0 = _parseFechaGq(x.pago), e0 = _parseFechaGq(x.ex);
+        if (!p0 || p0.getTime() < lim) return;
+        for (let k = 1; k <= 3; k++) {
+            const pago = _habil(new Date(p0.getFullYear() + k, p0.getMonth(), p0.getDate()), 1);
+            if (pago < hoy) continue;
+            if (meses && meses.length && !meses.includes(pago.getMonth() + 1)) break;
+            const ex = e0 ? _habil(new Date(e0.getFullYear() + k, e0.getMonth(), e0.getDate()), -1) : null;
+            c.push({ pago, ex, base: p0.getFullYear() });
+            break;
+        }
+    });
+    if (!c.length) return null;
+    c.sort((a, b) => a.pago - b.pago);
+    const n = c[0], dias = d => Math.round((d - hoy) / 86400000), fu = 'según el pago de ' + n.base;
+    return { pago: { fecha: n.pago, dias: dias(n.pago), real: false, fuente: fu }, ex: n.ex && n.ex >= hoy ? { fecha: n.ex, dias: dias(n.ex), real: false, fuente: fu } : null, exDePago: n.ex || null };
+}
 // Fechas estimadas con tu hoja DIVIDENDOS: «meses» = meses de PAGO; diaCorte/diaPago = día del mes de cada uno. Si el día de pago es menor que el de corte,
 // el corte de ese pago cae el mes ANTERIOR (así el pago nunca queda antes de su corte).
 function divFechasCal(meses, dc, dp) {
@@ -5916,8 +5949,12 @@ function divFichaIsin(o) {
     else if (f.cagr5 != null) f.subida = { pct: f.cagr5, fuente: 'media de los últimos 5 años' };
     else if (g && g.crec3 != null) f.subida = { pct: g.crec3, fuente: 'Getquin, media 3 años' };
     else f.subida = null;
-    f.crec1 = g && g.crec1 != null ? g.crec1 : (f.subUlt != null ? f.subUlt : null);   // variación del dividendo en el último año
-    f.crec1Fuente = g && g.crec1 != null ? 'Getquin, último año' : (f.subUlt != null ? 'tu histórico, ' + (Y - 1) + ' frente a ' + (Y - 2) : '');
+    // Variación del dividendo en el último año: de lo que has cobrado (tu hoja/TR). El 12 m de Getquin está desactualizado y daba falsas subidas (Visa, Mastercard, Medtronic):
+    // solo se enseña como referencia si no hay histórico propio, y no dispara alertas. En valores no europeos, menos de ±8 % se toma como cambio de divisa.
+    f.crec1Ruido = f.subUlt != null && Math.abs(f.subUlt) < (/^(ES|FR|DE|IE|NL|IT|FI|BE|PT|AT|LU)/.test(String(isin || '').toUpperCase()) ? 1 : 8);
+    f.crec1 = f.subUlt != null ? (f.crec1Ruido ? 0 : f.subUlt) : (g && g.crec1 != null ? g.crec1 : null);
+    f.crec1Gq = f.subUlt == null && g && g.crec1 != null;
+    f.crec1Fuente = f.subUlt != null ? 'tu histórico, ' + (Y - 1) + ' frente a ' + (Y - 2) + (f.crec1Ruido ? ' (dentro del ruido de divisa)' : '') : (f.crec1Gq ? 'Getquin, solo referencia' : '');
     // ── calendario: meses de pago, próximo corte (ex-dividendo) y próximo pago. Lo anunciado por Getquin manda sobre la estimación.
     f.meses = cal && cal.meses && cal.meses.length ? cal.meses : null;
     f.nPagos = f.meses ? f.meses.length : null;
@@ -5928,11 +5965,19 @@ function divFichaIsin(o) {
     const calF = cal ? divFechasCal(f.meses, cal.diaCorte, cal.diaPago) : null, calEx = calF ? calF.ex : null, calPago = calF ? calF.pago : null;
     f.pesosMes = divPesosMes(isin, f.meses);
     const dias = d => Math.round((d - hoy) / 86400000);
-    f.ex = (gEx && gEx >= hoy) ? { fecha: gEx, dias: dias(gEx), real: true } : (calEx ? Object.assign({ real: false }, calEx) : null);
-    f.pago = (gPago && gPago >= hoy) ? { fecha: gPago, dias: dias(gPago), real: true } : (calPago ? Object.assign({ real: false }, calPago) : null);
+    const anuG = !!(g && /anunciad|declared|announced/i.test(g.proxEstado || '')), hF = divFechasHist(isin, f.meses);
+    const gEx1 = gEx && gEx >= hoy, gPago1 = gPago && gPago >= hoy;
+    f.ex = (gEx1 && anuG) ? { fecha: gEx, dias: dias(gEx), real: true, fuente: 'anunciado por Getquin' }
+        : (hF && hF.ex) ? hF.ex
+        : gEx1 ? { fecha: gEx, dias: dias(gEx), real: false, fuente: 'estimado por Getquin' }
+        : (calEx ? Object.assign({ real: false, fuente: 'día de tu hoja DIVIDENDOS' }, calEx) : null);
+    f.pago = (gPago1 && anuG) ? { fecha: gPago, dias: dias(gPago), real: true, fuente: 'anunciado por Getquin' }
+        : hF ? hF.pago
+        : gPago1 ? { fecha: gPago, dias: dias(gPago), real: false, fuente: 'estimado por Getquin' }
+        : (calPago ? Object.assign({ real: false, fuente: 'día de tu hoja DIVIDENDOS' }, calPago) : null);
     f.exPasado = !!(gEx && gEx < hoy && gPago && gPago >= hoy);   // ya pasó el corte: el próximo pago ya es tuyo
     // corte que corresponde al próximo pago (puede haber pasado ya: entonces ese pago ya es tuyo) y siguiente corte nuevo
-    f.exDePago = (gPago && gPago >= hoy && gEx) ? gEx : (calF ? calF.exDePago : null);
+    f.exDePago = (gPago1 && gEx && anuG) ? gEx : (hF && hF.exDePago) ? hF.exDePago : (gPago && gPago >= hoy && gEx) ? gEx : (calF ? calF.exDePago : null);
     f.exDePagoPasado = !!(f.exDePago && f.exDePago < hoy);
     const wMes = f.pesosMes && f.pago ? f.pesosMes[f.pago.fecha.getMonth() + 1] : null, manPago = f.pago ? importeManual(isin, f.pago.fecha.getMonth() + 1) : null;
     f.impManual = !!manPago;
@@ -5957,14 +6002,14 @@ function divFichaIsin(o) {
     const t1 = f.crec1; // variación del último año (Getquin, sin ruido de divisa; si no, tu histórico)
     const pTen = t1 == null ? 10 : t1 >= 5 ? 20 : t1 >= 0 ? 15 : t1 > -5 ? 8 : 0; partes.push(['Último año', pTen, 20, t1 == null ? 'sin datos' : divPc(t1, 1)]);
     f.score = Math.round(partes.reduce((t, x) => t + x[1], 0)); f.partes = partes;
-    const umbral = (g && g.crec1 != null) ? -5 : -(tol * 100), malAhora = (f.crec1 != null && f.crec1 <= umbral) || (f.cursoVsUlt != null && f.cursoVsUlt <= -(tol * 100));
+    const umbral = -(tol * 100), malAhora = (f.crec1 != null && !f.crec1Gq && f.crec1 <= umbral) || (f.cursoVsUlt != null && f.cursoVsUlt <= -(tol * 100));
     f.nivel = f.score >= 75 ? 'Excelente' : f.score >= 55 ? 'Sólida' : f.score >= 40 ? 'A vigilar' : 'En riesgo';
     if (malAhora && (f.nivel === 'Excelente' || f.nivel === 'Sólida')) { f.nivel = 'A vigilar'; f.motivoNivel = (f.crec1 != null && f.crec1 <= umbral) ? 'bajó ' + Math.abs(f.crec1).toFixed(1).replace('.', ',') + '% el último año' : Y + ' va por debajo de ' + (Y - 1) + ' (' + divPc(f.cursoVsUlt, 1) + ')'; }
     if (f.aniosDatos < 3 && !g) f.nivel = 'Sin datos';
     // ── alertas
-    if (f.ex && f.ex.dias <= 14 && !f.exPasado) f.alertas.push(['i', 'Corte de dividendo en ' + f.ex.dias + ' día' + (f.ex.dias === 1 ? '' : 's') + ' (' + _fechaTxt(f.ex.fecha) + (f.ex.real ? '' : ', estimado') + '): hay que tener la acción antes']);
+    if (f.ex && f.ex.dias <= 14 && !f.exPasado) f.alertas.push(['i', 'Corte de dividendo en ' + f.ex.dias + ' día' + (f.ex.dias === 1 ? '' : 's') + ' (' + _fechaTxt(f.ex.fecha) + (f.ex.real ? '' : ', ' + (f.ex.fuente || 'estimado')) + '): hay que tener la acción antes']);
     if (f.exPasado && f.pago) f.alertas.push(['g', 'Ya pasó el corte: cobrarás ' + _fechaTxt(f.pago.fecha) + (f.impNeto ? ' ≈ ' + fe(f.impNeto, 2) + ' netos' : '')]);
-    if (f.crec1 != null && f.crec1 <= umbral) f.alertas.push(['w', 'El dividendo bajó ' + Math.abs(f.crec1).toFixed(1).replace('.', ',') + '% en el último año']);
+    if (f.crec1 != null && !f.crec1Gq && f.crec1 <= umbral) f.alertas.push(['w', 'El dividendo bajó ' + Math.abs(f.crec1).toFixed(1).replace('.', ',') + '% en el último año']);
     if (f.cursoVsUlt != null && f.cursoVsUlt <= -(tol * 100)) f.alertas.push(['w', Y + ' va ' + Math.abs(f.cursoVsUlt).toFixed(1).replace('.', ',') + '% por debajo de ' + (Y - 1) + ' en tu histórico']);
     if (f.subida && f.subida.pct >= 5 && f.sig) f.alertas.push(['g', 'Subida prevista +' + f.subida.pct.toFixed(1).replace('.', ',') + '% en ' + (Y + 1)]);
     if (f.cub.v === 'No') f.alertas.push(['w', 'Dividendo sin cubrir: ' + f.cub.why]);
@@ -6077,7 +6122,7 @@ function renderAnalisisDividendos() {
     const etq = f => '<span class="mt2" style="font-size:8.5px">' + ((f.impReal || (f.pago && f.pago.real)) ? '🟢 anunciado' : '⚪ estimado') + '</span>';
     document.getElementById('div-prox').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;padding:12px 16px">' +
         '<div><div class="mt2" style="font-weight:700;margin-bottom:6px">✂️ Cortes en los próximos 45 días <i style="font-weight:400">(para cobrar hay que tener la acción antes)</i></div>' +
-        (cortes.length ? '<table class="dt"><tbody>' + cortes.map(f => '<tr><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + _fechaTxt(f.ex.fecha) + '</td><td>' + (f.ex.dias === 0 ? 'hoy' : 'en ' + f.ex.dias + ' d') + '</td><td>' + (f.ex.real ? '🟢' : '⚪') + '</td></tr>').join('') + '</tbody></table>' : '<div class="mt2">Ninguno.</div>') + '</div>' +
+        (cortes.length ? '<table class="dt"><tbody>' + cortes.map(f => '<tr><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + _fechaTxt(f.ex.fecha) + '</td><td>' + (f.ex.dias === 0 ? 'hoy' : 'en ' + f.ex.dias + ' d') + '</td><td>' + '<span title="' + revEsc(f.ex.fuente || '') + '">' + (f.ex.real ? '🟢' : '⚪') + '</span></td></tr>').join('') + '</tbody></table>' : '<div class="mt2">Ninguno.</div>') + '</div>' +
         '<div><div class="mt2" style="font-weight:700;margin-bottom:6px">💶 Cobros en los próximos 120 días <i style="font-weight:400">· 30 d ≈ ' + fe(sum(30), 0) + ' · 90 d ≈ ' + fe(sum(90), 0) + ' netos</i></div>' +
         (pagos.length ? '<table class="dt"><tbody>' + pagos.map(f => '<tr><td style="text-align:left;font-weight:600">' + revEsc(f.n) + '</td><td>' + _fechaTxt(f.pago.fecha) + '</td><td>' + (f.impNeto ? fe(f.impNeto, 2) : '—') + '</td><td>' + etq(f) + '</td></tr>').join('') + '</tbody></table>' : '<div class="mt2">Sin cobros previstos: revisa que la hoja DIVIDENDOS tenga los meses de pago.</div>') + '</div></div>';
 
@@ -6095,7 +6140,7 @@ function renderAnalisisDividendos() {
             '<td style="color:' + (f.cagr5 == null ? 'var(--mt)' : f.cagr5 >= 3 ? 'var(--gn)' : f.cagr5 >= 0 ? 'var(--am)' : 'var(--rd)') + '">' + divPc(f.cagr5) + '</td><td><b>' + num(f.dpa) + '</b></td><td>' + (f.curso ? num(f.curso) + (f.cursoVsUlt != null ? ' <i style="font-size:9px;color:' + (f.cursoVsUlt >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + divPc(f.cursoVsUlt, 1) + '</i>' : '') : '—') + '</td>' +
             '<td>' + (f.sig ? num(f.sig) + ' <i style="font-size:9px;color:' + (f.subida && f.subida.pct >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + divPc(f.subida ? f.subida.pct : null, 1) + '</i>' : (f.subida ? '<span class="mt2" title="' + revEsc(f.subida.fuente) + '">≈ ' + divPc(f.subida.pct, 1) + '</span>' : '—')) + '</td>' +
             '<td style="color:' + (f.cub.v === 'Sí' ? 'var(--gn)' : f.cub.v === 'No' ? 'var(--rd)' : f.cub.v === 'Justo' ? 'var(--am)' : 'var(--mt)') + '" title="' + revEsc(f.cub.why) + '">' + f.cub.v + '</td><td>' + (f.yld != null ? num(f.yld, 1) + '%' : '—') + '</td><td>' + (f.yoc != null ? num(f.yoc, 1) + '%' : '—') + '</td><td>' + f.freq + '</td>' +
-            '<td>' + (f.exPasado ? '<span class="mt2">ya pasó</span>' : f.ex ? _fechaTxt(f.ex.fecha) + ' ' + (f.ex.real ? '🟢' : '') : '—') + '</td><td>' + (f.pago ? _fechaTxt(f.pago.fecha) + (f.impNeto ? '<div class="mt2" style="font-size:9px">≈ ' + fe(f.impNeto, 2) + '</div>' : '') : '—') + '</td></tr>').join('') +
+            '<td>' + (f.exPasado ? '<span class="mt2">ya pasó</span>' : f.ex ? _fechaTxt(f.ex.fecha) + ' <span title="' + revEsc(f.ex.fuente || '') + '">' + (f.ex.real ? '🟢' : '⚪') + '</span>' : '—') + '</td><td>' + (f.pago ? _fechaTxt(f.pago.fecha) + ' <span title="' + revEsc(f.pago.fuente || '') + '">' + (f.pago.real ? '🟢' : '⚪') + '</span>' + (f.impNeto ? '<div class="mt2" style="font-size:9px">≈ ' + fe(f.impNeto, 2) + '</div>' : '') : '—') + '</td></tr>').join('') +
         '</tbody></table></div><div class="mt2" style="font-size:9px;padding:8px 16px">Pulsa un activo para ver su detalle. 🟢 = fecha anunciada (Getquin); sin marca = estimada con tu calendario. «Calidad» (0-100) = años sin recortar (30) + crecimiento medio a 5 años (25) + cobertura por flujo de caja (25) + variación del último año (20). El histórico está en euros: en activos en dólares se tolera hasta un 10 % de ruido de divisa.</div>';
 
     // Detalle
@@ -6111,7 +6156,7 @@ function renderAnalisisDividendos() {
             '<div class="rev-line" style="margin-top:10px">Subida esperada: <b>' + (sel.subida ? divPc(sel.subida.pct) : 'sin datos') + '</b>' + (sel.subida ? ' <i>(' + sel.subida.fuente + ')</i>' : '') + '</div>' +
             '<div class="rev-line">Último año: <b>' + (sel.crec1 != null ? divPc(sel.crec1) : '—') + '</b> ' + (sel.crec1Fuente ? '<i>(' + sel.crec1Fuente + ')</i>' : '') + (sel.cagr10 != null ? ' · media 10 años <b>' + divPc(sel.cagr10) + '</b>' : '') + '</div>' +
             '<div class="rev-line">Cobertura: <b>' + sel.cub.v + '</b> ' + (sel.cub.why ? '<i>(' + sel.cub.why + ')</i>' : '') + (sel.payoutEps != null ? ' · payout sobre beneficios ' + sel.payoutEps.toFixed(0) + '%' : '') + '</div>' +
-            '<div class="rev-line">Próximo corte: <b>' + (sel.exPasado ? 'ya pasó' : sel.ex ? _fechaTxt(sel.ex.fecha) + (sel.ex.real ? ' (anunciado)' : ' (estimado)') : '—') + '</b> · próximo cobro: <b>' + (sel.pago ? _fechaTxt(sel.pago.fecha) + (sel.impNeto ? ' ≈ ' + fe(sel.impNeto, 2) + ' netos' : '') : '—') + '</b>' + (sel.estado ? ' · ' + revEsc(sel.estado) : '') + '</div>' +
+            '<div class="rev-line">Próximo corte: <b>' + (sel.exPasado ? 'ya pasó' : sel.ex ? _fechaTxt(sel.ex.fecha) + ' (' + (sel.ex.fuente || (sel.ex.real ? 'anunciado' : 'estimado')) + ')' : '—') + '</b> · próximo cobro: <b>' + (sel.pago ? _fechaTxt(sel.pago.fecha) + ' (' + (sel.pago.fuente || (sel.pago.real ? 'anunciado' : 'estimado')) + ')' + (sel.impNeto ? ' ≈ ' + fe(sel.impNeto, 2) + ' netos' : '') : '—') + '</b>' + (sel.estado ? ' · ' + revEsc(sel.estado) : '') + '</div>' +
             (sel.recortes.length ? '<div class="rev-line" style="color:var(--am)">Recortes en 10 años: ' + sel.recortes.map(r => r.a + ' (' + r.pct.toFixed(0) + '%)').join(', ') + '. Si fue una escisión, un extra del año anterior o un cambio de divisa, no es un recorte real.</div>' : '') +
             divImporteManualHtml(sel) +
             '<div class="rev-f" style="margin-top:8px">' + (sel.alertas.length ? sel.alertas.map(a => '<span class="' + a[0] + '">' + revEsc(a[1]) + '</span>').join('') : '<span class="g">Sin avisos</span>') + '</div></div></div>' +
@@ -6146,10 +6191,12 @@ function analisisTrampa(r) {
         // Dividendo
         const dpa = g.div > 0 ? g.div : cn(r[8]);
         const cub = revCubierto({ esEtf: false, gq: g, gf: g, sector: '' });
-        const recorte = g.crec1 != null && g.crec1 <= -5, baja = g.crec1 != null && g.crec1 < -0.5;
-        if (recorte) { peor(cub.v === 'No' ? 'no' : 'ojo'); m.push(['w', 'El dividendo ha bajado ' + pc1(-g.crec1) + '% en el último año' + (cub.v === 'No' ? ' y no está cubierto: la caída del precio puede estar justificada' : '')]); }
-        else if (baja) m.push(['i', 'Dividendo algo a la baja (' + pc1(g.crec1) + '%)']);
-        else if (g.crec1 != null && g.crec1 >= 5) m.push(['g', 'Dividendo al alza +' + pc1(g.crec1) + '%']);
+        // variación del dividendo: de lo que has cobrado (tu hoja/TR), no del 12 m de Getquin (desactualizado, daba falsas subidas)
+        const c1 = (() => { try { const x = divFichaIsin({ isin, n: r[0], sh: 0, pa, dpa: cn(r[8]) || 0, pm: 0, sector: '', pais: '' }); return x && !x.crec1Gq ? x.crec1 : null; } catch (e) { return null; } })();
+        const recorte = c1 != null && c1 <= -5, baja = c1 != null && c1 < -0.5;
+        if (recorte) { peor(cub.v === 'No' ? 'no' : 'ojo'); m.push(['w', 'El dividendo ha bajado ' + pc1(-c1) + '% en el último año' + (cub.v === 'No' ? ' y no está cubierto: la caída del precio puede estar justificada' : '')]); }
+        else if (baja) m.push(['i', 'Dividendo algo a la baja (' + pc1(c1) + '%)']);
+        else if (c1 != null && c1 >= 5) m.push(['g', 'Dividendo al alza +' + pc1(c1) + '%']);
         if (cub.v === 'No' && !recorte) { peor(baja ? 'no' : 'ojo'); m.push(['w', 'Dividendo sin cubrir: ' + cub.why]); }
         else if (cub.v === 'Justo') m.push(['i', 'Cubierto justo: ' + cub.why]);
         else if (cub.v === 'Sí') m.push(['g', 'Dividendo cubierto: ' + cub.why]);
@@ -6520,13 +6567,8 @@ function renderMesEnCurso() {
         // Estimado: mismo cálculo fiscal que usa el sistema para los cobros reales
         const numPagosAlAnio = calItem.meses.length;
         const manM = importeManual(p.isin, mesActualNum), wMesP = divPesosMes(p.isin, calItem.meses), bruto = manM ? manM * p.sh : (p.divAcc * p.sh) * (wMesP && wMesP[mesActualNum] ? wMesP[mesActualNum] : 1 / numPagosAlAnio);   // pagos desiguales (LVMH) con su importe de cada mes
-        const origenRate = tasaOrigenEstimada(p.isin, p.pais);
-        const retOrigen = bruto * origenRate;
-        const subtotal = bruto - retOrigen;
-        const irpf = subtotal * 0.19;
-        const netoFinal = subtotal - irpf;
-        const devolucion = retOrigen;
-        const netoReal = netoFinal + devolucion;
+        const fx = fiscalDiv(bruto, tasaOrigenEstimada(p.isin, p.pais));
+        const retOrigen = fx.ret, irpf = fx.pagar, netoFinal = fx.netoReal, devolucion = 0, netoReal = fx.netoReal;
         return {
             nombre: p.n, cobrado: false, fecha: null, bruto, retOrigen, irpf, netoFinal, devolucion, netoReal
         };
@@ -6645,7 +6687,7 @@ function renderDividendos() {
         ANIO_DIVIDENDOS_TAB === 'todos' ? '(todo el histórico)' : ANIO_DIVIDENDOS_TAB);
 
     const total2026 = divs2026.reduce((s, d) => s + d.neto_real, 0);
-    const dev2026 = divs2026.reduce((s, d) => s + d.devolucion, 0);
+    const dedu2026 = divs2026.reduce((s, d) => s + d.deduccion, 0), imp2026 = divs2026.reduce((s, d) => s + d.tax_es_total, 0), netoTr2026 = divs2026.reduce((s, d) => s + d.neto_tr, 0);
     const bruto2026 = divs2026.reduce((s, d) => s + d.bruto, 0);
     const retOrigen2026 = divs2026.reduce((s, d) => s + d.ret_origen, 0);
     const taxEs2026 = divs2026.reduce((s, d) => s + d.tax_es, 0);
@@ -6674,11 +6716,12 @@ function renderDividendos() {
 
     document.getElementById('resumen-div-ejecutivo').innerHTML = [
         { l: 'Bruto 2026', v: fe(bruto2026), s: 'Antes de retenciones', c: '#E4C777' },
-        { l: 'Retención origen', v: '-' + fe(retOrigen2026), s: 'USA 15% / FR 12,8%', c: '#E29A3E' },
-        { l: 'Retención Hacienda', v: '-' + fe(taxEs2026), s: '19% sobre neto TR', c: '#E85A5A' },
-        { l: '💶 Neto disponible YA', v: fe(netoFinal2026), s: 'Para reinvertir ahora mismo', c: '#60A5FA' },
-        { l: 'A devolver Hacienda', v: '+' + fe(dev2026), s: 'Doble imposición, tarda meses', c: '#8FE0B4' },
-        { l: 'Total neto real 2026', v: fe(total2026), s: pagos2026 + ' pagos · neto+devolución', c: '#34C77B' },
+        { l: 'Retención en origen', v: '-' + fe(retOrigen2026), s: 'USA 15% · FR 12,8% · ESP 19%', c: '#E29A3E' },
+        { l: '💶 Neto disponible YA', v: fe(netoTr2026), s: 'Bruto − retención origen: lo que llega a TR', c: '#60A5FA' },
+        { l: 'Impuesto español', v: '-' + fe(imp2026), s: '19% × bruto', c: '#E85A5A' },
+        { l: 'Deducción doble imposición', v: '+' + fe(dedu2026), s: 'Retención pagada fuera (límite 19%)', c: '#8FE0B4' },
+        { l: '🗓️ Reservar para la declaración', v: fe(taxEs2026), s: 'Impuesto − deducción · jun ' + (anioActualDiv + 1), c: '#F2C14E' },
+        { l: 'Neto real final ' + (ANIO_DIVIDENDOS_TAB === 'todos' ? '' : ANIO_DIVIDENDOS_TAB), v: fe(total2026), s: pagos2026 + ' pagos · ' + desglosePaises(divs2026), c: '#34C77B' },
         { l: '🏆 Top activo', v: topNombre, s: fe(topValor) + ' neto real', c: '#B7A6E8' },
     ].map(k => '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)"><div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">' +
             k.l + '</div><div style="font-size:14px;font-weight:700;color:' + k.c + ';margin-top:3px">' + k.v +
@@ -6697,7 +6740,7 @@ function renderDividendos() {
         a.neto_tr = round2(a.neto_tr + d.neto_tr);
         a.tax_es = round2(a.tax_es + d.tax_es);
         a.neto_f = round2(a.neto_f + d.neto_final);
-        a.dev = round2(a.dev + d.devolucion);
+        a.dev = round2(a.dev + d.deduccion);
         a.real = round2(a.real + d.neto_real);
     });
 
@@ -6716,7 +6759,7 @@ function renderDividendos() {
     const tbA = document.getElementById('tb-acum');
     if (tbA) tbA.innerHTML = acumList.map((a, i) => {
         const bg = i % 2 ? 'background:var(--s2)' : '';
-        const retPct = a.pais === 'USA' ? '15%' : a.pais === 'FRA' ? '12,8%' : '0%';
+        const retPct = (tasaOrigenPais(a.pais) * 100).toFixed(1).replace('.0', '').replace('.', ',') + '%';
         return '<tr style="' + bg + '">' +
             '<td><div style="font-weight:700;font-size:12px">' + a.n + '</div></td>' +
             '<td>' + pb(a.pais) + '</td>' +
@@ -6728,7 +6771,7 @@ function renderDividendos() {
             '<td class="rd">' + (a.tax_es > 0 ? '-' + fe(a.tax_es) : '—') + '</td>' +
             '<td class="am" style="font-weight:600">' + fe(a.neto_f) + '</td>' +
             '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
-            (a.dev > 0 ? '+' + fe(a.dev) : '—') + '</td>' +
+            (a.dev > 0 ? fe(a.dev) : '—') + '</td>' +
             '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(a.real) +
             '</td>' +
             '</tr>';
@@ -6742,7 +6785,7 @@ function renderDividendos() {
         '<td class="am">' + fe(totA.neto_tr) + '</td>' +
         '<td class="rd">-' + fe(totA.tax_es) + '</td>' +
         '<td class="am" style="font-weight:700">' + fe(totA.neto_f) + '</td>' +
-        '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">+' +
+        '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
         fe(totA.dev) + '</td>' +
         '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(totA.real) +
         '</td>';
@@ -6750,19 +6793,17 @@ function renderDividendos() {
     document.getElementById('kg3').innerHTML = [
         { l: 'Bruto total cobrado', v: fe(brutoTotal), s: 'Antes de retenciones', c: '#E4C777' },
         { l: 'Neto cobrado en TR', v: fe(netoTrTotal), s: 'Tras retención origen', c: '#E29A3E' },
-        { l: 'Neto tras Hacienda', v: fe(netoFinalTotal), s: 'Lo que ves en TR', c: '#E85A5A' },
-        { l: 'A devolver Hacienda', v: fe(devolucionTotalHist), s: 'Doble imposición', c: '#34C77B' },
-        { l: 'Neto real final', v: fe(netoRealTotal), s: 'Tras devolución', c: '#34C77B' },
-        { l: 'Pagos recibidos', v: divs.length, s: divsEnVivo().filter(d => d.pais === 'USA').length +
-                ' USA · ' + divsEnVivo().filter(d => d.pais === 'FRA').length + ' FR · ' + divsEnVivo().filter(
-                    d => d.pais === 'ESP').length + ' ESP', c: '#707B93' },
+        { l: 'IRPF a pagar en la renta', v: fe(round2(netoTrTotal - netoFinalTotal)), s: (ANIO_DIVIDENDOS_TAB === 'todos' ? 'Todos los años' : 'Año ' + ANIO_DIVIDENDOS_TAB) + ' · 19% × bruto − retención', c: '#E85A5A' },
+        { l: 'Deducción doble imposición', v: fe(divs.reduce((s, d) => s + d.deduccion, 0)), s: 'Retención pagada fuera (límite 19%)', c: '#34C77B' },
+        { l: 'Neto real final', v: fe(netoRealTotal), s: 'Tras retención y IRPF a pagar', c: '#34C77B' },
+        { l: 'Pagos recibidos', v: divs.length, s: desglosePaises(divs), c: '#707B93' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:' + (k.v.length > 10 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
             '</div></div>').join('');
 
     document.getElementById('tb-divs').innerHTML = divs.slice().sort((a, b) => mesClaveDe(a.f, 'DD/MM/YYYY').localeCompare(mesClaveDe(b.f, 'DD/MM/YYYY')) || a.f.slice(0, 2) - b.f.slice(0, 2)).map((d, i) => {
         const bg = i % 2 ? 'background:var(--s2)' : '';
-        const retPct = d.pais === 'USA' ? '15%' : d.pais === 'FRA' ? '12,8%' : '0%';
+        const retPct = (tasaOrigenPais(d.pais) * 100).toFixed(1).replace('.0', '').replace('.', ',') + '%';
         return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + d.n +
             '</div></td>' +
             '<td>' + pb(d.pais) + '<span style="font-size:7px;color:var(--mt)">' + retPct + '</span></td>' +
@@ -6773,14 +6814,14 @@ function renderDividendos() {
             '<td class="am">' + fe(d.neto_tr) + '</td>' +
             '<td class="rd">' + (d.tax_es ? '-' + fe(d.tax_es) : '—') + '</td>' +
             '<td class="am">' + fe(d.neto_final) + '</td>' +
-            '<td class="gn">' + (d.devolucion ? '+' + fe(d.devolucion) : '—') + '</td>' +
+            '<td class="gn">' + (d.deduccion ? fe(d.deduccion) : '—') + '</td>' +
             '<td class="gn" style="font-weight:700">' + fe(d.neto_real) + '</td>' +
             '</tr>';
     }).join('');
 
     const tot = { bruto: divs.reduce((s, d) => s + d.bruto, 0), ret_o: divs.reduce((s, d) => s + d.ret_origen, 0),
         neto_tr: divs.reduce((s, d) => s + d.neto_tr, 0), tax_es: divs.reduce((s, d) => s + d.tax_es, 0),
-        neto_f: divs.reduce((s, d) => s + d.neto_final, 0), dev: divs.reduce((s, d) => s + d.devolucion, 0),
+        neto_f: divs.reduce((s, d) => s + d.neto_final, 0), dev: divs.reduce((s, d) => s + d.deduccion, 0),
         real: divs.reduce((s, d) => s + d.neto_real, 0) };
     document.getElementById('tf-divs').innerHTML = '<td>TOTAL</td><td></td><td></td><td></td>' +
         '<td class="bl">' + fe(tot.bruto) + '</td>' +
@@ -6788,7 +6829,7 @@ function renderDividendos() {
         '<td class="am">' + fe(tot.neto_tr) + '</td>' +
         '<td class="rd">-' + fe(tot.tax_es) + '</td>' +
         '<td class="am">' + fe(tot.neto_f) + '</td>' +
-        '<td class="gn">+' + fe(tot.dev) + '</td>' +
+        '<td class="gn">' + fe(tot.dev) + '</td>' +
         '<td class="gn" style="font-weight:700">' + fe(tot.real) + '</td>';
 
     const res2 = (resumenDivsEnVivo() || []).filter(r => ANIO_DIVIDENDOS_TAB === 'todos' || String(r.año) ===
@@ -6798,9 +6839,9 @@ function renderDividendos() {
         tbRes.innerHTML = res2.sort((a, b) => b.año - a.año || b.neto_real - a.neto_real)
             .map((r, i) => {
                 const bg = i % 2 ? 'background:var(--s2)' : '';
-                const retPct = r.pais === 'USA' ? '15%' : r.pais === 'FRA' ? '12,8%' : '0%';
+                const retPct = (tasaOrigenPais(r.pais) * 100).toFixed(1).replace('.0', '').replace('.', ',') + '%';
                 const ret_o = round2(r.bruto - r.neto_tr);
-                const tax_es = round2(r.neto_tr - r.neto_final);
+                const tax_es = round2(r.neto_tr - r.neto_final);   // IRPF a pagar en la renta
                 const rendimientoReal = r.bruto > 0 ? (r.neto_real / r.bruto * 100) : 0;
                 return '<tr style="' + bg + '"><td><div style="font-weight:600;font-size:11px">' + r.n +
                     '</div></td>' +
@@ -6814,7 +6855,7 @@ function renderDividendos() {
                     '<td class="rd">' + (tax_es > 0 ? '-' + fe(tax_es) : '—') + '</td>' +
                     '<td class="am">' + fe(r.neto_final) + '</td>' +
                     '<td style="color:var(--gn);font-family:monospace;font-weight:700;background:rgba(16,185,129,0.08)">' +
-                    (r.devolucion > 0 ? '+' + fe(r.devolucion) : '—') + '</td>' +
+                    (r.deduccion > 0 ? fe(r.deduccion) : '—') + '</td>' +
                     '<td class="gn" style="font-weight:700">' + fe(r.neto_real) + '</td>' +
                     '<td style="color:' + (rendimientoReal > 80 ? 'var(--gn)' : 'var(--am)') +
                     ';font-family:monospace;font-weight:700">' + rendimientoReal.toFixed(1) + '%</td>' +
@@ -6823,7 +6864,7 @@ function renderDividendos() {
 
         const totR = { bruto: res2.reduce((s, r) => s + r.bruto, 0), neto_tr: res2.reduce((s, r) => s + r.neto_tr,
                 0),
-            neto_f: res2.reduce((s, r) => s + r.neto_final, 0), dev: res2.reduce((s, r) => s + r.devolucion,
+            neto_f: res2.reduce((s, r) => s + r.neto_final, 0), dev: res2.reduce((s, r) => s + r.deduccion,
                 0),
             real: res2.reduce((s, r) => s + r.neto_real, 0) };
         const rendTotal = totR.bruto > 0 ? (totR.real / totR.bruto * 100) : 0;
@@ -6834,7 +6875,7 @@ function renderDividendos() {
             '<td class="am">' + fe(totR.neto_tr) + '</td>' +
             '<td class="rd">-' + fe(round2(totR.neto_tr - totR.neto_f)) + '</td>' +
             '<td class="am">' + fe(totR.neto_f) + '</td>' +
-            '<td class="gn">+' + fe(totR.dev) + '</td>' +
+            '<td class="gn">' + fe(totR.dev) + '</td>' +
             '<td class="gn" style="font-weight:700">' + fe(totR.real) + '</td>' +
             '<td style="color:' + (rendTotal > 80 ? 'var(--gn)' : 'var(--am)') +
             ';font-family:monospace;font-weight:700">' + rendTotal.toFixed(1) + '%</td>';
@@ -6912,7 +6953,7 @@ function renderDividendos() {
             '<td class="bl">' + (p.bruto_est ? fe(p.bruto_est) : '—') + '</td>' +
             '<td class="rd">' + (p.ret_o_est > 0 ? '-' + fe(p.ret_o_est) : '—') + '</td>' +
             '<td class="am">' + fe(p.neto_tr_est) + '</td>' +
-            '<td style="color:var(--gn);font-family:monospace;font-weight:700">' + (p.dev_est > 0 ? '+' +
+            '<td style="color:var(--gn);font-family:monospace;font-weight:700">' + (p.dev_est > 0 ?
                 fe(p.dev_est) : '—') + '</td>' +
             '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(p
                 .neto_real_est) + '</td>' +
@@ -6934,7 +6975,7 @@ function renderDividendos() {
         '<td class="bl">' + fe(totP.bruto) + '</td>' +
         '<td class="rd">-' + fe(totP.ret_o) + '</td>' +
         '<td class="am">' + fe(totP.neto_tr) + '</td>' +
-        '<td style="color:var(--gn);font-family:monospace;font-weight:700">+' + fe(totP.dev) + '</td>' +
+        '<td style="color:var(--gn);font-family:monospace;font-weight:700">' + fe(totP.dev) + '</td>' +
         '<td style="color:#34C77B;font-family:monospace;font-weight:700;font-size:12px">' + fe(totP.real) +
         '</td>' +
         '<td style="color:#E29A3E;font-family:monospace;font-weight:700">' + fe(totP.ya) + '</td>';
@@ -6961,12 +7002,12 @@ function renderDividendos() {
 
     document.getElementById('fiscal-resumen').innerHTML = [
         ['Bruto cobrado (antes retenciones)', 'bl', fe(tot.bruto)],
-        ['Retención origen (USA 15% / FR 12,8%)', 'rd', '-' + fe(tot.ret_o)],
-        ['Neto llegado a TR', 'am', fe(tot.neto_tr)],
-        ['Retención Hacienda 19%', 'rd', '-' + fe(tot.tax_es)],
-        ['Neto cobrado en cuenta', 'am', fe(tot.neto_f)],
+        ['Retención en origen (USA 15% / FR 12,8% / ESP 19%)', 'rd', '-' + fe(tot.ret_o)],
+        ['Neto llegado a TR (disponible ya)', 'am', fe(tot.neto_tr)],
+        ['Impuesto español 19% × bruto', 'rd', fe(round2(tot.bruto * 0.19))],
+        ['Deducción por doble imposición', 'gn', '-' + fe(tot.dev)],
         ['─────────────────', 'mt2', ''],
-        ['A recuperar en declaración (doble imposición)', 'gn', '+' + fe(tot.dev)],
+        ['A pagar en la declaración', 'rd', '-' + fe(tot.tax_es)],
         ['NETO REAL FINAL', 'gn', fe(tot.real)],
     ].map(([l, c, v]) => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)">' +
         '<span style="font-size:10px;color:var(--mt)">' + l + '</span>' +
@@ -8554,7 +8595,7 @@ function datosRevision() {
         const dist = tr ? Math.abs(cn(tr[5])) : null;
         const hist = (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO' && (r.n === p.n || (p.isin && r.isin === p.isin))).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
         for (let i = hist.length - 1; i > 0; i--) { const x = hist[i], y = hist[i - 1]; if (x.f === y.f && x.dec === y.dec && String(x.nota) === String(y.nota) && String(x.tesis || '') === String(y.tesis || '') && String(x.fuente || '') === String(y.fuente || '') && String(x.origen || '') === String(y.origen || '')) hist.splice(i, 1); }   // filas idénticas (doble guardado): se muestra una
-        const ult = hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
+        const ult = hist.find(revEsEvaluada) || hist[0] || null, diasUlt = ult ? Math.round((hoy - revT(String(ult.f))) / 86400000) : null;
         const r52 = rango52De(p), gq = gqDe(p), gf = gqFicha(p.isin);
         const pos52 = r52 ? Math.max(0, Math.min(100, (pa - r52.min) / (r52.max - r52.min) * 100)) : null;
         const vsMax = r52 ? (pa / r52.max - 1) * 100 : null, vsMin = r52 ? (pa / r52.min - 1) * 100 : null;
@@ -8682,6 +8723,8 @@ function revProximaAuto(d, dec) { // Mantener y sin avisos: la cadencia de su fi
     return _isoMasMeses(_hoyISO(), (dec === 'Mantener' && !d.prop.excepcion) ? (cad || 6) : 1);
 }
 
+// Una revisión «evaluada» trae algún campo de juicio (tesis, dividendo, cobertura o deuda). Las filas creadas sin ninguno no cuentan como «última revisión».
+function revEsEvaluada(r) { return !!(r && (r.tesis || r.div || r.divvs || r.cub || r.deu || r.deuda)); }
 // «Cubierto por beneficios»: dividendo ÷ flujo de caja libre (Getquin). En bancos y aseguradoras el flujo de caja no vale, así que se usa el payout sobre beneficios.
 function revCubGuardada(isin, n) {
     const rows = (REVISIONES_GS || []).filter(r => r.origen !== 'AUTO' && (isin && r.isin ? esMismoISIN(r.isin, isin) : r.n === n)).sort((a, b) => String(b.f).localeCompare(String(a.f)) || String(b.id).localeCompare(String(a.id)));
@@ -9671,8 +9714,21 @@ async function revImpConfirmarLista(xs) {
     if (msg && fallo) { msg.style.color = 'var(--rd)'; msg.textContent += ' · ⚠️ ' + (fallo === 'clave' ? 'Clave incorrecta.' : 'No se pudo guardar todo (¿script nuevo implementado?).') + ' Guardadas ' + ok + ' de ' + xs.length + '.'; }
     try { renderRevisionSemestral(); } catch (e) {}
 }
-function revImpConfirmar(i) { const x = window._revImp && window._revImp.filas[i]; return x ? revImpConfirmarLista([x]) : undefined; }
-function revImpConfirmarTodas() { return window._revImp ? revImpConfirmarLista(window._revImp.filas) : undefined; }
+function revImpConfirmar(i) { const x = window._revImp && window._revImp.filas[i]; if (!x) return undefined; const f = revImpFaltan(x); if (f.length && !confirm('Esta revisión no trae: ' + f.join(', ') + '. Se guardará con esos campos vacíos. ¿Guardar igualmente?')) return undefined; return revImpConfirmarLista([x]); }
+// Campos de juicio que una revisión tiene que traer rellenos para guardarse en bloque: decisión y tesis; en acciones, también dividendo y cobertura.
+function revImpFaltan(x) {
+    const v = x.v, etf = !!(x.d && x.d.esEtf), f = [];
+    if (!v.dec) f.push('decisión'); if (!v.tesis) f.push('tesis');
+    if (!etf) { if (!v.div) f.push('dividendo'); if (!v.cub) f.push('cobertura'); }
+    return f;
+}
+function revImpConfirmarTodas() {
+    if (!window._revImp) return undefined;
+    const ps = window._revImp.filas.filter(x => x.estado === 'propuesta'), ok = ps.filter(x => !revImpFaltan(x).length), no = ps.filter(x => revImpFaltan(x).length);
+    const msg = document.getElementById('imp-msg');
+    if (no.length && msg) { msg.style.color = 'var(--am)'; msg.textContent = '⚠️ ' + no.length + ' sin guardar por campos de juicio vacíos (' + no.map(x => (x.d ? x.d.p.n : '?') + ': falta ' + revImpFaltan(x).join(', ')).join(' · ') + '). Revísalas y confírmalas una a una.'; }
+    return ok.length ? revImpConfirmarLista(ok).then(() => { if (no.length && msg) { msg.style.color = 'var(--am)'; msg.textContent += ' · ' + no.length + ' pendientes por campos vacíos.'; } }) : undefined;
+}
 
 // ── Tareas (pendiente_usuario de la última revisión de cada activo) ──
 function revTareasLista() {
