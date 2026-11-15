@@ -294,6 +294,24 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
 .focus-mode.on{display:block;animation:fadeIn 0.3s ease}
 .focus-mode .close{position:fixed;top:20px;right:20px;font-size:24px;cursor:pointer;color:var(--mt);transition:color 0.2s}
 .focus-mode .close:hover{color:var(--tx)}
+#focus-nada{display:none}
+@media(max-width:760px){
+  .focus-mode.nada,.focus-mode.gris,.focus-mode.lista{padding:0}
+  .focus-mode.nada > div:not(.close):not(#focus-nada),.focus-mode.gris > div:not(.close):not(#focus-nada),.focus-mode.lista > div:not(.close):not(#focus-nada){display:none}
+  .focus-mode.nada #focus-nada,.focus-mode.gris #focus-nada,.focus-mode.lista #focus-nada{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px;box-sizing:border-box}
+  .focus-mode.nada{background:linear-gradient(160deg,#0e7a43,#16a05a)}
+  .focus-mode.gris{background:linear-gradient(160deg,#4b5563,#6b7280)}
+  .focus-mode.nada #focus-nada,.focus-mode.gris #focus-nada{color:#fff}
+  .focus-mode #focus-nada b{font-size:34px;line-height:1.15;letter-spacing:1px;font-weight:800}
+  .focus-mode #focus-nada .rn-hora{margin-top:18px;font-size:12px;color:#d1d5db;opacity:.85}
+  .focus-mode.lista #focus-nada{justify-content:flex-start;align-items:stretch;text-align:left;padding-top:64px}
+  .focus-mode.lista #focus-nada .rn-tit{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--mt);margin-bottom:12px}
+  .focus-mode.lista #focus-nada .rn-it{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin-bottom:8px;border-radius:12px;background:var(--s2);border:1px solid var(--bd);font-size:15px;line-height:1.35}
+  .focus-mode.lista #focus-nada .rn-it.t0{border-color:var(--rd);background:rgba(232,90,90,.12)}
+  .focus-mode.lista #focus-nada .rn-it.t1{border-color:var(--am);background:rgba(226,154,62,.10)}
+  .focus-mode.lista #focus-nada .rn-hora{margin-top:14px;font-size:12px;color:var(--mt);text-align:center}
+  .focus-mode.nada .close,.focus-mode.gris .close{color:#fff}
+}
 
 .notification{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--ac);border-radius:var(--radius);padding:20px 26px;z-index:1000;max-width:420px;min-width:300px;box-shadow:0 14px 34px -8px rgba(0,0,0,0.55);animation:slideUp 0.4s ease}
 @keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -318,8 +336,9 @@ html.light .badge-orden.venta{color:#B33A3A}
 <div id="notif-container"></div>
 
 <!-- FOCUS MODE -->
-<div class="focus-mode" id="focus">
-  <div class="close" onclick="document.getElementById('focus').classList.remove('on'); renderSecundariasSiHaceFalta()">✕ Cerrar</div>
+<div class="focus-mode gris" id="focus">
+  <div class="close" onclick="document.getElementById('focus').classList.remove('on'); window._radarDetalle = false; radarNadaActualizar(); renderSecundariasSiHaceFalta()">✕ Cerrar</div>
+  <div id="focus-nada"><b>ACTUALIZANDO…</b></div>
   <div style="max-width:800px;margin:0 auto;text-align:left">
     <div style="text-align:center">
       <h1 style="font-size:32px;margin-bottom:8px">📡 Radar Táctico</h1>
@@ -357,7 +376,8 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="hdr-r">
     <div class="btn" onclick="recargar()">↻ Refrescar radar</div>
     <div class="btn" id="btn-estado">Sincronizando...</div>
-    <div class="btn" onclick="document.getElementById('focus').classList.toggle('on'); renderSecundariasSiHaceFalta()">📡 Radar</div>
+    <div class="btn" onclick="window._radarDetalle = false; radarNadaActualizar(); document.getElementById('focus').classList.toggle('on'); renderSecundariasSiHaceFalta()">📡 Radar</div>
+    <div class="btn" title="El radar de siempre, con todo el detalle" onclick="window._radarDetalle = true; radarNadaActualizar(); document.getElementById('focus').classList.add('on'); renderSecundariasSiHaceFalta()">📋 Radar completo</div>
     <div style="width:24px"></div>
     <div class="btn" onclick="exportarCSV()">📥 Exportar</div>
     <div class="btn" onclick="generarInformeMensual()">📄 Informe PDF</div>
@@ -2767,6 +2787,8 @@ async function recargar(modoRapido) {
             ULTIMA_FECHA_CSV_GS = data.ultimaFechaCSV;
         }
 
+        // Radar móvil: solo se fía de los datos COMPLETOS (los ligeros no traen revisiones ni fichas)
+        if (!modoRapido) { window._datosCompletos = true; window._datosVivosMs = Date.now(); try { localStorage.setItem('radar_ult_datos', String(Date.now())); } catch (e) {} }
         // ── Lo que se ve nada más abrir (Radar/Focus) va primero y sin retraso ──
         renderDashboard();
         renderProximaAccion();
@@ -2799,6 +2821,7 @@ async function recargar(modoRapido) {
 
     } catch(e) {
         console.warn('API:', e.message);
+        window._datosCompletos = true; try { radarNadaActualizar(); } catch (e2) {}
         if (btn) { btn.textContent = '⚡ Sin señal — datos locales'; btn.style.color = 'var(--am)'; }
     }
 }
@@ -3707,9 +3730,61 @@ function renderDashboard() {
     if (alertContainer) alertContainer.innerHTML = alertasHtml;
     const focusAlertContainer = document.getElementById('focus-alertas');
     if (focusAlertContainer) focusAlertContainer.innerHTML = alertasHtmlFocus;
+    radarNadaActualizar();
     renderBannerRevision();
 }
 
+// ── RADAR EN EL MÓVIL ──────────────────────────────────────────────────────────────────────────────────────────
+// Pantalla verde «NADA QUE REVISAR» solo si se cumplen TODAS: (a) ninguna trampa a ≤ 2 % del precio actual (en la dirección de la compra),
+// (b) ninguna trampa ya tocada, (c) ninguna revisión vencida (proxima_revision ≤ hoy), (d) ninguna alerta crítica (recorte de dividendo, tesis «En duda» o «Rota»).
+// Si falla alguna, solo se enseña lo que la dispara, por urgencia: tocada > a ≤ 2 % > revisión vencida > alerta crítica.
+// Sin datos fiables (no se cargaron hoy, o falta el precio de una trampa con nivel definido): pantalla GRIS, nunca verde.
+function radarHoraTxt(ms) { if (!ms) return ''; const t = new Date(ms), hh = t.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); return t.toDateString() === new Date().toDateString() ? hh : t.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ' ' + hh; }
+function radarEvaluar() {
+    const ms = window._datosVivosMs || 0;
+    let ultMs = ms; if (!ultMs) { try { ultMs = Number(localStorage.getItem('radar_ult_datos')) || 0; } catch (e) {} }
+    const gris = motivo => ({ estado: 'gris', motivo, ms: ultMs });
+    if (!window._datosCompletos) return { estado: 'carga', ms: 0 };           // aún no han llegado los datos completos de esta sesión
+    if (!ms) return gris('sin conexión con tu hoja');
+    if (new Date(ms).toDateString() !== new Date().toDateString()) return gris('los datos no son de hoy');
+    const T = (typeof TRAMPAS_GS !== 'undefined' && TRAMPAS_GS) || [];
+    const tocadas = [], cerca = [], sinPrecio = [];
+    T.forEach(r => {
+        const nivel = cn(r[3]); if (!(nivel > 0)) return;                      // trampa sin precio definido: no dispara nada
+        const pa = cn(r[4]); if (!(pa > 0)) { sinPrecio.push(r[0]); return; }
+        const dist = (pa - nivel) / pa * 100;                                  // % del precio actual que falta hasta la trampa (en la dirección de compra)
+        if (pa <= nivel) tocadas.push({ n: r[0], pa, nivel, dist });
+        else if (dist <= 2) cerca.push({ n: r[0], pa, nivel, dist });
+    });
+    if (sinPrecio.length) return gris('falta el precio de ' + sinPrecio.slice(0, 3).join(', ') + (sinPrecio.length > 3 ? '…' : ''));
+    let ds = null; try { ds = datosRevision(); } catch (e) { ds = null; }
+    if (!ds) return gris('no se pudo calcular la revisión');
+    const hoy = _hoyISO(), venc = [], crit = [];
+    ds.forEach(d => {
+        const u = d.ult, prox = u && /^\d{4}-\d{2}-\d{2}$/.test(String(u.prox || '')) ? u.prox : null;
+        if (u && (prox ? hoy >= prox : !d.revVigente)) venc.push({ n: d.p.n, prox });
+        if (d.esEtf) return;
+        if (u && (u.tesis === 'Rota' || u.tesis === 'En duda')) crit.push({ n: d.p.n, t: u.tesis === 'Rota' ? 0 : 1, msg: 'tesis «' + u.tesis + '»' });
+        if (d.sugDiv && d.sugDiv.pct <= -5 && d.dpa > 0) crit.push({ n: d.p.n, t: 2, msg: 'recorte de dividendo (' + d.sugDiv.pct.toFixed(1).replace('.', ',') + ' %)' });
+    });
+    const items = [];
+    tocadas.sort((a, b) => a.dist - b.dist).forEach(x => items.push({ c: 't0', ic: '🔴', tx: '<b>' + revEsc(x.n) + '</b>: trampa tocada (' + fe(x.pa, 2) + ' ≤ ' + fe(x.nivel, 2) + ')' }));
+    cerca.sort((a, b) => a.dist - b.dist).forEach(x => items.push({ c: 't0', ic: '🎯', tx: '<b>' + revEsc(x.n) + '</b>: a ' + x.dist.toFixed(1).replace('.', ',') + ' % de la trampa (' + fe(x.pa, 2) + ' → ' + fe(x.nivel, 2) + ')' }));
+    venc.sort((a, b) => String(a.prox || '').localeCompare(String(b.prox || ''))).forEach(x => items.push({ c: 't1', ic: '🧾', tx: '<b>' + revEsc(x.n) + '</b>: revisión vencida' + (x.prox ? ' (tocaba el ' + revFmt(x.prox) + ')' : '') }));
+    crit.sort((a, b) => a.t - b.t).forEach(x => items.push({ c: 't1', ic: '⚠️', tx: '<b>' + revEsc(x.n) + '</b>: ' + x.msg }));
+    return items.length ? { estado: 'lista', items, ms } : { estado: 'verde', ms };
+}
+function radarNadaActualizar() {
+    const f = document.getElementById('focus'), c = document.getElementById('focus-nada'); if (!f || !c) return;
+    let r; try { r = radarEvaluar(); } catch (e) { r = { estado: 'gris', motivo: 'error al calcular', ms: 0 }; }
+    // «Radar completo» (botón de la cabecera): enseña la pantalla de siempre aunque no haya nada que revisar. La pantalla verde/gris/lista no lleva botón.
+    const det = !!window._radarDetalle;
+    f.classList.toggle('nada', !det && r.estado === 'verde'); f.classList.toggle('gris', !det && (r.estado === 'gris' || r.estado === 'carga')); f.classList.toggle('lista', !det && r.estado === 'lista');
+    if (r.estado === 'verde') c.innerHTML = '<b>NADA QUE REVISAR</b><div class="rn-hora">Datos de hoy ' + radarHoraTxt(r.ms) + '</div>';
+    else if (r.estado === 'carga') c.innerHTML = '<b>ACTUALIZANDO…</b>';
+    else if (r.estado === 'gris') c.innerHTML = '<b>SIN DATOS FIABLES</b><div class="rn-hora">' + (r.ms ? 'Último dato ' + radarHoraTxt(r.ms) : 'Sin ningún dato reciente') + (r.motivo ? ' · ' + revEsc(r.motivo) : '') + '</div>';
+    else c.innerHTML = '<div class="rn-tit">REVISAR</div>' + r.items.map(x => '<div class="rn-it ' + x.c + '"><span>' + x.ic + '</span><span>' + x.tx + '</span></div>').join('') + '<div class="rn-hora">Datos de hoy ' + radarHoraTxt(r.ms) + '</div>';
+}
 // ── CARTERA ──
 // ¿Esta empresa presenta resultados dentro del mes en curso?
 function tieneResultadosEsteMes(nombre) {
