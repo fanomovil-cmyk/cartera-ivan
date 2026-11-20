@@ -1114,9 +1114,22 @@ const esMismoISIN = (isinDato, isinPosicion) => isinCanonico(isinDato) === isinC
 // A pagar en la declaración = impuesto español − deducción. España: el pagador ya retiene el 19 % (la retención es el propio impuesto: no queda nada por pagar).
 function tasaOrigenPais(pais) { return pais === 'FRA' ? 0.128 : pais === 'USA' ? 0.15 : pais === 'ESP' ? 0.19 : 0; }
 function paisDeIsin(isin, pais) { if (pais && pais !== '??') return pais; const c = String(isin || '').slice(0, 2).toUpperCase(); return c === 'ES' ? 'ESP' : c === 'FR' ? 'FRA' : c === 'US' ? 'USA' : c === 'IE' ? 'IRL' : (c || '??'); }
-function fiscalDiv(bruto, tasa) {
-    const r = v => Math.round(v * 100) / 100, ret = r(bruto * tasa), netoTr = r(bruto - ret), imp = r(bruto * 0.19), ded = r(Math.min(ret, imp)), pagar = r(imp - ded);
-    return { ret, netoTr, imp, ded, pagar, netoReal: r(netoTr - pagar) };
+// Trade Republic retiene además el 19 % español sobre lo que queda tras la retención de origen (comprobado: Realty Income 13/11/2026, bruto 21,20 → ingresó 14,60 = 21,20 × 0,85 × 0,81).
+// Esa retención es un pago a cuenta del IRPF: en la declaración se compara con el impuesto real (19 % del bruto − deducción por doble imposición) y la diferencia se devuelve.
+// En dividendos españoles solo retiene el pagador (el 19 % de origen) y no hay nada que devolver. Poner a false si algún día TR deja de retener el 19 % en valores extranjeros.
+const TR_RETIENE_19_EXTRANJERO = true;
+function fiscalDiv(bruto, tasa, pais) {
+    const r = v => Math.round(v * 100) / 100, esp = pais === 'ESP';
+    const ret = r(bruto * tasa);                                              // retención en origen (en España, la del pagador)
+    const retEs = (esp || !TR_RETIENE_19_EXTRANJERO) ? 0 : r((bruto - ret) * 0.19);   // 19 % que retiene TR en valores extranjeros
+    const netoTr = r(bruto - ret - retEs);                                    // lo que TR ingresa de verdad
+    const imp = r(bruto * 0.19);                                              // impuesto español: 19 % × bruto
+    const ded = esp ? 0 : r(Math.min(ret, imp));                              // deducción por doble imposición (retención extranjera, con el tope del impuesto)
+    const aCuenta = esp ? ret : retEs;                                        // lo ya retenido en España a cuenta del impuesto
+    const bal = r(imp - ded - aCuenta);                                       // >0 se paga en la declaración; <0 se devuelve
+    const pagar = Math.max(0, bal), devol = Math.max(0, -bal);
+    const netoFinal = r(netoTr - pagar);                                      // en tu cuenta tras pagar lo pendiente, antes de recuperar nada
+    return { ret, retEs, netoTr, imp, ded, pagar, devol, netoFinal, netoReal: r(netoFinal + devol) };
 }
 // Dividendos españoles: lo que llega de TR/la hoja es el importe YA cobrado, con el 19 % retenido por el pagador (Telefónica 0,15 → 0,1215 por acción;
 // Acerinox 0,31 → 0,2511). Se pasa a bruto (÷ 0,81) para no retener el 19 % dos veces. Poner a false si el extracto de TR muestra el importe bruto.
@@ -1124,8 +1137,8 @@ const ESP_IMPORTE_COBRADO_NETO = true;
 function normDiv(d) {
     const pais = paisDeIsin(d.isin, d.pais);
     if (pais === 'ESP' && ESP_IMPORTE_COBRADO_NETO && !d.esp_neto_tr && d.bruto > 0) d = { ...d, esp_neto_tr: d.bruto, bruto: Math.round(d.bruto / 0.81 * 100) / 100 };
-    const f = fiscalDiv(d.bruto || 0, tasaOrigenPais(pais));
-    return { ...d, pais, ret_origen: f.ret, neto_tr: f.netoTr, tax_es_total: f.imp, deduccion: f.ded, tax_es: f.pagar, neto_final: f.netoReal, devolucion: 0, neto_real: f.netoReal };
+    const f = fiscalDiv(d.bruto || 0, tasaOrigenPais(pais), pais);
+    return { ...d, pais, ret_origen: f.ret, ret_es_tr: f.retEs, neto_tr: f.netoTr, tax_es_total: f.imp, deduccion: f.ded, tax_es: f.pagar, neto_final: f.netoFinal, devolucion: f.devol, neto_real: f.netoReal };
 }
 function desglosePaises(arr) {
     const c = {}; arr.forEach(d => { const k = d.pais === 'FRA' ? 'FR' : d.pais || '??'; c[k] = (c[k] || 0) + 1; });
@@ -1250,6 +1263,8 @@ const trampasAvisadas = new Set();
 let CIERRE_ANTERIOR = null;
 let VALOR_CARTERA_ACTUAL = 0;
 let PERIODO_SELECCIONADO = 'todo'; // 'mes' | un año concreto (string) | 'todo'
+let VISTA_TERMO = (function(){ try { return localStorage.getItem('vista_termo') === 'real' ? 'real' : 'neto'; } catch(e) { return 'neto'; } })();
+function seleccionarVistaTermo(v) { VISTA_TERMO = v; try { localStorage.setItem('vista_termo', v); } catch(e) {} renderDashboard(); }
 let ANIO_TERMO = null; // null = año actual por defecto; también puede ser 'prevision' o un año pasado (string)
 let HISTORICO_CIERRES = [];
 let POS_ORDEN = { k: 'orig', dir: 1 }; // orden de la tabla Posiciones del Mando
@@ -1403,7 +1418,7 @@ function proximosCobrosEnVivo() {
 
         const manProx = prox && p.isin ? importeManual(p.isin, prox.mes) : null;   // importe del próximo pago escrito a mano (LVMH dic = 5,50)
         const importePorPago = manProx ? manProx * p.sh : (numPagosReal ? anualTotal / numPagosReal : anualTotal);
-        const fxE = fiscalDiv(importePorPago, tasaOrigenEstimada(p.isin, p.pais));
+        const fxE = fiscalDiv(importePorPago, tasaOrigenEstimada(p.isin, p.pais), paisDeIsin(p.isin, p.pais));
         const retOEst = fxE.ret, subtotalEst = fxE.netoTr, netoRealEst = fxE.netoReal, dedEst = fxE.ded;
 
         const ultimoCobro = fechasEsta && fechasEsta.length ?
@@ -1530,7 +1545,7 @@ function resumenDivsEnVivo() {
     (divsEnVivo() || []).forEach(d => {
         const anio = String(d.f).split('/')[2], k = (d.isin || d.n) + '|' + anio;
         const r = m[k] || (m[k] = { n: d.n, isin: d.isin, año: anio, pais: d.pais, pagos: 0, bruto: 0, neto_tr: 0, neto_final: 0, devolucion: 0, deduccion: 0, neto_real: 0 });
-        r.n = d.n; r.pagos++; ['bruto', 'neto_tr', 'neto_final', 'deduccion', 'neto_real'].forEach(c => { r[c] = r2(r[c] + (d[c] || 0)); });
+        r.n = d.n; r.pagos++; ['bruto', 'neto_tr', 'neto_final', 'deduccion', 'devolucion', 'neto_real'].forEach(c => { r[c] = r2(r[c] + (d[c] || 0)); });
     });
     return Object.values(m);
 }
@@ -1588,16 +1603,16 @@ function posicionesVivas() {
 // cargarOperaciones() eliminada: ahora la API_GS calcula y devuelve las operaciones
 // directamente (ver el bloque "Operaciones cerradas" dentro de recargar()).
 
-// Retención de doble imposición que aún se espera cobrar lo que queda del año en curso (meses futuros + lo que falte del mes actual)
+// Saldo de IRPF de dividendos que se espera para lo que queda del año en curso (a pagar − a devolver; negativo = te devuelven) (meses futuros + lo que falte del mes actual)
 function devolucionPrevistaRestante() {
     const prev = calcularPrevisionDividendosAnual();
     const hoy = new Date(), m = hoy.getMonth(), y = hoy.getFullYear();
     let tot = 0;
-    for (let i = m + 1; i < 12; i++) tot += prev.previstosIRPF[i] || 0;
+    for (let i = m + 1; i < 12; i++) tot += (prev.previstosIRPF[i] || 0) - (prev.previstosDevolucion[i] || 0);
     const cobradosMes = new Set((divsEnVivo() || []).filter(d => {
         const [, mm, yy] = d.f.split('/'); return +yy === y && +mm - 1 === m;
     }).map(d => isinCanonico(d.isin)));
-    (prev.previstosDetalle[m] || []).forEach(x => { if (!(x.isin && cobradosMes.has(isinCanonico(x.isin)))) tot += x.irpf || 0; });
+    (prev.previstosDetalle[m] || []).forEach(x => { if (!(x.isin && cobradosMes.has(isinCanonico(x.isin)))) tot += (x.irpf || 0) - (x.devolucion || 0); });
     return tot;
 }
 
@@ -1608,7 +1623,7 @@ function renderRentaVentas() {
     if (!tb) return;
     const anios = new Set();
     (OPERACIONES_CERRADAS || []).forEach(o => anios.add(o.fecha.slice(0, 4)));
-    (divsEnVivo() || []).forEach(d => { if (d.tax_es > 0) anios.add(d.f.split('/')[2]); });
+    (divsEnVivo() || []).forEach(d => { if (d.tax_es > 0 || d.devolucion > 0) anios.add(d.f.split('/')[2]); });
     const lista = [...anios].sort();
     if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" class="mt2">Sin ventas todavía</td></tr>'; return; }
     const hoyAnio = new Date().getFullYear();
@@ -1619,24 +1634,25 @@ function renderRentaVentas() {
             interesesEnVivo().filter(i => (i.fPago || i.f).endsWith('/' + a)).reduce((t, i) => t + (i.bruto || 0), 0) +
             ingresosEnVivo().filter(x => String(x.fecha).startsWith(a)).reduce((t, x) => t + (x.bruto || x.importe), 0);
         const impVentas = gp > 0 ? impuestoMarginalGanancia(base, gp) : 0;
-        const devol = divsA.reduce((t, d) => t + (d.tax_es || 0), 0);   // IRPF de dividendos a pagar en la renta (19 % − deducción)
+        const devol = divsA.reduce((t, d) => t + (d.tax_es || 0) - (d.devolucion || 0), 0);   // saldo de IRPF de dividendos en la renta: 19 % − deducción − lo que ya retuvo TR (negativo = te devuelven)
         const prevista = +a === hoyAnio ? devolucionPrevistaRestante() : 0;
         return { a, gp, impVentas, devol, prevista, dif: impVentas + devol, difPrev: impVentas + devol + prevista };
     });
     tb.innerHTML = datos.map((x, j) => {
         const { a, gp, impVentas, devol, prevista, dif, difPrev } = x;
+        const sg = v => (v > 0.005 ? '+' : v < -0.005 ? '−' : '') + fe(Math.abs(v));
         const res = dif > 0.005 ? '<span class="rd" style="font-weight:700">En ' + (+a + 1) + ' tendrás que pagar ' + fe(dif) + ' a Hacienda</span>' :
-            '<span class="mt2">Nada que pagar</span>';
+            dif < -0.005 ? '<span class="gn" style="font-weight:700">En ' + (+a + 1) + ' Hacienda te devolverá ' + fe(-dif) + '</span>' : '<span class="mt2">Nada que pagar</span>';
         return '<tr style="' + (j % 2 ? 'background:var(--s2)' : '') + '"><td style="font-weight:700">' + a + (+a === hoyAnio ? ' <span class="mt2" style="font-size:8px">(en curso)</span>' : '') + '</td>' +
             '<td style="color:' + gc(gp) + ';font-family:monospace;font-weight:700">' + (gp >= 0 ? '+' : '') + fe(gp) + '</td>' +
-            '<td class="rd">' + fe(impVentas) + '</td><td class="rd">' + fe(devol) + '</td>' +
-            '<td style="color:var(--am);font-weight:700">' + (prevista > 0.005 ? '+' + fe(prevista) : '—') + '</td>' +
-            '<td style="font-family:monospace;font-weight:800;color:' + (dif > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (dif > 0 ? '+' : '') + fe(dif) + '</td>' +
-            '<td style="font-family:monospace;font-weight:800;color:' + (difPrev > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (prevista > 0.005 ? (difPrev > 0 ? '+' : '') + fe(difPrev) : '—') + '</td><td>' + res + '</td></tr>';
+            '<td class="rd">' + fe(impVentas) + '</td><td class="' + (devol < -0.005 ? 'gn' : 'rd') + '">' + sg(devol) + '</td>' +
+            '<td style="color:var(--am);font-weight:700">' + (Math.abs(prevista) > 0.005 ? sg(prevista) : '—') + '</td>' +
+            '<td style="font-family:monospace;font-weight:800;color:' + (dif > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + sg(dif) + '</td>' +
+            '<td style="font-family:monospace;font-weight:800;color:' + (difPrev > 0 ? 'var(--rd)' : 'var(--gn)') + '">' + (Math.abs(prevista) > 0.005 ? sg(difPrev) : '—') + '</td><td>' + res + '</td></tr>';
     }).join('');
     const nota = document.getElementById('nota-renta-ventas');
     if (nota) nota.textContent = 'Cálculo estimado: ganancias y pérdidas de las ventas del año se compensan entre sí; el impuesto usa los tramos del ahorro (19-30 %) sobre lo ya cobrado ese año en dividendos (bruto), intereses TR y depósitos. ' +
-        'El IRPF de dividendos es el 19 % del bruto menos la retención ya pagada en origen (deducción por doble imposición, con ese límite); no se devuelve dinero: se resta del impuesto. la barra naranja es la que aún se espera cobrar en los meses que quedan (misma previsión que el Mando) y "Con la previsión" es la diferencia si se cumple entera. Si es mayor que el impuesto total del ahorro, Hacienda no devuelve el exceso. No tiene en cuenta pérdidas de años anteriores.';
+        'El IRPF de dividendos es el 19 % del bruto menos la retención ya pagada en origen (deducción por doble imposición, con ese límite) y menos el 19 % que TR ya retiene en valores extranjeros (pago a cuenta): si TR ha retenido de más, la diferencia te la devuelven (signo −). La barra naranja es la que aún se espera cobrar en los meses que quedan (misma previsión que el Mando) y "Con la previsión" es la diferencia si se cumple entera. Si es mayor que el impuesto total del ahorro, Hacienda no devuelve el exceso. No tiene en cuenta pérdidas de años anteriores.';
 
     // Gráfico: por año, lo que pagarías por las ventas, lo que te devuelven y el resultado final (barra de la diferencia)
     const canvas = document.getElementById('chart-renta-ventas');
@@ -1661,7 +1677,7 @@ function renderRentaVentas() {
             labels: datos.map(x => 'Ventas ' + x.a + ' → renta ' + (+x.a + 1)),
             datasets: [
                 { label: 'A pagar por ventas', data: datos.map(x => Math.round(x.impVentas * 100) / 100), backgroundColor: '#E85A5A', borderRadius: 3 },
-                { label: 'A pagar por dividendos', data: datos.map(x => Math.round(x.devol * 100) / 100), backgroundColor: '#E29A3E', borderRadius: 3 },
+                { label: 'IRPF dividendos (− te devuelven)', data: datos.map(x => Math.round(x.devol * 100) / 100), backgroundColor: '#E29A3E', borderRadius: 3 },
                 { label: 'IRPF dividendos previsto (resto del año)', data: datos.map(x => Math.round(x.prevista * 100) / 100), backgroundColor: '#F59E0B', borderRadius: 3 },
                 { label: 'Total a pagar en la renta', data: datos.map(x => Math.round(x.dif * 100) / 100), backgroundColor: '#5B8FD9', borderRadius: 3 }
             ]
@@ -1963,15 +1979,15 @@ function renderDetalleActivo() {
                 '<div><span class="mt2">Bruto</span><br>' + fe(d.bruto) + '</div>' +
                 (d.ret_origen > 0 ? '<div><span class="mt2">Ret. origen</span><br><span style="color:var(--rd)">-' +
                     fe(d.ret_origen) + '</span></div>' : '') +
-                '<div><span class="mt2">IRPF</span><br><span style="color:var(--rd)">-' + fe(d.tax_es) +
-                '</span></div>' +
+                (d.ret_es_tr > 0 ? '<div><span class="mt2">Ret. TR 19 %</span><br><span style="color:var(--rd)">-' + fe(d.ret_es_tr) + '</span></div>' : '') +
+                (d.tax_es > 0 ? '<div><span class="mt2">IRPF a pagar</span><br><span style="color:var(--rd)">-' + fe(d.tax_es) + '</span></div>' : '') +
                 '<div><span class="mt2">Neto</span><br>' + fe(d.neto_final) + '</div>' +
-                (d.devolucion > 0 ? '<div><span class="mt2">+Dev. Hacienda</span><br><span style="color:var(--gn)">+' +
+                (d.devolucion > 0 ? '<div><span class="mt2">+A recuperar en la renta</span><br><span style="color:var(--gn)">+' +
                     fe(d.devolucion) + '</span></div>' : '') +
                 '<div><span class="mt2">Rent. s/precio hoy</span><br>' + rentPagoActual.toFixed(2) + '%</div>' +
                 '</div>';
             return { fecha: d.f, tipo: 'Dividendo', detalleHTML: detalleDivHTML, monto: d.neto_real,
-                color: 'var(--gn)' };
+                netoFinal: d.neto_final, devol: d.devolucion || 0, color: 'var(--gn)' };
         }),
         ...ventasCerradas.map(o => ({ fecha: o.fecha.split('-').reverse().join('/'), tipo: 'Venta',
             detalleHTML: '<div class="mt2" style="margin-top:2px">' + fe(o.acciones, 4) + ' acc. a ' + fe(o.pVenta) +
@@ -2089,14 +2105,22 @@ function renderDetalleActivo() {
         <div class="card" style="margin-top:12px;border:1px solid var(--gn)">
             <div class="ch"><h3>💰 Dividendos cobrados</h3><span class="mt2" style="font-size:8px">${divsFiltrados.length} cobro${divsFiltrados.length===1?'':'s'}</span></div>
             <div style="padding:10px 16px;background:rgba(52,199,123,0.1);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:9px;color:var(--gn);font-weight:800;text-transform:uppercase">Total del periodo</span>
-                <span style="font-size:18px;font-weight:800;color:var(--gn)">${fe(divsFiltrados.reduce((s,mv)=>s+mv.monto,0))}</span>
+                <span style="font-size:9px;color:var(--gn);font-weight:800;text-transform:uppercase">Neto en cuenta (TR)</span>
+                <span style="font-size:18px;font-weight:800;color:var(--gn)">${fe(divsFiltrados.reduce((s,mv)=>s+mv.netoFinal,0))}</span>
             </div>
+            ${divsFiltrados.reduce((s,mv)=>s+mv.devol,0)>0.005?`<div style="padding:8px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:9px;color:var(--mt);font-weight:800;text-transform:uppercase">+ A recuperar de Hacienda</span>
+                <span style="font-size:14px;font-weight:700;color:var(--gn)">+${fe(divsFiltrados.reduce((s,mv)=>s+mv.devol,0))}</span>
+            </div>
+            <div style="padding:10px 16px;background:rgba(52,199,123,0.1);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:9px;color:var(--gn);font-weight:800;text-transform:uppercase">Cobro real (neto + Hacienda)</span>
+                <span style="font-size:18px;font-weight:800;color:var(--gn)">${fe(divsFiltrados.reduce((s,mv)=>s+mv.monto,0))}</span>
+            </div>`:''}
             <div class="sc" style="max-height:320px">
                 ${divsFiltrados.length ? divsFiltrados.map(mv => `
                     <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:11px;min-width:0">
                         <div style="flex:1;min-width:0"><span class="mt2" style="font-size:9px">${mv.fecha}</span>${mv.detalleHTML}</div>
-                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap">+${fe(mv.monto)}</div>
+                        <div style="font-family:monospace;font-weight:700;color:${mv.color};flex-shrink:0;white-space:nowrap;text-align:right">+${fe(mv.netoFinal)}${mv.devol>0.005?`<div style="font-size:9px;font-weight:600;color:var(--mt)">+${fe(mv.devol)} Hacienda</div><div style="font-size:9px;font-weight:600">= ${fe(mv.monto)} real</div>`:''}</div>
                     </div>`).join('') : '<div class="mt2" style="padding:14px;font-size:10px">Sin dividendos cobrados en este periodo.</div>'}
             </div>
         </div>
@@ -2992,8 +3016,8 @@ function calcularPrevisionDividendosAnual() {
     // La previsión partía del BRUTO sin descontar nada — la convertimos a neto real con el
     // mismo criterio fiscal que usa el resto del sistema (retención origen según país + 19% IRPF).
     const brutoAneto = (bruto, pais, isin) => {
-        const f = fiscalDiv(bruto, tasaOrigenEstimada(isin, pais));
-        return { netoFinal: f.netoReal, devolucion: 0, irpf: f.pagar };
+        const f = fiscalDiv(bruto, tasaOrigenEstimada(isin, pais), paisDeIsin(isin, pais));
+        return { netoFinal: f.netoFinal, devolucion: f.devol, irpf: f.pagar };
     };
     const previstosNeto = Array(12).fill(0);
     const previstosDevolucion = Array(12).fill(0);
@@ -3170,7 +3194,7 @@ function renderDashboard() {
     // Totales CON el periodo seleccionado (para los KPIs de la tarjeta de arriba)
     const divsFiltrados = (divsEnVivo() || []).filter(d => fechaEnPeriodo_DDMMYYYY(d.f));
     const divTotalReal2 = divsFiltrados.reduce((s, d) => s + d.neto_real, 0);
-    const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.tax_es, 0);
+    const divDevolucionTotal = divsFiltrados.reduce((s, d) => s + d.tax_es - d.devolucion, 0);   // saldo del IRPF de dividendos: >0 pagar, <0 te devuelven
     const intFiltrados = interesesEnVivo().filter(i => fechaEnPeriodo_MMYYYY(i.f));
     const intTotalReal = intFiltrados.reduce((s, i) => s + i.neto, 0);
     const depPeriodo = depositosNetos(fechaEnPeriodo_ISO);
@@ -3191,7 +3215,7 @@ function renderDashboard() {
         { l: 'Dividendos cobrados', v: fe(divTotalReal2), s: divsFiltrados.length + ' pagos · neto real', c: '#34C77B', tab: 3 },
         { l: 'Intereses + depósitos', v: fe(intTotalReal + depPeriodo), s: 'TR ' + fe(intTotalReal) + ' · depós. ' + fe(depPeriodo), c: '#E29A3E', tab: 4 },
         { l: 'Saveback recibido', v: fe(sbTotalReal), s: sbFiltrados.length + ' recibos', c: '#B7A6E8' },
-        { l: 'IRPF a pagar en la renta', v: fe(divDevolucionTotal), s: 'Periodo: ' + (PERIODO_SELECCIONADO === 'todo' ? 'todos los años' : PERIODO_SELECCIONADO === 'mes' ? 'este mes' : PERIODO_SELECCIONADO) + ' · 19% × bruto − retención', c: '#5B8FD9', tab: 3 },
+        { l: divDevolucionTotal < -0.005 ? '↩️ A recuperar en la renta' : 'IRPF a pagar en la renta', v: fe(Math.abs(divDevolucionTotal)), s: 'Periodo: ' + (PERIODO_SELECCIONADO === 'todo' ? 'todos los años' : PERIODO_SELECCIONADO === 'mes' ? 'este mes' : PERIODO_SELECCIONADO) + ' · 19% × bruto − retenciones', c: '#5B8FD9', tab: 3 },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + (k.tab !== undefined ? ';cursor:pointer' : '') + '"' + (
             k.tab !== undefined ? ' onclick="sw(' + k.tab + ')"' : '') + '><div class="kl">' + k.l +
         '</div><div class="kv" style="color:' +
@@ -3548,7 +3572,10 @@ function renderDashboard() {
         const boton = (valor, label) => '<button class="btn' + (ANIO_TERMO === valor ? ' ac' : '') +
             '" onclick="seleccionarAnioTermo(\'' + valor + '\')">' + label + '</button>';
         filtrosTermo.innerHTML = aniosConDatos.sort().map(a => boton(a, a)).join('') +
-            boton('prevision', '📈 Previsión ' + anioSiguiente);
+            boton('prevision', '📈 Previsión ' + anioSiguiente) +
+            '<span style="display:inline-block;width:12px"></span>' +
+            '<button class="btn' + (VISTA_TERMO === 'neto' ? ' ac' : '') + '" onclick="seleccionarVistaTermo(\'neto\')" title="Lo que entra en la cuenta de TR">💶 Neto</button>' +
+            '<button class="btn' + (VISTA_TERMO === 'real' ? ' ac' : '') + '" onclick="seleccionarVistaTermo(\'real\')" title="Neto + lo que devuelve Hacienda en la renta">💶 Neto + dev. Hacienda</button>';
     }
 
     if (heatmap) {
@@ -3574,7 +3601,9 @@ function renderDashboard() {
         const { previstos, previstosDetalle, previstosNeto, previstosDevolucion, previstosIRPF } = calcularPrevisionDividendosAnual();
 
         const esAnioActualReal = !esAnioPrevision && anioTermoNum === anioActual;
-        const maxT = Math.max(1, ...totalesNeto, ...previstosNeto);
+        const vistaReal = VISTA_TERMO === 'real';
+        const maxT = Math.max(1, ...totalesNeto.map((v, i) => v + (vistaReal ? totalesDevolucion[i] : 0)),
+            ...previstosNeto.map((v, i) => v + (vistaReal ? (previstosDevolucion[i] || 0) : 0)));
         heatmap.innerHTML = meses.map((m, idx) => {
             const esMesActual = esAnioActualReal && idx === mesActual;
             let valor, valorDevolucion, detalle, esFuturo;
@@ -3605,6 +3634,8 @@ function renderDashboard() {
                 valorDevolucion = esFuturo ? previstosDevolucion[idx] : totalesDevolucion[idx];
                 detalle = agregarPorEmpresa(esFuturo ? previstosDetalle[idx] : historicoDetalle[idx]);
             }
+            const valorNetoMes = valor;
+            if (vistaReal) valor = valor + valorDevolucion;
             // Verde = ya cobrado (mes pasado o actual con importe), Naranja = por cobrar (futuro), Gris = sin dato
             const color = valor <= 0 ? 'var(--bd)' : esFuturo ? 'var(--am)' : 'var(--gn)';
             const alturaPct = valor > 0 ? Math.max(10, valor / maxT * 100) : 4;
@@ -3613,15 +3644,16 @@ function renderDashboard() {
             const barStyle = esFuturo && valor > 0 ? 'height:' + alturaPct + '%;color:' + color :
                 'height:' + alturaPct + '%;background:' + color;
             let tip = m + ' ' + anioTermoNum + (esFuturo ? ' (previsto)' : '') + ': ' + (valor > 0 ? fe(valor) +
-                ' neto' : (esFuturo ? 'sin datos' : 'Sin cobros')) + (valorDevolucion > 0.005 ? ' (+' + fe(
-                valorDevolucion) + ' Hacienda)' : '');
+                (vistaReal ? ' (neto ' + fe(valorNetoMes) + ' + ' + fe(valorDevolucion) + ' Hacienda)' : ' neto' +
+                (valorDevolucion > 0.005 ? ' (+' + fe(valorDevolucion) + ' Hacienda)' : '')) :
+                (esFuturo ? 'sin datos' : 'Sin cobros'));
             if (detalle.length) tip += '\n' + detalle.map(x => '• ' + x.n + ': ' + fe(x.monto) + ' neto').join(
                 '\n');
             return '<div class="hm-col' + esActual + '" title="' + tip + '">' +
                 '<div class="hm-val" style="color:' + (valor > 0 ? color : 'var(--mt)') + ';font-size:11px;font-weight:800">' +
                 (valor > 0 ? (esFuturo ? '~' : '') + f1(valor) + '€' : '—') + '</div>' +
-                (valorDevolucion > 0.005 ? '<div style="font-size:8px;color:var(--mt)">+' + f1(valorDevolucion) +
-                    '€ Hac.</div>' : '') +
+                (valorDevolucion > 0.005 ? '<div style="font-size:8px;color:var(--mt)">' + (vistaReal ? 'neto ' + f1(valorNetoMes) + '€' : '+' + f1(valorDevolucion) +
+                    '€ Hac.') + '</div>' : '') +
                 '<div class="' + barCls + '" style="' + barStyle + '"></div>' +
                 '<div class="hm-lbl">' + m + '</div>' +
                 '</div>';
@@ -3643,6 +3675,8 @@ function renderDashboard() {
                 irpfAnio += usarPrevisionIdx ? previstosIRPF[idx] : totalesIRPF[idx];
                 devolucionAnio += usarPrevisionIdx ? previstosDevolucion[idx] : totalesDevolucion[idx];
             }
+            const totalNetoAnio = totalAnio;
+            if (vistaReal) totalAnio += devolucionAnio;
             const mesesConDato = esAnioPrevision ? 12 : (esAnioActualReal ? mesActual + 1 : 12);
             const promedioMensual = mesesConDato ? totalAnio / 12 : 0; // sobre 12 meses, para comparar años enteros
 
@@ -3658,17 +3692,17 @@ function renderDashboard() {
             const rentMediaPagan = sumaCoste ? (sumaDivAnual / sumaCoste * 100) : 0;
 
             statsTermo.innerHTML =
-                '<div><div class="mt2" style="font-size:8px">Ø PROMEDIO MENSUAL (neto)</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
+                '<div><div class="mt2" style="font-size:8px">Ø PROMEDIO MENSUAL (' + (vistaReal ? 'neto + Hac.' : 'neto') + ')</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
                 fe(promedioMensual) + '</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">' + (esAnioPrevision ? 'TOTAL PREVISTO ' :
-                    'TOTAL ') + anioTermoNum + ' (neto)</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
+                    'TOTAL ') + anioTermoNum + (vistaReal ? ' (neto + Hac.)' : ' (neto)') + '</div><div style="font-size:18px;font-weight:700;color:var(--ac);font-family:\'JetBrains Mono\',monospace">' +
                 fe(totalAnio) + '</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">RENT. MEDIA (solo activos con dividendo)</div><div style="font-size:18px;font-weight:700;color:var(--gn);font-family:\'JetBrains Mono\',monospace">' +
                 rentMediaPagan.toFixed(2) + '%</div></div>' +
                 '<div><div class="mt2" style="font-size:8px">BRUTO TOTAL</div><div style="font-size:15px;font-weight:700;color:var(--mt);font-family:\'JetBrains Mono\',monospace">' +
                 fe(brutoAnio) + '</div></div>' +
-                '<div><div class="mt2" style="font-size:8px">IRPF A PAGAR EN LA RENTA</div><div style="font-size:15px;font-weight:700;color:var(--rd);font-family:\'JetBrains Mono\',monospace">-' +
-                fe(irpfAnio) + '</div></div>';
+                '<div><div class="mt2" style="font-size:8px">' + (devolucionAnio > irpfAnio + 0.005 ? 'A RECUPERAR EN LA RENTA' : 'IRPF A PAGAR EN LA RENTA') + '</div><div style="font-size:15px;font-weight:700;color:' + (devolucionAnio > irpfAnio + 0.005 ? 'var(--gn)' : 'var(--rd)') + ';font-family:\'JetBrains Mono\',monospace">' + (devolucionAnio > irpfAnio + 0.005 ? '+' : '-') +
+                fe(Math.abs(irpfAnio - devolucionAnio)) + '</div></div>';
         }
     }
 
@@ -4618,7 +4652,7 @@ function proyectarDividendos6Meses(isin, capital, precioActual) {
     const nuevasAcciones = capital / precioActual;
     const numPagosAlAnio = calItem.meses.length;
     const pesosP = divPesosMes(isin, calItem.meses);
-    const porPagoMes = m => { const man = importeManual(isin, m); const bruto = (man ? man : (pesosP && pesosP[m] ? divAcc * pesosP[m] : divAcc / numPagosAlAnio)) * nuevasAcciones; const fx = fiscalDiv(bruto, origenRate); return { neto: fx.netoReal, dev: 0 }; };
+    const porPagoMes = m => { const man = importeManual(isin, m); const bruto = (man ? man : (pesosP && pesosP[m] ? divAcc * pesosP[m] : divAcc / numPagosAlAnio)) * nuevasAcciones; const fx = fiscalDiv(bruto, origenRate, paisDeIsin(isin, pais)); return { neto: fx.netoFinal, dev: fx.devol }; };
 
     const nombresMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const hoy = new Date();
@@ -6695,8 +6729,8 @@ function renderMesEnCurso() {
         // Estimado: mismo cálculo fiscal que usa el sistema para los cobros reales
         const numPagosAlAnio = calItem.meses.length;
         const manM = importeManual(p.isin, mesActualNum), wMesP = divPesosMes(p.isin, calItem.meses), bruto = manM ? manM * p.sh : (p.divAcc * p.sh) * (wMesP && wMesP[mesActualNum] ? wMesP[mesActualNum] : 1 / numPagosAlAnio);   // pagos desiguales (LVMH) con su importe de cada mes
-        const fx = fiscalDiv(bruto, tasaOrigenEstimada(p.isin, p.pais));
-        const retOrigen = fx.ret, irpf = fx.pagar, netoFinal = fx.netoReal, devolucion = 0, netoReal = fx.netoReal;
+        const fx = fiscalDiv(bruto, tasaOrigenEstimada(p.isin, p.pais), paisDeIsin(p.isin, p.pais));
+        const retOrigen = fx.ret, irpf = fx.pagar, netoFinal = fx.netoFinal, devolucion = fx.devol, netoReal = fx.netoReal;
         return {
             nombre: p.n, cobrado: false, fecha: null, bruto, retOrigen, irpf, netoFinal, devolucion, netoReal
         };
@@ -6818,7 +6852,7 @@ function renderDividendos() {
     const dedu2026 = divs2026.reduce((s, d) => s + d.deduccion, 0), imp2026 = divs2026.reduce((s, d) => s + d.tax_es_total, 0), netoTr2026 = divs2026.reduce((s, d) => s + d.neto_tr, 0);
     const bruto2026 = divs2026.reduce((s, d) => s + d.bruto, 0);
     const retOrigen2026 = divs2026.reduce((s, d) => s + d.ret_origen, 0);
-    const taxEs2026 = divs2026.reduce((s, d) => s + d.tax_es, 0);
+    const taxEs2026 = divs2026.reduce((s, d) => s + d.tax_es, 0), devol2026 = divs2026.reduce((s, d) => s + d.devolucion, 0), retTr2026 = divs2026.reduce((s, d) => s + (d.ret_es_tr || 0), 0), saldo2026 = taxEs2026 - devol2026;
     const netoFinal2026 = divs2026.reduce((s, d) => s + d.neto_final, 0);
     const pagos2026 = divs2026.length;
 
@@ -6845,10 +6879,11 @@ function renderDividendos() {
     document.getElementById('resumen-div-ejecutivo').innerHTML = [
         { l: 'Bruto 2026', v: fe(bruto2026), s: 'Antes de retenciones', c: '#E4C777' },
         { l: 'Retención en origen', v: '-' + fe(retOrigen2026), s: 'USA 15% · FR 12,8% · ESP 19%', c: '#E29A3E' },
-        { l: '💶 Neto disponible YA', v: fe(netoTr2026), s: 'Bruto − retención origen: lo que llega a TR', c: '#60A5FA' },
+        { l: 'Retención de TR (19 %)', v: '-' + fe(retTr2026), s: 'Pago a cuenta del IRPF, sobre lo que queda tras el origen', c: '#E29A3E' },
+        { l: '💶 Neto cobrado en TR', v: fe(netoTr2026), s: 'Lo que TR ha ingresado de verdad', c: '#60A5FA' },
         { l: 'Impuesto español', v: '-' + fe(imp2026), s: '19% × bruto', c: '#E85A5A' },
         { l: 'Deducción doble imposición', v: '+' + fe(dedu2026), s: 'Retención pagada fuera (límite 19%)', c: '#8FE0B4' },
-        { l: '🗓️ Reservar para la declaración', v: fe(taxEs2026), s: 'Impuesto − deducción · jun ' + (anioActualDiv + 1), c: '#F2C14E' },
+        { l: saldo2026 > 0.005 ? '🗓️ Reservar para la declaración' : '↩️ A recuperar en la declaración', v: (saldo2026 < -0.005 ? '+' : '') + fe(Math.abs(saldo2026)), s: 'Impuesto − deducción − retención de TR · jun ' + (anioActualDiv + 1), c: saldo2026 > 0.005 ? '#F2C14E' : '#34C77B' },
         { l: 'Neto real final ' + (ANIO_DIVIDENDOS_TAB === 'todos' ? '' : ANIO_DIVIDENDOS_TAB), v: fe(total2026), s: pagos2026 + ' pagos · ' + desglosePaises(divs2026), c: '#34C77B' },
         { l: '🏆 Top activo', v: topNombre, s: fe(topValor) + ' neto real', c: '#B7A6E8' },
     ].map(k => '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)"><div style="font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:0.6px">' +
@@ -6920,10 +6955,10 @@ function renderDividendos() {
 
     document.getElementById('kg3').innerHTML = [
         { l: 'Bruto total cobrado', v: fe(brutoTotal), s: 'Antes de retenciones', c: '#E4C777' },
-        { l: 'Neto cobrado en TR', v: fe(netoTrTotal), s: 'Tras retención origen', c: '#E29A3E' },
-        { l: 'IRPF a pagar en la renta', v: fe(round2(netoTrTotal - netoFinalTotal)), s: (ANIO_DIVIDENDOS_TAB === 'todos' ? 'Todos los años' : 'Año ' + ANIO_DIVIDENDOS_TAB) + ' · 19% × bruto − retención', c: '#E85A5A' },
+        { l: 'Neto cobrado en TR', v: fe(netoTrTotal), s: 'Tras retención de origen y la de TR (19 %)', c: '#E29A3E' },
+        { l: devolucionTotalHist > netoTrTotal - netoFinalTotal + 0.005 ? '↩️ A recuperar en la renta' : 'IRPF a pagar en la renta', v: fe(Math.abs(round2(netoTrTotal - netoFinalTotal - devolucionTotalHist))), s: (ANIO_DIVIDENDOS_TAB === 'todos' ? 'Todos los años' : 'Año ' + ANIO_DIVIDENDOS_TAB) + ' · 19% × bruto − retención', c: '#E85A5A' },
         { l: 'Deducción doble imposición', v: fe(divs.reduce((s, d) => s + d.deduccion, 0)), s: 'Retención pagada fuera (límite 19%)', c: '#34C77B' },
-        { l: 'Neto real final', v: fe(netoRealTotal), s: 'Tras retención y IRPF a pagar', c: '#34C77B' },
+        { l: 'Neto real final', v: fe(netoRealTotal), s: 'Tras retenciones e IRPF (incluye lo que recuperas)', c: '#34C77B' },
         { l: 'Pagos recibidos', v: divs.length, s: desglosePaises(divs), c: '#707B93' },
     ].map(k => '<div class="kpi" style="--kc:' + k.c + '"><div class="kl">' + k.l + '</div><div class="kv" style="color:' +
             k.c + ';font-size:' + (k.v.length > 10 ? '13px' : '18px') + '">' + k.v + '</div><div class="ks">' + k.s +
@@ -7128,14 +7163,17 @@ function renderDividendos() {
         });
     }
 
+    const fRetTr = round2(divs.reduce((s, d) => s + (d.ret_es_tr || 0), 0)), fDevol = round2(divs.reduce((s, d) => s + (d.devolucion || 0), 0)), fPagar = round2(divs.reduce((s, d) => s + (d.tax_es || 0), 0)), fACuenta = round2(fRetTr + divs.filter(d => d.pais === 'ESP').reduce((s, d) => s + (d.ret_origen || 0), 0)), fSaldo = round2(fPagar - fDevol);
     document.getElementById('fiscal-resumen').innerHTML = [
         ['Bruto cobrado (antes retenciones)', 'bl', fe(tot.bruto)],
         ['Retención en origen (USA 15% / FR 12,8% / ESP 19%)', 'rd', '-' + fe(tot.ret_o)],
-        ['Neto llegado a TR (disponible ya)', 'am', fe(tot.neto_tr)],
+        ['Retención de TR (19 % sobre lo que queda tras el origen)', 'rd', '-' + fe(fRetTr)],
+        ['Neto ingresado por TR', 'am', fe(tot.neto_tr)],
         ['Impuesto español 19% × bruto', 'rd', fe(round2(tot.bruto * 0.19))],
         ['Deducción por doble imposición', 'gn', '-' + fe(tot.dev)],
+        ['Ya retenido en España a cuenta (TR y pagadores españoles)', 'gn', '-' + fe(fACuenta)],
         ['─────────────────', 'mt2', ''],
-        ['A pagar en la declaración', 'rd', '-' + fe(tot.tax_es)],
+        [fSaldo < -0.005 ? 'A recuperar en la declaración' : 'A pagar en la declaración', fSaldo < -0.005 ? 'gn' : 'rd', (fSaldo < -0.005 ? '+' : '-') + fe(Math.abs(fSaldo))],
         ['NETO REAL FINAL', 'gn', fe(tot.real)],
     ].map(([l, c, v]) => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)">' +
         '<span style="font-size:10px;color:var(--mt)">' + l + '</span>' +
@@ -8018,7 +8056,7 @@ function renderAnalisis() {
         const e = eficiencia[d.n];
         e.bruto += d.bruto;
         e.retO += d.ret_origen;
-        e.retES += d.tax_es;
+        e.retES += d.tax_es + (d.ret_es_tr || 0) - (d.devolucion || 0);   // IRPF español neto: lo que paga o se queda Hacienda tras la devolución
         e.real += d.neto_real;
     });
     const tbEf = document.getElementById('tb-eficiencia');
