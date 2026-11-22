@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -8558,15 +8559,15 @@ function precioHistUltimo(isin) {
     return fs.length ? HISTORICO_PRECIOS_POSICIONES_GS[fs[fs.length - 1]][isin] : 0;
 }
 // Precio «rápido» de Getquin (hoja GETQUIN_PRECIOS: se descarga varias veces al día y con el botón ⚡). Devuelve {eur, hora, edadH} si tiene menos de 30 h
-function gqPrecioVivo(isin) {
+function gqPrecioVivo(isin, maxH) {
     const x = (PRECIOS_GQ_GS || []).find(r => r.isin === String(isin || '').trim().toUpperCase());
     if (!x || !(x.eur > 0) || !x.hora) return null;
     const t = new Date(String(x.hora).replace(' ', 'T')).getTime(); if (isNaN(t)) return null;
     const edadH = (Date.now() - t) / 3600000;
-    return edadH <= 30 && edadH > -1 ? { eur: x.eur, hora: x.hora, edadH: Math.max(0, edadH) } : null;
+    return edadH <= (maxH || 30) && edadH > -1 ? { eur: x.eur, hora: x.hora, edadH: Math.max(0, edadH) } : null;
 }
 function auditoriaPrecio(isin, pHoja) {
-    const g = isin ? gqFicha(isin) : null, edad = g ? gqEdadDias(g) : null, vivo = isin ? gqPrecioVivo(isin) : null;
+    const g = isin ? gqFicha(isin) : null, edad = g ? gqEdadDias(g) : null, vivo = isin ? (gqPrecioVivo(isin) || (!(pHoja > 0) ? gqPrecioVivo(isin, 96) : null)) : null;   // sin precio en la hoja vale un Getquin de hasta 4 días (fin de semana, festivos)
     const gq = vivo ? vivo.eur : ((g && g.precio > 0 && edad <= 4) ? g.precio : null), hoja = pHoja > 0 ? pHoja : null;
     const a = { isin, hoja, gq, dif: null, estado: '', usa: 'hoja', motivo: '', edad, gqHora: vivo ? String(vivo.hora).slice(11, 16) : '', gqVivo: !!vivo };
     if (!hoja && !gq) { a.estado = 'sin datos'; return a; }
