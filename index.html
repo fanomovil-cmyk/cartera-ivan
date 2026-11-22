@@ -375,6 +375,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   </div>
   <div class="hdr-r">
     <div class="btn" onclick="recargar()">↻ Refrescar radar</div>
+    <div class="btn" id="btn-precios" title="Pide ahora a Yahoo el precio de cada valor y recarga los datos (≈1 minuto)" onclick="precioAhoraCabecera()">⚡ Actualizar precios</div>
     <div class="btn" id="btn-estado">Sincronizando...</div>
     <div class="btn" onclick="window._radarDetalle = false; radarNadaActualizar(); document.getElementById('focus').classList.toggle('on'); renderSecundariasSiHaceFalta()">📡 Radar</div>
     <div class="btn" title="El radar de siempre, con todo el detalle" onclick="window._radarDetalle = true; radarNadaActualizar(); document.getElementById('focus').classList.add('on'); renderSecundariasSiHaceFalta()">📋 Radar completo</div>
@@ -8561,8 +8562,9 @@ function precioHistUltimo(isin) {
     return fs.length ? HISTORICO_PRECIOS_POSICIONES_GS[fs[fs.length - 1]][isin] : 0;
 }
 // Precio «rápido» de Getquin (hoja GETQUIN_PRECIOS: se descarga varias veces al día y con el botón ⚡). Devuelve {eur, hora, edadH} si tiene menos de 30 h
-// Diferencia máxima entre el precio de Getquin/Yahoo y el de la hoja para darlo por fiable (en %)
-const TOL_FUENTES_PCT = 2;
+// Controles de cordura sobre el precio de Yahoo: más de un 10 % de diferencia con la hoja, o un salto de más del 15 % frente al último cierre guardado, lo ponen en gris.
+// Una diferencia menor con la hoja (que suele ir desfasada) solo sale como aviso en el tooltip.
+const TOL_HOJA_PCT = 10, TOL_SALTO_PCT = 15;
 // Días en que no abre la bolsa (además de sábados y domingos): puentes y festivos comunes de Europa y EE. UU.
 const FESTIVOS_MERCADO = ['2026-12-25', '2027-01-01', '2027-03-26', '2027-03-29', '2027-04-02', '2027-12-24', '2027-12-31'];
 function _diaMercado(d) { const w = d.getDay(); if (w === 0 || w === 6) return false; const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); return FESTIVOS_MERCADO.indexOf(k) < 0; }
@@ -8589,9 +8591,10 @@ function gqPrecioVivo(isin, maxH) {
 function auditoriaPrecio(isin, pHoja) {
     const g = isin ? gqFicha(isin) : null, edad = g ? gqEdadDias(g) : null, vivo = isin ? (gqPrecioVivo(isin) || (!(pHoja > 0) ? gqPrecioVivo(isin, 96) : null)) : null;   // sin precio en la hoja vale un Getquin de hasta 4 días (fin de semana, festivos)
     const gq = vivo ? vivo.eur : ((g && g.precio > 0 && edad <= 4) ? g.precio : null), hoja = pHoja > 0 ? pHoja : null;
-    const a = { aprox: !!(vivo && /~$/.test(vivo.fuente || '')), fuenteGq: vivo ? String(vivo.fuente || '').replace(/~$/, ' (aprox.)') : '', isin, hoja, gq, dif: null, estado: '', usa: 'hoja', motivo: '', edad, gqHora: vivo ? ((String(vivo.hora).slice(0, 10) === new Date().toISOString().slice(0, 10) || String(vivo.hora).slice(0, 10) === _hoyISO()) ? '' : String(vivo.hora).slice(8, 10) + '/' + String(vivo.hora).slice(5, 7) + ' ') + String(vivo.hora).slice(11, 16) : '', gqVivo: !!vivo };
+    const a = { aprox: !!(vivo && /~/.test(vivo.fuente || '')), fuenteGq: vivo ? String(vivo.fuente || '').replace(/ ?~cambio$/, ' (cambio dudoso)').replace(/~$/, ' (aprox.)') : '', isin, hoja, gq, dif: null, estado: '', usa: 'hoja', motivo: '', edad, gqHora: vivo ? ((String(vivo.hora).slice(0, 10) === new Date().toISOString().slice(0, 10) || String(vivo.hora).slice(0, 10) === _hoyISO()) ? '' : String(vivo.hora).slice(8, 10) + '/' + String(vivo.hora).slice(5, 7) + ' ') + String(vivo.hora).slice(11, 16) : '', gqVivo: !!vivo };
     if (!hoja && !gq) { a.estado = 'sin datos'; a.fiable = false; return a; }
-    if (!hoja) { a.estado = 'sin hoja'; a.usa = FUENTE_PRECIO === 'hoja' ? 'hoja' : 'getquin'; a.motivo = 'la hoja no da precio'; a.fiable = a.usa === 'getquin' && a.gq > 0 && !a.aprox && (a.gqVivo ? gqFrescoMercado(vivo.hora) : false); return a; }
+    if (!hoja) { a.estado = 'sin hoja'; a.usa = FUENTE_PRECIO === 'hoja' ? 'hoja' : 'getquin'; a.motivo = 'la hoja no da precio'; { const rc = precioHistUltimo(isin); a.salto = gq > 0 && rc > 0 && Math.abs(gq / rc - 1) > TOL_SALTO_PCT / 100; if (a.salto) a.motivo = (a.motivo ? a.motivo + ' · ' : '') + 'salta más del ' + TOL_SALTO_PCT + ' % frente al último cierre guardado'; }
+        a.fiable = a.usa === 'getquin' && a.gq > 0 && !a.aprox && !a.salto && (a.gqVivo ? gqFrescoMercado(vivo.hora) : false); return a; }
     if (!gq) { a.estado = 'sin Getquin'; a.fiable = FUENTE_PRECIO !== 'auto'; return a; }
     a.dif = (gq / hoja - 1) * 100;
     const gm = g || {}, tol = (gm.mon && gm.mon !== 'EUR') ? 9 : 6, fx = g ? gqFxIndep(g) : null;
@@ -8612,10 +8615,15 @@ function auditoriaPrecio(isin, pHoja) {
     if (FUENTE_PRECIO === 'auto' && a.gqVivo && !bloqueaGq && Math.abs(a.dif) > 0.05 && Math.abs(a.dif) <= 25) { if (a.usa !== 'getquin') { a.usa = 'getquin'; a.motivo = 'Getquin (' + a.gqHora + ') frente a la hoja: ' + (a.dif >= 0 ? '+' : '') + a.dif.toFixed(1).replace('.', ',') + '%'; } }
     if (FUENTE_PRECIO === 'hoja') a.usa = 'hoja'; else if (FUENTE_PRECIO === 'getquin') a.usa = 'getquin';
     // Fiable = sale de Getquin de hoy, o la hoja coincide con él. Si se queda la hoja porque Getquin no sirve (viejo, ausente o dudoso), no es fiable.
-    if (a.aprox && FUENTE_PRECIO === 'auto') a.motivo = (a.motivo ? a.motivo + ' · ' : '') + 'precio aproximado (Getquin solo da el rango del día)';
-    a.discrepa = a.dif !== null && Math.abs(a.dif) > TOL_FUENTES_PCT;   // dos fuentes que difieren más del 2 %: ninguna es de fiar
-    if (a.discrepa && FUENTE_PRECIO === 'auto') a.motivo = (a.motivo ? a.motivo + ' · ' : '') + 'las dos fuentes difieren más del ' + TOL_FUENTES_PCT + ' %';
-    a.fiable = FUENTE_PRECIO !== 'auto' ? true : a.aprox || a.discrepa ? false : (a.usa === 'getquin' ? a.gq > 0 : (a.gqVivo && a.dif !== null && Math.abs(a.dif) <= 0.05));
+    if (a.aprox && FUENTE_PRECIO === 'auto') a.motivo = (a.motivo ? a.motivo + ' · ' : '') + (/cambio/.test(a.fuenteGq) ? 'el tipo de cambio no coincide con una segunda fuente' : 'precio aproximado');
+    a.discrepa = a.dif !== null && Math.abs(a.dif) > TOL_HOJA_PCT;   // control de cordura: más de un 10 % frente a la hoja
+    const refCierre = precioHistUltimo(isin); a.salto = gq > 0 && refCierre > 0 && Math.abs(gq / refCierre - 1) > TOL_SALTO_PCT / 100;   // salto de más del 15 % frente al último cierre guardado
+    if (FUENTE_PRECIO === 'auto') {
+        if (a.discrepa) a.motivo = (a.motivo ? a.motivo + ' · ' : '') + 'difiere más del ' + TOL_HOJA_PCT + ' % de la hoja';
+        if (a.salto) a.motivo = (a.motivo ? a.motivo + ' · ' : '') + 'salta más del ' + TOL_SALTO_PCT + ' % frente al último cierre guardado';
+        if (!a.discrepa && !a.salto && a.dif !== null && Math.abs(a.dif) > 2 && !a.motivo) a.motivo = 'la hoja difiere ' + Math.abs(a.dif).toFixed(1).replace('.', ',') + ' % (aviso: suele ir desfasada)';
+    }
+    a.fiable = FUENTE_PRECIO !== 'auto' ? true : a.aprox || a.discrepa || a.salto ? false : (a.usa === 'getquin' ? a.gq > 0 : (a.gqVivo && a.dif !== null && Math.abs(a.dif) <= 0.05));
     return a;
 }
 // Punto de color junto al precio: verde = precio de Getquin de hoy (o la hoja coincide con él); gris = precio de la hoja de Google sin confirmar
@@ -9525,6 +9533,16 @@ async function gqActualizarPrecios() {
     try { await recargar(); } catch (e) {}
     window._gqMsg = error ? '⚠️ ' + error : '✅ Precios de ' + r.hechos + ' de ' + r.total + ' valores' + (r.sin && r.sin.length ? ' · sin precio: ' + r.sin.slice(0, 6).join(', ') + (r.sin.length > 6 ? '…' : '') : '') + (r.restantes ? ' · quedan ' + r.restantes + ' por pedir: vuelve a pulsar' : '');
     renderRevisionSemestral();
+}
+// Botón de la cabecera: actualiza los precios en cualquier momento (misma función que «⚡ Precios ahora» del panel) y avisa al terminar
+async function precioAhoraCabecera() {
+    const b = document.getElementById('btn-precios'); if (!b || window._gqBusy) return;
+    const txt = b.textContent; b.textContent = '⏳ Actualizando precios…'; b.style.opacity = '.6'; b.style.pointerEvents = 'none';
+    try { await gqActualizarPrecios(); } catch (e) { window._gqMsg = '⚠️ ' + (e && e.message || 'error'); }
+    b.textContent = txt; b.style.opacity = ''; b.style.pointerEvents = '';
+    const m = String(window._gqMsg || ''), mal = /^⚠/.test(m);
+    try { notificar(mal ? '⚠️ Precios sin actualizar' : '⚡ Precios actualizados', m.replace(/^(✅|⚠️)\s*/, ''), mal ? 'warn' : 'success'); } catch (e) {}
+    try { radarNadaActualizar(); } catch (e) {}
 }
 async function gqActualizar() {
     if (window._gqBusy) return;
