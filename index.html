@@ -961,6 +961,10 @@ function _expHoraPrecio(a, isin) { if (!_expEsRapido(a)) return ''; const x = (P
 // fiable solo si el precio viene de Yahoo/Getquin de la última sesión CON hora: un precio de la hoja sin hora nunca lo es
 function _expInfoPrecio(a, isin, pr) { const fuente = _expFuente(a), hora = _expHoraPrecio(a, isin); return { fuente, hora, fiable: !!(pr > 0 && a && a.fiable && fuente !== 'HOJA' && hora) }; }
 function _expExcluidos() { let v = null; try { v = localStorage.getItem('export_excluir'); } catch (e) {} return String(v === null ? 'Nvidia' : v).split(',').map(x => x.trim()).filter(Boolean); }   // Nvidia (vendida) viene excluida de serie; se cambia en el cuadro del botón
+function _expAjustes() { // ajustes manuales de acciones solo para el export: «ISIN;acciones» por línea (p. ej. US45841N1072;4.28)
+    const m = {}; try { String(localStorage.getItem('export_ajustes') || '').split('\n').forEach(l => { const p = l.split(';'); const i = (p[0] || '').trim().toUpperCase(), v = Number(String(p[1] || '').replace(',', '.')); if (i && v > 0) m[i] = v; }); } catch (e) {}
+    return m;
+}
 function _expLiqManual() { try { return String(localStorage.getItem('export_liquidez') || ''); } catch (e) { return ''; } }
 function _expLiquidez() { // [{c, imp, venc, rent, manual}]
     const out = [], hoy = _hoyISO();
@@ -978,12 +982,13 @@ function exportarAnalisisConstruir(desdeISO) {
     const d24 = new Date(ahora.getFullYear(), ahora.getMonth() - 24, ahora.getDate()), desdeDiv = explicita ? desdeISO : d24.getFullYear() + '-' + _pad2(d24.getMonth() + 1) + '-' + _pad2(d24.getDate());
     if (!explicita) desdeISO = ahora.getFullYear() + '-01-01';   // operaciones: por defecto solo el año en curso; dividendos: 24 meses
     const excl = _expExcluidos(), esExcl = (n, i) => excl.some(x => x && (String(i || '').toUpperCase() === x.toUpperCase() || String(n || '').toLowerCase().indexOf(x.toLowerCase()) >= 0));
-    const pos = posicionesVivas().filter(p => p.sh > 0.0001 && !esExcl(p.n, p.isin)), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0), tot1 = total || 1;
+    const ajustes = _expAjustes(), ajustados = [];
+    const pos = posicionesVivas().filter(p => p.sh > 0.0001 && !esExcl(p.n, p.isin)).map(p => { const v = ajustes[String(p.isin || '').toUpperCase()]; if (!v || Math.abs(v - p.sh) < 1e-9) return p; ajustados.push((String(p.isin).toUpperCase()) + '(' + _expN(v - p.sh, 4) + ')'); return Object.assign({}, p, { sh: v, ct: p.ct + (v - p.sh) * p.pm }); }), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0), tot1 = total || 1;
     // valores ya vendidos del todo (hay venta en operaciones cerradas y ya no quedan acciones): fuera de POSICIONES y de TRAMPAS
     const vendidas = new Set(); (OPERACIONES_CERRADAS || []).forEach(o => { const i = String(o.isin || '').toUpperCase(); if (i && !pos.some(p => p.isin && esMismoISIN(p.isin, i))) vendidas.add(i); });
     const valP = p => (precioDe(p) || 0) * p.sh;
     const sectVal = {}; pos.forEach(p => { const k = esEtfPos(p) ? 'ETF' : sectorBase(p.sector); sectVal[k] = (sectVal[k] || 0) + valP(p); });
-    const liq = _expLiquidez(), liqTotal = liq.reduce((t, x) => t + x.imp, 0), liqInmediata = liq.filter(x => x.cash).reduce((t, x) => t + x.imp, 0), hayLiq = liq.length > 0, hayCash = liq.some(x => x.cash);
+    const liq = _expLiquidez(), liqTotal = liq.reduce((t, x) => t + x.imp, 0), liqInmediata = liq.filter(x => x.cash).reduce((t, x) => t + x.imp, 0), hayLiq = liq.length > 0, hayCash = liq.some(x => x.cash), liqLibre = liqInmediata - C.RESERVA_PANICO;
     const S = {}, orden = ['RESUMEN', 'POSICIONES', 'TRAMPAS', 'OPERACIONES', 'DIVIDENDOS', 'SECTORES', 'EXPOSICION', 'LIQUIDEZ', 'CALIDAD_DATOS', 'REGLAS'];
     const cols = {
         RESUMEN: ['clave', 'valor'],
@@ -1013,7 +1018,7 @@ function exportarAnalisisConstruir(desdeISO) {
         if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin)) calidad.push(['ISIN_RARO', isin, '', _expTxt(p.n, 24) + (isin ? ' formato' : ' vacio')]);
     });
     // ── TRAMPAS
-    let nTramp = 0, nCerca = 0; const capTodas = (TRAMPAS_GS || []).reduce((t, r) => t + (cn(r[7]) > 0 && !esExcl(r[0], r[15]) ? cn(r[7]) : 0), 0), capSec = {};
+    let nTramp = 0, nCerca = 0, capOrdenes = 0; const capTodas = (TRAMPAS_GS || []).reduce((t, r) => t + (cn(r[7]) > 0 && !esExcl(r[0], r[15]) ? cn(r[7]) : 0), 0), capSec = {};
     const secDeTrampa = (r, isin) => { const p = pos.find(x => (isin && String(x.isin || '').toUpperCase() === isin) || x.n === r[0] || x.n === (MAP[r[0]] || r[0])); if (p) return esEtfPos(p) ? 'ETF' : sectorBase(p.sector); if (_expEsEtfNombre(r[0])) return 'ETF'; const m = String(r[19] || '').trim(); return m ? sectorBase(m) : null; };
     const trExcluidas = [], trVendidas = [];
     (TRAMPAS_GS || []).forEach(r => {
@@ -1028,9 +1033,10 @@ function exportarAnalisisConstruir(desdeISO) {
         if (falta !== null && falta <= 0) al.push('TOCADA'); else if (falta !== null && falta <= 2) al.push('CERCA2'); if (!fiable) al.push('PRECIO_DUDOSO');
         if (falta !== null && falta <= 2) nCerca++; nTramp++;
         if (k && cap > 0) capSec[k] = (capSec[k] || 0) + cap;
+        if (r[11] === true && cap > 0) capOrdenes += cap;
         const dias = (typeof diasDesde === 'function' && r[13]) ? diasDesde(r[13]) : '';
         R('TRAMPAS', [isin, _expTicker(isin), _expTxt(r[1], 12), _expTxt(r[2], 3), tipo, tr > 0 ? _expN(tr, 4) : '', pr > 0 ? _expN(pr, 4) : '', dist === '' ? '' : _expN(dist, 2), _expN(cn(r[6]), 4), cap > 0 ? _expN(cap, 0) : '', r[11] === true ? '1' : '0', (dias === '' || dias == null || isNaN(dias)) ? '' : _expN(dias, 0),
-            mr.min > 0 ? _expN(mr.min, 4) : '', mr.max > 0 ? _expN(mr.max, 4) : '', cap > 0 ? _expN((val + cap) / (total + cap) * 100, 2) : '', (cap > 0 && k) ? _expN(((sectVal[k] || 0) + cap) / (total + cap) * 100, 2) : '', (hayCash && cap > 0) ? _expN(liqInmediata - cap, 0) : '',
+            mr.min > 0 ? _expN(mr.min, 4) : '', mr.max > 0 ? _expN(mr.max, 4) : '', cap > 0 ? _expN((val + cap) / (total + cap) * 100, 2) : '', (cap > 0 && k) ? _expN(((sectVal[k] || 0) + cap) / (total + cap) * 100, 2) : '', (hayCash && cap > 0) ? _expN(liqLibre - cap, 0) : '',
             fiable ? '1' : '0', mot.join('+'), al.join('+')]);
         if (!fiable && !(PRECIO_AUD[isin] && filasPos.some(f => f.isin === isin))) calidad.push(['PRECIO_NO_FIABLE', isin, _expTicker(isin), 'trampa ' + (mot.join('+') || 'VIEJO') + ' ' + _expTxt(r[0], 24)]);
         if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin) && !(isin && filasPos.some(f => f.isin === isin))) calidad.push(['ISIN_RARO', isin, '', 'trampa ' + _expTxt(r[0], 24) + (isin ? ' formato' : ' vacio')]);
@@ -1041,20 +1047,24 @@ function exportarAnalisisConstruir(desdeISO) {
     (OPERACIONES_CERRADAS || []).forEach(o => ops.push({ f: String(o.fecha || '').slice(0, 10), isin: String(o.isin || '').toUpperCase(), t: 'V', acc: o.acciones, pr: o.pVenta, com: '', imp: o.ingreso, fifo: o.coste, gp: o.gp, raw: o }));
     const anio = String(ahora.getFullYear()), gpAnio = (OPERACIONES_CERRADAS || []).filter(o => String(o.fecha).startsWith(anio)).reduce((t, o) => t + o.gp, 0), gpPos = (OPERACIONES_CERRADAS || []).filter(o => String(o.fecha).startsWith(anio) && o.gp > 0).reduce((t, o) => t + o.gp, 0);
     let impAnio = 0; try { impAnio = gpAnio > 0 ? impuestoMarginalGanancia(Math.max(0, calcularBaseAhorroAnual() - gpPos), gpAnio) : 0; } catch (e) { impAnio = gpAnio > 0 ? gpAnio * 0.19 : 0; }
-    // compras del mismo día, valor y sentido → una línea (suma de acciones, precio medio); las ventas siguen una a una con su coste FIFO
+    // Por defecto: ventas del año completo + compras de los últimos 60 días. Con «desde» manda esa fecha para todo.
+    const d60 = new Date(ahora.getTime() - 60 * 86400000), desdeCompras = explicita ? desdeISO : d60.getFullYear() + '-' + _pad2(d60.getMonth() + 1) + '-' + _pad2(d60.getDate()), desdeVentas = desdeISO;
+    const enVentana = o => o.t === 'V' ? o.f >= desdeVentas : o.f >= desdeCompras;
+    // compras repetidas de verdad: misma fecha, valor, acciones, precio, comisión E importe
     const vistas = {}, dups = [];
-    ops.filter(o => o.f >= desdeISO && o.t === 'C').forEach(o => { const k = [o.f, o.isin, Number(o.acc).toFixed(4), Number(o.pr).toFixed(4), Number(o.com).toFixed(2)].join('|'); if (vistas[k]) dups.push(o); vistas[k] = 1; });
+    ops.filter(o => o.t === 'C' && enVentana(o)).forEach(o => { const k = [o.f, o.isin, Number(o.acc).toFixed(4), Number(o.pr).toFixed(4), Number(o.com).toFixed(2), Number(o.imp).toFixed(2)].join('|'); if (vistas[k]) dups.push(o); vistas[k] = 1; });
+    // mismo día + valor + sentido → una línea: acciones sumadas y precio medio PONDERADO por las acciones de cada operación (no importe/acciones)
     const grup = {}, lista = []; let tecnicas = 0;
-    ops.filter(o => o.f >= desdeISO).forEach(o => {
+    ops.filter(enVentana).forEach(o => {
         if (o.t === 'C' && (Number(o.imp) || 0) <= C.MAX_IMPORTE_TECNICO) { tecnicas++; return; }   // planes técnicos / saveback de ≤ 1 €
-        const k = o.t + '|' + o.f + '|' + o.isin, g = grup[k];
-        if (!g) { const n = { f: o.f, isin: o.isin, t: o.t, acc: Number(o.acc) || 0, imp: Number(o.imp) || 0, com: o.com === '' ? '' : (Number(o.com) || 0), fifo: o.fifo === '' ? '' : (Number(o.fifo) || 0), gp: o.gp === '' ? '' : (Number(o.gp) || 0) }; grup[k] = n; lista.push(n); }
-        else { g.acc += Number(o.acc) || 0; g.imp += Number(o.imp) || 0; if (g.com !== '') g.com += Number(o.com) || 0; if (g.fifo !== '') g.fifo += Number(o.fifo) || 0; if (g.gp !== '') g.gp += Number(o.gp) || 0; }
+        const k = o.t + '|' + o.f + '|' + o.isin, g = grup[k], a = Number(o.acc) || 0, px = a * (Number(o.pr) || 0);
+        if (!g) { const n = { f: o.f, isin: o.isin, t: o.t, acc: a, px, imp: Number(o.imp) || 0, com: o.com === '' ? '' : (Number(o.com) || 0), fifo: o.fifo === '' ? '' : (Number(o.fifo) || 0), gp: o.gp === '' ? '' : (Number(o.gp) || 0) }; grup[k] = n; lista.push(n); }
+        else { g.acc += a; g.px += px; g.imp += Number(o.imp) || 0; if (g.com !== '') g.com += Number(o.com) || 0; if (g.fifo !== '') g.fifo += Number(o.fifo) || 0; if (g.gp !== '') g.gp += Number(o.gp) || 0; }
     });
-    lista.forEach(o => { o.pr = o.acc > 0 ? o.imp / o.acc : 0; });
+    lista.forEach(o => { o.pr = o.acc > 0 ? o.px / o.acc : 0; });
     lista.sort((a, b) => b.f.localeCompare(a.f)).forEach(o => R('OPERACIONES', [o.f, o.isin, _expTicker(o.isin), o.t, _expN(o.acc, 4), _expN(o.pr, 4), o.com === '' ? '' : _expN(o.com, 2), _expN(o.imp, 2), o.fifo === '' ? '' : _expN(o.fifo, 2), o.gp === '' ? '' : _expN(o.gp, 2),
         (o.t === 'V' && o.f.startsWith(anio) && gpAnio > 0) ? _expN(o.gp * impAnio / gpAnio, 2) : '']));
-    dups.forEach(o => calidad.push(['OPERACION_REPETIDA', o.isin, _expTicker(o.isin), o.f + ' ' + _expN(o.acc, 4) + ' acc a ' + _expN(o.pr, 2)]));
+    dups.forEach(o => calidad.push(['OPERACION_REPETIDA', o.isin, _expTicker(o.isin), o.f + ' ' + _expN(o.acc, 4) + ' acc a ' + _expN(o.pr, 4) + ' importe ' + _expN(o.imp, 2)]));
     // ── DIVIDENDOS
     const divs = (divsEnVivo() || []).map(d => ({ f: _expFechaDMA(d.f), d })).filter(x => x.f && x.f >= desdeDiv).sort((a, b) => b.f.localeCompare(a.f));
     divs.forEach(({ f, d }) => R('DIVIDENDOS', ['COB', '', f, 'REAL', String(d.isin || '').toUpperCase(), _expTicker(d.isin), _expN(d.bruto, 2), _expN(d.ret_origen, 2), _expN(d.ret_es_tr, 2), _expN(d.neto_final, 2), _expN(d.devolucion, 2), _expN(d.neto_real, 2)]));
@@ -1083,11 +1093,13 @@ function exportarAnalisisConstruir(desdeISO) {
     if (trExcluidas.length) calidad.push(['TRAMPA_EXCLUIDA', '', trExcluidas.join(','), 'omitidas en este export por la lista de exclusion; borralas de la hoja TRAMPAS si ya no las quieres']);
     if (trVendidas.length) calidad.push(['TRAMPA_DE_VALOR_VENDIDO', '', trVendidas.join(','), 'trampa de un valor que ya no tienes (se mantiene como vigilancia para recomprar)']);
     { const net = {}; (COMPRAS_DETALLE_GS || []).forEach(c => { const i = String(c.isin || '').toUpperCase(); net[i] = (net[i] || 0) + (Number(c.acciones) || 0); }); (OPERACIONES_CERRADAS || []).forEach(o => { const i = String(o.isin || '').toUpperCase(); net[i] = (net[i] || 0) - (Number(o.acciones) || 0); });
-      filasPos.forEach(({ p, isin }) => { if (isin && net[isin] !== undefined && Math.abs(net[isin] - p.sh) > 0.011) calidad.push(['ACCIONES_NO_CUADRAN', isin, _expTicker(isin), _expTxt(p.n, 14) + ' posicion ' + _expN(p.sh, 4) + ' vs operaciones ' + _expN(net[isin], 4)]); }); }
+      filasPos.forEach(({ p, isin }) => { if (isin && net[isin] !== undefined && Math.abs(p.sh - net[isin]) > 0.02) { const df = p.sh - net[isin]; calidad.push(['ACCIONES_NO_CUADRAN', isin, (_expTicker(isin) || _expTxt(p.n, 10)) + '(' + (df > 0 ? '+' : '') + _expN(df, 4) + ')', _expTxt(p.n, 14) + ' pos ' + _expN(p.sh, 4) + ' ops ' + _expN(net[isin], 4)]); } }); }
+    if (ajustados.length) calidad.push(['AJUSTE_MANUAL_ACCIONES', '', ajustados.join(','), 'acciones corregidas a mano en el export (la hoja CARTERA sigue con el valor antiguo)']);
     const gc = {}; calidad.forEach(c => { const x = gc[c[0]] = gc[c[0]] || { n: 0, t: [], d: [] }; x.n++; const t = c[2] || c[1] || _expTxt(c[3], 12); if (x.t.indexOf(t) < 0) x.t.push(t); if (x.d.length < 3) x.d.push(c[3]); });
-    Object.keys(gc).forEach(k => R('CALIDAD_DATOS', [k, gc[k].n, gc[k].t.slice(0, 30).join(','), gc[k].n > 3 ? 'ver lista' : gc[k].d.join(' / ')]));
+    const DESC = { PRECIO_NO_FIABLE: 'precio sin fuente fresca con hora', GETQUIN_VIEJO: 'ficha Getquin de mas de 3 dias', ACCIONES_NO_CUADRAN: 'entre parentesis posicion menos operaciones', ISIN_RARO: 'formato de ISIN no valido', REVISION_VENCIDA: 'revision semestral vencida' };
+    Object.keys(gc).forEach(k => R('CALIDAD_DATOS', [k, gc[k].n, gc[k].t.slice(0, 40).join(','), gc[k].n > 2 && DESC[k] ? DESC[k] : gc[k].d.join(' / ')]));
     // ── REGLAS
-    [['tope_valor_pct', C.MAX_PESO_ACCION], ['excepcion_tope_valor', 'Realty Income'], ['tope_sector_pct', C.MAX_PESO_SECTOR], ['techo_duro_trampa_sector_pct', 30], ['tope_especulativa_eur', 1000], ['revision_meses', 6],
+    [['tope_valor_pct', C.MAX_PESO_ACCION], ['excepcion_tope_valor', 'Realty Income'], ['tope_sector_pct', C.MAX_PESO_SECTOR], ['techo_duro_trampa_sector_pct', 30], ['tope_especulativa_eur', C.TOPE_ESPECULATIVA_EUR], ['reserva_panico', C.RESERVA_PANICO], ['revision_meses', 6],
         ['radar_verde_si', 'nada a menos de 2% de trampa; sin trampa tocada; sin revision vencida; sin alerta critica; sin precio dudoso']].forEach(x => R('REGLAS', x));
     // ── RESUMEN
     let rad = 'GRIS'; try { const e = radarEvaluar().estado; rad = e === 'verde' ? 'VERDE' : e === 'lista' ? 'ROJO' : 'GRIS'; } catch (e) {}
@@ -1096,13 +1108,13 @@ function exportarAnalisisConstruir(desdeISO) {
     try { const pv = calcularPrevisionDividendosAnual(), s = a => (a || []).reduce((t, v) => t + v, 0); netoMes = (s(pv.previstosNeto) + s(pv.previstosDevolucion)) / 12; } catch (e) {}
     const usd = (GETQUIN_GS || []).find(g => g.mon === 'USD' && g.fx > 0) || (PRECIOS_GQ_GS || []).find(g => g.mon === 'USD' && g.fx > 0);
     [['generado', _expIso(ahora)], ['eurusd', usd ? _expN(1 / usd.fx, 4) : ''], ['valor_total', _expN(total, 2)], ['n_posiciones', pos.length], ['n_trampas', nTramp], ['trampas_a_2pct_o_menos', nCerca], ['radar', rad], ['n_precios_no_fiables', noFiab.size], ['precios_por_fuente', (() => { const c = {}; filasPos.forEach(x => { if (x.pr > 0) { const f = _expInfoPrecio(x.a, x.isin, x.pr).fuente; c[f] = (c[f] || 0) + 1; } }); return Object.keys(c).map(k => k + '=' + c[k]).join(' '); })()],
-        ['dividendo_anual_bruto', _expN(divAnual, 2)], ['dividendo_mes_bruto', _expN(divAnual / 12, 2)], ['dividendo_mes_neto_real', netoMes === '' ? '' : _expN(netoMes, 2)], ['ganancia_realizada_ano', _expN(gpAnio, 2)], ['impuesto_estimado_ano', _expN(impAnio, 2)], ['liquidez_total', hayLiq ? _expN(liqTotal, 2) : ''], ['liquidez_inmediata', hayCash ? _expN(liqInmediata, 2) : ''],
-        ['ops_tecnicas_omitidas', tecnicas], ['desde_operaciones', desdeISO], ['desde_dividendos', desdeDiv]].forEach(x => R('RESUMEN', x));
+        ['dividendo_anual_bruto', _expN(divAnual, 2)], ['dividendo_mes_bruto', _expN(divAnual / 12, 2)], ['dividendo_mes_neto_real', netoMes === '' ? '' : _expN(netoMes, 2)], ['ganancia_realizada_ano', _expN(gpAnio, 2)], ['impuesto_estimado_ano', _expN(impAnio, 2)], ['liquidez_total', hayLiq ? _expN(liqTotal, 2) : ''], ['liquidez_inmediata', hayCash ? _expN(liqInmediata, 2) : ''], ['reserva_panico', C.RESERVA_PANICO], ['liquidez_libre', hayCash ? _expN(liqLibre, 2) : ''], ['capital_ordenes_activas', _expN(capOrdenes, 0)],
+        ['ops_tecnicas_omitidas', tecnicas], ['desde_ventas', desdeVentas], ['desde_compras', desdeCompras], ['desde_dividendos', desdeDiv]].forEach(x => R('RESUMEN', x));
     // ── Montaje
     const L = ['LEEME;version=' + EXPORT_VERSION + ';generado=' + _expIso(ahora) + ';moneda=EUR'];
     orden.forEach(k => L.push('LEEME;' + k + ';' + cols[k].join(';')));
     L.push('LEEME;FORMATO;separador ;  decimal punto  porcentajes en % (12.3 = 12,3%)  importes EUR  vacio = sin dato  fiable 0/1  orden 0/1  fechas ISO (hora de Madrid)');
-    L.push('LEEME;NOTAS;precio y p_medio en EUR; dist_trampa_pct=(trampa-precio)/precio*100 (negativo = precio aun por encima de la trampa; 0 o mas = tocada) y vacia si fiable=0; trampas_a_2pct_o_menos cuenta las que faltan 2% o menos del precio o ya tocadas; liquidez_total = efectivo TR + cuentas manuales + depositos; liquidez_inmediata = sin depositos (es la base de liquidez_tras_compra); sector ETF agrupa los ETF; CALIDAD_DATOS: una linea por codigo (n = recuento); OPERACIONES: compras del mismo dia y valor agrupadas (precio medio) con la comision sumada, ventas una a una con coste FIFO; impuesto_est reparte el impuesto del ano entre las ventas');
+    L.push('LEEME;NOTAS;precio y p_medio en EUR; dist_trampa_pct=(trampa-precio)/precio*100 (negativo = precio aun por encima de la trampa; 0 o mas = tocada) y vacia si fiable=0; trampas_a_2pct_o_menos cuenta las que faltan 2% o menos del precio o ya tocadas; liquidez_total = efectivo TR + cuentas manuales + depositos; liquidez_inmediata = sin depositos; liquidez_libre = liquidez_inmediata - reserva_panico y es la base de liquidez_tras_compra; capital_ordenes_activas = suma de capital_orden con orden=1; sector ETF agrupa los ETF; CALIDAD_DATOS: una linea por codigo (n = recuento); OPERACIONES: compras del mismo dia y valor agrupadas (precio medio) con la comision sumada, ventas una a una con coste FIFO; impuesto_est reparte el impuesto del ano entre las ventas');
     L.push('LEEME;MOTIVOS;SIN_PRECIO VIEJO APROX CAMBIO SALTO DIF_HOJA (fiable=1 exige fuente YAHOO o GETQUIN de la ultima sesion con hora_precio; un precio de la hoja sin hora nunca es fiable)');
     L.push('LEEME;ALERTA;OK=sin avisos; OJO=vigilar (dividendo justo o sin cubrir, analistas en contra, o la compra cruza el tope de sector 25% sin pasar de 30%); NO=no comprar sin revisar (recorte de dividendo, valor sobre su tope de 12% salvo Realty, sector que ya superaba 25% y crece, o que pasaria de 30%); ND=ETF o sin datos suficientes; sufijos: TOCADA=precio en o bajo la trampa, CERCA2=faltan 2% o menos, PRECIO_DUDOSO=fiable 0');
     orden.forEach(k => { L.push('', '#SECCION;' + k, cols[k].join(';')); S[k].forEach(f => L.push(f.join(';'))); });
@@ -1121,18 +1133,19 @@ function exportarAnalisis() { // diálogo: fecha «desde» y líneas de liquidez
     const m = document.createElement('div'); m.id = 'exp-an-modal'; m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
     m.innerHTML = '<div style="background:var(--bg2,#1a1d26);border:1px solid var(--bd,#333);border-radius:12px;padding:18px;max-width:460px;width:100%;font-size:12px;line-height:1.5">' +
         '<div style="font-weight:700;font-size:14px;margin-bottom:8px">📤 Exportar para análisis</div>' +
-        '<label>Desde (vacío = operaciones: año en curso; dividendos: 24 meses)<br><input type="date" id="exp-an-desde" value="' + def + '" style="margin:4px 0 10px;padding:5px;width:100%"></label>' +
+        '<label>Desde (vacío = ventas del año + compras de 60 días; dividendos: 24 meses)<br><input type="date" id="exp-an-desde" value="' + def + '" style="margin:4px 0 10px;padding:5px;width:100%"></label>' +
         '<label>Liquidez (una línea por cuenta: concepto;importe;vencimiento AAAA-MM-DD;rentabilidad %)<br><textarea id="exp-an-liq" rows="4" placeholder="CUENTA_TR;5000;;2.0" style="margin:4px 0 10px;padding:5px;width:100%;font-family:monospace;font-size:11px"></textarea></label>' +
+        '<label>Ajustar acciones solo en este export (una línea por valor: ISIN;acciones)<br><textarea id="exp-an-adj" rows="2" placeholder="US45841N1072;4.28" style="margin:4px 0 10px;padding:5px;width:100%;font-family:monospace;font-size:11px"></textarea></label>' +
         '<label>Excluir valores (nombre o ISIN, separados por comas; opcional)<br><input type="text" id="exp-an-excl" placeholder="p. ej. Nvidia" style="margin:4px 0 10px;padding:5px;width:100%"></label>' +
         '<div style="color:var(--mt,#888);font-size:10px;margin-bottom:10px">Posiciones y trampas van siempre completas (salvo valores ya vendidos y los que excluyas). Se guarda la liquidez para la próxima vez.</div>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="exp-an-no">Cancelar</button><button class="btn ac" id="exp-an-ok">Descargar .txt</button></div></div>';
     document.body.appendChild(m);
-    try { document.getElementById('exp-an-liq').value = _expLiqManual(); document.getElementById('exp-an-excl').value = _expExcluidos().join(', '); } catch (e) {}
+    try { document.getElementById('exp-an-liq').value = _expLiqManual(); document.getElementById('exp-an-excl').value = _expExcluidos().join(', '); document.getElementById('exp-an-adj').value = (function () { try { return localStorage.getItem('export_ajustes') || ''; } catch (e) { return ''; } })(); } catch (e) {}
     m.onclick = ev => { if (ev.target === m) m.remove(); };
     document.getElementById('exp-an-no').onclick = () => m.remove();
     document.getElementById('exp-an-ok').onclick = () => {
         const v = document.getElementById('exp-an-desde').value, liq = document.getElementById('exp-an-liq').value;
-        try { localStorage.setItem('export_liquidez', liq); localStorage.setItem('export_excluir', document.getElementById('exp-an-excl').value); } catch (e) {}
+        try { localStorage.setItem('export_liquidez', liq); localStorage.setItem('export_excluir', document.getElementById('exp-an-excl').value); localStorage.setItem('export_ajustes', document.getElementById('exp-an-adj').value); } catch (e) {}
         m.remove(); exportarAnalisisDescargar(v);
     };
 }
@@ -4483,6 +4496,8 @@ const GOTEO_FILAS_ESPECIALES = ['TASA_REFERENCIA', 'PRESUPUESTO_MES', 'PRESUPUES
 const GOTEO_CFG = {
     MAX_PESO_ACCION: 12,            // % máx. de la cartera en una sola acción
     MAX_PESO_SECTOR: 25,            // % máx. de la cartera en un sector
+    TOPE_ESPECULATIVA_EUR: 1000,    // una especulativa por encima de esto (valor actual + capital de la trampa) es «OJO»
+    RESERVA_PANICO: 30000,          // liquidez que no se toca para comprar
     TECHO_SECTOR_TRAMPA: 30,        // techo duro: una trampa que lleve el sector por encima de este % es «NO»
     DIST_TRAMPA_CRECIMIENTO: 5,     // valores de crecimiento: solo si están a ≤ este % de su trampa
     MARGEN_YIELD_RENTA: 2.5,        // valores de renta: yield ≥ tasa de referencia + este margen
@@ -6630,8 +6645,9 @@ function analisisTrampa(r) {
     const mia = pos.find(p => p.isin && esMismoISIN(p.isin, isin)), valor = mia ? (precioDe(mia) || 0) * mia.sh : 0;
     if (cap > 0) {
         const pesoDesp = (valor + cap) / (total + cap) * 100;
-        if (pesoDesp > C.MAX_PESO_ACCION && isin !== 'US7561091049') { peor(valor / total * 100 > C.MAX_PESO_ACCION ? 'no' : 'ojo'); m.push(['w', 'Tras comprar pesarías ' + pc1(pesoDesp) + '% (tope ' + C.MAX_PESO_ACCION + '%): reduce el capital de la trampa']); }   // Realty Income tiene aceptado un peso mayor
+        if (pesoDesp > C.MAX_PESO_ACCION && isin !== 'US7561091049') { peor('no'); m.push(['w', 'Tras comprar pesarías ' + pc1(pesoDesp) + '% (tope ' + C.MAX_PESO_ACCION + '%): reduce el capital de la trampa']); }   // Realty Income tiene aceptado un peso mayor
     }
+    if (/ESPEC/i.test(String(r[1] || '')) && valor + cap > C.TOPE_ESPECULATIVA_EUR) { peor('ojo'); m.push(['w', 'Especulativa: tendrías ' + Math.round(valor + cap) + ' € (tope ' + C.TOPE_ESPECULATIVA_EUR + ' €)']); }
     if (cap > 0) {   // sector: por encima del tope (25 %) → ojo si lo cruza esta compra; no si el sector ya lo superaba o llega al techo duro (30 %)
         const ps = pesoSectorTrampa(r), TOPE = GOTEO_CFG.MAX_PESO_SECTOR, TECHO = GOTEO_CFG.TECHO_SECTOR_TRAMPA || 30;
         if (ps && ps.despues > TOPE) {
