@@ -381,6 +381,7 @@ html.light .badge-orden.venta{color:#B33A3A}
     <div class="btn" title="El radar de siempre, con todo el detalle" onclick="window._radarDetalle = true; radarNadaActualizar(); document.getElementById('focus').classList.add('on'); renderSecundariasSiHaceFalta()">📋 Radar completo</div>
     <div style="width:24px"></div>
     <div class="btn" onclick="exportarCSV()">📥 Exportar</div>
+        <div class="btn" onclick="exportarAnalisis()" title="Un .txt con todo para pasárselo a otro chat de análisis">📤 Exportar para análisis</div>
     <div class="btn" onclick="generarInformeMensual()">📄 Informe PDF</div>
     <div class="btn" onclick="toggleDark()">🌓</div>
   </div>
@@ -917,6 +918,188 @@ function exportarCSV() {
     link.href = URL.createObjectURL(blob);
     link.download = 'cartera_export_' + new Date().toISOString().slice(0, 10) + '.csv';
     link.click();
+}
+
+// ══════════ EXPORTAR PARA ANÁLISIS: un único .txt con secciones CSV (;) pensado para pegarlo o adjuntarlo a otro chat ══════════
+// Formato: UTF-8 sin BOM, LF, punto decimal, sin separador de miles, porcentajes en unidades de % (12.3 = 12,3 %), importes en EUR, vacío = sin dato.
+const EXPORT_VERSION = 1;
+function _expTxt(s, max) { // texto seguro: sin ; comillas saltos de línea ni emojis
+    let t = String(s == null ? '' : s).replace(/[\p{Extended_Pictographic}️‍]/gu, '').replace(/[;"'“”‘’`]/g, ' ').replace(/[\r\n\t|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return max ? t.slice(0, max).trim() : t;
+}
+function _expN(v, k) { if (v === '' || v == null || typeof v === 'boolean') return ''; const n = Number(v); if (!isFinite(n)) return ''; return String(+n.toFixed(k == null ? 2 : k)); }
+function _expOffsetMin(d) { // minutos de desfase de Europa/Madrid en ese instante
+    const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(d.getTime() / 1000) * 1000) / 60000);
+}
+function _expIso(d) { // Date → 2026-11-23T17:30+01:00 (hora de Madrid)
+    const off = _expOffsetMin(d), t = new Date(d.getTime() + off * 60000), s = t.toISOString().slice(0, 16), a = Math.abs(off);
+    return s + (off >= 0 ? '+' : '-') + _pad2(Math.floor(a / 60)) + ':' + _pad2(a % 60);
+}
+function _expIsoTexto(txt) { // 'YYYY-MM-DD HH:MM[:SS]' (hora de Madrid) → ISO con zona; si solo hay fecha, se deja la fecha
+    const m = String(txt || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/); if (!m) return '';
+    if (m[4] === undefined) return m[1] + '-' + m[2] + '-' + m[3];
+    const off = _expOffsetMin(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]))), a = Math.abs(off);
+    return m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5] + (off >= 0 ? '+' : '-') + _pad2(Math.floor(a / 60)) + ':' + _pad2(a % 60);
+}
+function _expFechaDMA(f) { const m = String(f || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? m[3] + '-' + _pad2(m[2]) + '-' + _pad2(m[1]) : ''; }
+function _expDivisa(isin) { const c = String(isin || '').slice(0, 2).toUpperCase(); return c === 'US' ? 'USD' : c === 'CH' ? 'CHF' : c === 'GB' ? 'GBP' : isin ? 'EUR' : ''; }
+function _expTicker(isin) { const x = (PRECIOS_GQ_GS || []).find(r => r.isin === String(isin || '').toUpperCase()), m = x ? String(x.fuente || '').match(/yahoo\s+([A-Za-z0-9.\-^=]+)/i) : null; return m ? m[1].toUpperCase() : ''; }
+function _expIsinAlt(isin) { const k = Object.keys(ISIN_ALIAS || {}).find(a => ISIN_ALIAS[a] === isin); return k || ''; }
+function _expEsEtfNombre(n) { return /ETF|MSCI|FTSE|ISHARES|AMUNDI|VANGUARD|UCITS|ALL.?WORLD|ALL.?CAP|\((DIS|ACC|DIST)\)|CORE /i.test(String(n || '')); }
+function _expMotivos(a, precio) { // códigos: SIN_PRECIO, VIEJO, APROX, CAMBIO, SALTO, DIF_HOJA
+    const c = []; if (!(precio > 0)) c.push('SIN_PRECIO');
+    if (!a) { if (!c.length) c.push('VIEJO'); return c; }
+    if (a.aprox) c.push(/cambio/.test(a.fuenteGq || '') ? 'CAMBIO' : 'APROX');
+    if (a.salto) c.push('SALTO'); if (a.discrepa) c.push('DIF_HOJA');
+    if (!a.fiable && !c.length) c.push('VIEJO');
+    return c;
+}
+function _expFuente(a) { if (!a) return 'HOJA'; if (a.usa === 'getquin') return /yahoo/i.test(a.fuenteGq || '') ? 'YAHOO' : 'GETQUIN'; return 'HOJA'; }
+function _expHoraPrecio(a, isin) { if (!a || a.usa !== 'getquin') return ''; const x = (PRECIOS_GQ_GS || []).find(r => r.isin === String(isin || '').toUpperCase()); return x ? _expIsoTexto(x.horaPrecio || x.hora) : ''; }
+function _expLiqManual() { try { return String(localStorage.getItem('export_liquidez') || ''); } catch (e) { return ''; } }
+function _expLiquidez() { // [{c, imp, venc, rent, manual}]
+    const out = [], hoy = _hoyISO();
+    const deps = (typeof DEPOSITOS_GS !== 'undefined' && DEPOSITOS_GS && DEPOSITOS_GS.length) ? DEPOSITOS_GS : DEPOSITOS_BASE;
+    (deps || []).forEach(d => { const fin = String(d.fin || d.fechaFin || '').slice(0, 10); if (fin && fin < hoy) return; const imp = Number(d.importe) || 0; if (imp > 0) out.push({ c: 'DEPOSITO_' + _expTxt(d.entidad, 14).toUpperCase().replace(/\s+/g, '_'), imp, venc: fin, rent: Number(d.tae) || '', manual: false }); });
+    _expLiqManual().split('\n').forEach(l => { const p = l.split(';').map(x => x.trim()); if (!p[0] || !(Number(String(p[1]).replace(',', '.')) > 0)) return; out.push({ c: _expTxt(p[0], 24).toUpperCase().replace(/\s+/g, '_'), imp: Number(String(p[1]).replace(',', '.')), venc: /^\d{4}-\d{2}-\d{2}$/.test(p[2] || '') ? p[2] : '', rent: p[3] !== undefined && p[3] !== '' ? Number(String(p[3]).replace(',', '.')) : '', manual: true }); });
+    return out;
+}
+function exportarAnalisisConstruir(desdeISO) {
+    const ahora = new Date(), hoy = _hoyISO(), C = GOTEO_CFG;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(desdeISO || '')) { const d = new Date(ahora.getFullYear(), ahora.getMonth() - 24, ahora.getDate()); desdeISO = d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate()); }
+    const pos = posicionesVivas(), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0), tot1 = total || 1;
+    const valP = p => (precioDe(p) || 0) * p.sh;
+    const sectVal = {}; pos.forEach(p => { if (!esEtfPos(p)) { const k = sectorBase(p.sector); sectVal[k] = (sectVal[k] || 0) + valP(p); } });
+    const liq = _expLiquidez(), liqTotal = liq.filter(x => x.manual).reduce((t, x) => t + x.imp, 0), hayLiq = liq.some(x => x.manual);
+    const S = {}, orden = ['RESUMEN', 'POSICIONES', 'TRAMPAS', 'OPERACIONES', 'DIVIDENDOS', 'SECTORES', 'EXPOSICION', 'LIQUIDEZ', 'CALIDAD_DATOS', 'REGLAS'];
+    const cols = {
+        RESUMEN: ['clave', 'valor'],
+        POSICIONES: ['isin', 'isin_alt', 'ticker', 'nombre', 'tipo', 'sector', 'pais', 'divisa', 'acciones', 'p_medio', 'precio', 'fuente_precio', 'hora_precio', 'fiable', 'motivo_no_fiable', 'valor', 'peso_valor', 'peso_sector', 'gp_eur', 'gp_pct', 'div_acc', 'div_anual', 'yield_coste', 'yield_actual'],
+        TRAMPAS: ['isin', 'ticker', 'calidad', 'prio', 'tipo', 'trampa', 'precio', 'dist_trampa_pct', 'acciones', 'capital_orden', 'orden', 'desde_dias', 'min52', 'max52', 'peso_valor_tras_compra', 'peso_sector_tras_compra', 'liquidez_tras_compra', 'fiable', 'motivo_no_fiable', 'alerta'],
+        OPERACIONES: ['fecha', 'isin', 'ticker', 'tipo', 'acciones', 'precio', 'comision', 'importe', 'coste_fifo', 'ganancia_eur', 'impuesto_est'],
+        DIVIDENDOS: ['estado', 'fecha_ex', 'fecha_pago', 'fuente_fecha', 'isin', 'ticker', 'bruto', 'ret_origen', 'ret_tr', 'neto_cuenta', 'devolucion_hacienda', 'neto_real'],
+        SECTORES: ['sector', 'valor', 'peso', 'tope', 'capital_trampas_pendientes', 'peso_si_saltan_todas'],
+        EXPOSICION: ['tipo', 'clave', 'valor', 'peso'],
+        LIQUIDEZ: ['concepto', 'importe', 'vencimiento', 'rentabilidad'],
+        CALIDAD_DATOS: ['codigo', 'isin', 'ticker', 'detalle_corto'],
+        REGLAS: ['clave', 'valor']
+    };
+    orden.forEach(k => { S[k] = []; });
+    const R = (k, arr) => S[k].push(arr.map(v => (typeof v === 'number' ? _expN(v, 4) : _expTxt(v))));
+    const calidad = [];
+    // ── POSICIONES
+    const aud = i => PRECIO_AUD[String(i || '').toUpperCase()];
+    const filasPos = pos.map(p => { const isin = String(p.isin || '').toUpperCase(), a = aud(isin), pr = precioDe(p) || 0, val = pr * p.sh; return { p, isin, a, pr, val }; }).sort((x, y) => y.val - x.val);
+    filasPos.forEach(({ p, isin, a, pr, val }) => {
+        const etf = esEtfPos(p), tipo = etf ? 'ETF' : esTipoEsp(p.tipo) ? 'ESPEC' : 'FOREVER', fiable = !!(a && a.fiable && pr > 0), mot = fiable ? [] : _expMotivos(a, pr);
+        const divAnual = (p.divAcc || 0) * p.sh, gp = pr > 0 ? val - p.ct : '', k = sectorBase(p.sector);
+        R('POSICIONES', [isin, _expIsinAlt(isin), _expTicker(isin), _expTxt(p.n, 24), tipo, etf ? 'ETF' : _expTxt(k, 24), _expTxt(p.pais, 4), _expDivisa(isin), _expN(p.sh, 4), _expN(p.pm, 4), pr > 0 ? _expN(pr, 4) : '', pr > 0 ? _expFuente(a) : '', pr > 0 ? _expHoraPrecio(a, isin) : '', pr > 0 ? (fiable ? '1' : '0') : '0', mot.join('+'),
+            pr > 0 ? _expN(val, 2) : '', pr > 0 ? _expN(val / tot1 * 100, 2) : '', (!etf && pr > 0) ? _expN((sectVal[k] || 0) / tot1 * 100, 2) : '', gp === '' ? '' : _expN(gp, 2), gp === '' || !(p.ct > 0) ? '' : _expN(gp / p.ct * 100, 2),
+            _expN(p.divAcc, 4), _expN(divAnual, 2), p.ct > 0 && divAnual > 0 ? _expN(divAnual / p.ct * 100, 2) : '', val > 0 && divAnual > 0 ? _expN(divAnual / val * 100, 2) : '']);
+        if (!fiable) calidad.push(['PRECIO_NO_FIABLE', isin, _expTicker(isin), (mot.join('+') || 'VIEJO') + ' ' + _expTxt(p.n, 24)]);
+        if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin)) calidad.push(['ISIN_RARO', isin, '', _expTxt(p.n, 24) + (isin ? ' formato' : ' vacio')]);
+    });
+    // ── TRAMPAS
+    let nTramp = 0, nCerca = 0; const capTodas = (TRAMPAS_GS || []).reduce((t, r) => t + (cn(r[7]) > 0 ? cn(r[7]) : 0), 0), capSec = {};
+    const secDeTrampa = (r, isin) => { const p = pos.find(x => (isin && String(x.isin || '').toUpperCase() === isin) || x.n === r[0] || x.n === (MAP[r[0]] || r[0])); if (p) return esEtfPos(p) ? null : sectorBase(p.sector); const m = String(r[19] || '').trim(); return m ? sectorBase(m) : null; };
+    (TRAMPAS_GS || []).forEach(r => {
+        const isin = String(r[15] || '').trim().toUpperCase(), a = aud(isin), pr = cn(r[4]), tr = cn(r[3]), cap = cn(r[7]), etf = _expEsEtfNombre(r[0]);
+        const fiable = !!(pr > 0 && !r._dudoso), mot = fiable ? [] : _expMotivos(a, pr), dist = (fiable && tr > 0) ? (tr - pr) / pr * 100 : '';
+        const tipo = etf ? 'ETF' : /ESPEC/i.test(String(r[1] || '')) ? 'ESPEC' : 'FOREVER', mia = pos.find(x => x.isin && esMismoISIN(x.isin, isin)), val = mia ? valP(mia) : 0, k = secDeTrampa(r, isin), mr = r52Fila(r);
+        let nivel = 'ND'; try { nivel = analisisTrampa(r).nivel.toUpperCase(); } catch (e) {}
+        const al = [nivel], falta = (fiable && tr > 0) ? (pr - tr) / pr * 100 : null;   // % del precio que falta para llegar a la trampa (<=0: tocada)
+        if (falta !== null && falta <= 0) al.push('TOCADA'); else if (falta !== null && falta <= 2) al.push('CERCA2'); if (!fiable) al.push('PRECIO_DUDOSO');
+        if (falta !== null && falta <= 2) nCerca++; nTramp++;
+        if (k && cap > 0) capSec[k] = (capSec[k] || 0) + cap;
+        const dias = (typeof diasDesde === 'function' && r[13]) ? diasDesde(r[13]) : '';
+        R('TRAMPAS', [isin, _expTicker(isin), _expTxt(r[1], 12), _expTxt(r[2], 3), tipo, tr > 0 ? _expN(tr, 4) : '', pr > 0 ? _expN(pr, 4) : '', dist === '' ? '' : _expN(dist, 2), _expN(cn(r[6]), 4), cap > 0 ? _expN(cap, 0) : '', r[11] === true ? '1' : '0', (dias === '' || dias == null || isNaN(dias)) ? '' : _expN(dias, 0),
+            mr.min > 0 ? _expN(mr.min, 4) : '', mr.max > 0 ? _expN(mr.max, 4) : '', (cap > 0 && !etf) ? _expN((val + cap) / (total + cap) * 100, 2) : '', (cap > 0 && k) ? _expN(((sectVal[k] || 0) + cap) / (total + cap) * 100, 2) : '', (hayLiq && cap > 0) ? _expN(liqTotal - cap, 0) : '',
+            fiable ? '1' : '0', mot.join('+'), al.join('+')]);
+        if (!fiable && !(PRECIO_AUD[isin] && filasPos.some(f => f.isin === isin))) calidad.push(['PRECIO_NO_FIABLE', isin, _expTicker(isin), 'trampa ' + (mot.join('+') || 'VIEJO') + ' ' + _expTxt(r[0], 24)]);
+        if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin) && !(isin && filasPos.some(f => f.isin === isin))) calidad.push(['ISIN_RARO', isin, '', 'trampa ' + _expTxt(r[0], 24) + (isin ? ' formato' : ' vacio')]);
+    });
+    // ── OPERACIONES
+    const ops = [];
+    (COMPRAS_DETALLE_GS || []).forEach(c => ops.push({ f: String(c.fecha || '').slice(0, 10), isin: String(c.isin || '').toUpperCase(), t: 'C', acc: c.acciones, pr: c.precio, com: c.comision, imp: c.importe, fifo: '', gp: '', raw: c }));
+    (OPERACIONES_CERRADAS || []).forEach(o => ops.push({ f: String(o.fecha || '').slice(0, 10), isin: String(o.isin || '').toUpperCase(), t: 'V', acc: o.acciones, pr: o.pVenta, com: '', imp: o.ingreso, fifo: o.coste, gp: o.gp, raw: o }));
+    const anio = String(ahora.getFullYear()), gpAnio = (OPERACIONES_CERRADAS || []).filter(o => String(o.fecha).startsWith(anio)).reduce((t, o) => t + o.gp, 0), gpPos = (OPERACIONES_CERRADAS || []).filter(o => String(o.fecha).startsWith(anio) && o.gp > 0).reduce((t, o) => t + o.gp, 0);
+    let impAnio = 0; try { impAnio = gpAnio > 0 ? impuestoMarginalGanancia(Math.max(0, calcularBaseAhorroAnual() - gpPos), gpAnio) : 0; } catch (e) { impAnio = gpAnio > 0 ? gpAnio * 0.19 : 0; }
+    ops.filter(o => o.f >= desdeISO).sort((a, b) => b.f.localeCompare(a.f)).forEach(o => R('OPERACIONES', [o.f, o.isin, _expTicker(o.isin), o.t, _expN(o.acc, 4), _expN(o.pr, 4), o.com === '' ? '' : _expN(o.com, 2), _expN(o.imp, 2), o.fifo === '' ? '' : _expN(o.fifo, 2), o.gp === '' ? '' : _expN(o.gp, 2),
+        (o.t === 'V' && o.f.startsWith(anio) && gpAnio > 0) ? _expN(o.gp * impAnio / gpAnio, 2) : '']));
+    // ── DIVIDENDOS
+    const divs = (divsEnVivo() || []).map(d => ({ f: _expFechaDMA(d.f), d })).filter(x => x.f && x.f >= desdeISO).sort((a, b) => b.f.localeCompare(a.f));
+    divs.forEach(({ f, d }) => R('DIVIDENDOS', ['COB', '', f, 'REAL', String(d.isin || '').toUpperCase(), _expTicker(d.isin), _expN(d.bruto, 2), _expN(d.ret_origen, 2), _expN(d.ret_es_tr, 2), _expN(d.neto_final, 2), _expN(d.devolucion, 2), _expN(d.neto_real, 2)]));
+    let prox = []; try { prox = proximosCobrosEnVivo() || []; } catch (e) { prox = []; }
+    prox.filter(x => x._prox && x.isin).forEach(x => {
+        let fp = '', fx = '', real = false;
+        try { const p = pos.find(q => q.isin === x.isin), fd = divFichaIsin({ isin: x.isin, n: x.n, sh: 0, pa: precioDe(p) || 0, dpa: p ? p.divAcc : 0, pm: 0, sector: '', pais: '' });
+            if (fd && fd.pago && fd.pago.fecha && fd.pago.fecha >= new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())) { fp = fd.pago.fecha.toISOString().slice(0, 10); real = !!fd.pago.real; if (fd.exDePago) fx = fd.exDePago.toISOString().slice(0, 10); } } catch (e) {}
+        if (!fp) fp = x._prox.anio + '-' + _pad2(x._prox.mes) + '-15';
+        const f = fiscalDiv(x.bruto_est, tasaOrigenEstimada(x.isin, x.pais), paisDeIsin(x.isin, x.pais));
+        R('DIVIDENDOS', ['PREV', fx, fp, real ? 'REAL' : 'EST', x.isin, _expTicker(x.isin), _expN(x.bruto_est, 2), _expN(f.ret, 2), _expN(f.retEs, 2), _expN(f.netoFinal, 2), _expN(f.devol, 2), _expN(f.netoReal, 2)]);
+    });
+    // ── SECTORES
+    const secs = Object.keys(sectVal).sort((a, b) => sectVal[b] - sectVal[a]);
+    Object.keys(capSec).forEach(k => { if (secs.indexOf(k) < 0) secs.push(k); });
+    secs.forEach(k => R('SECTORES', [_expTxt(k, 24), _expN(sectVal[k] || 0, 2), _expN((sectVal[k] || 0) / tot1 * 100, 2), C.MAX_PESO_SECTOR, _expN(capSec[k] || 0, 0), _expN(((sectVal[k] || 0) + (capSec[k] || 0)) / (total + capTodas || 1) * 100, 2)]));
+    // ── EXPOSICION
+    const ag = (f) => { const m = {}; filasPos.forEach(x => { if (x.val > 0) { const k = f(x.p, x.isin) || 'N/D'; m[k] = (m[k] || 0) + x.val; } }); return Object.keys(m).sort((a, b) => m[b] - m[a]).map(k => [k, m[k]]); };
+    ag((p, i) => _expDivisa(i)).forEach(([k, v]) => R('EXPOSICION', ['DIVISA', k, _expN(v, 2), _expN(v / tot1 * 100, 2)]));
+    ag(p => p.pais).forEach(([k, v]) => R('EXPOSICION', ['PAIS', _expTxt(k, 4), _expN(v, 2), _expN(v / tot1 * 100, 2)]));
+    // ── LIQUIDEZ
+    liq.forEach(x => R('LIQUIDEZ', [x.c, _expN(x.imp, 2), x.venc, x.rent === '' ? '' : _expN(x.rent, 2)]));
+    // ── CALIDAD_DATOS
+    try { const hoyI = hoy; (datosRevision() || []).forEach(d => { const u = d.ult, pr = u && /^\d{4}-\d{2}-\d{2}$/.test(String(u.prox || '')) ? u.prox : null; if (u && (pr ? hoyI >= pr : !d.revVigente)) calidad.push(['REVISION_VENCIDA', String(d.p.isin || '').toUpperCase(), _expTicker(d.p.isin), _expTxt(d.p.n, 24) + (pr ? ' tocaba ' + pr : '')]); }); } catch (e) {}
+    filasPos.forEach(({ p, isin }) => { if (!isin) return; const g = (GETQUIN_GS || []).find(x => x.isin === isin); if (!g) calidad.push(['GETQUIN_VIEJO', isin, _expTicker(isin), 'sin datos ' + _expTxt(p.n, 24)]); else { const e = gqEdadDias(g); if (e > 3) calidad.push(['GETQUIN_VIEJO', isin, _expTicker(isin), _expN(e, 0) + ' dias ' + _expTxt(p.n, 24)]); } });
+    calidad.forEach(c => R('CALIDAD_DATOS', c));
+    // ── REGLAS
+    [['tope_valor_pct', C.MAX_PESO_ACCION], ['excepcion_tope_valor', 'Realty Income'], ['tope_sector_pct', C.MAX_PESO_SECTOR], ['techo_duro_trampa_sector_pct', 30], ['tope_especulativa_eur', 1000], ['revision_meses', 6],
+        ['radar_verde_si', 'nada a menos de 2% de trampa; sin trampa tocada; sin revision vencida; sin alerta critica; sin precio dudoso']].forEach(x => R('REGLAS', x));
+    // ── RESUMEN
+    let rad = 'GRIS'; try { const e = radarEvaluar().estado; rad = e === 'verde' ? 'VERDE' : e === 'lista' ? 'ROJO' : 'GRIS'; } catch (e) {}
+    const noFiab = new Set(); filasPos.forEach(x => { if (!(x.a && x.a.fiable && x.pr > 0)) noFiab.add(x.isin || x.p.n); }); (TRAMPAS_GS || []).forEach(r => { if (cn(r[3]) > 0 && (r._dudoso || !(cn(r[4]) > 0))) noFiab.add(String(r[15] || r[0]).toUpperCase()); });
+    const divAnual = pos.reduce((t, p) => t + (p.divAcc || 0) * p.sh, 0); let netoMes = '';
+    try { const pv = calcularPrevisionDividendosAnual(), s = a => (a || []).reduce((t, v) => t + v, 0); netoMes = (s(pv.previstosNeto) + s(pv.previstosDevolucion)) / 12; } catch (e) {}
+    const usd = (GETQUIN_GS || []).find(g => g.mon === 'USD' && g.fx > 0) || (PRECIOS_GQ_GS || []).find(g => g.mon === 'USD' && g.fx > 0);
+    [['generado', _expIso(ahora)], ['eurusd', usd ? _expN(1 / usd.fx, 4) : ''], ['valor_total', _expN(total, 2)], ['n_posiciones', pos.length], ['n_trampas', nTramp], ['trampas_a_2pct_o_menos', nCerca], ['radar', rad], ['n_precios_no_fiables', noFiab.size],
+        ['dividendo_anual_bruto', _expN(divAnual, 2)], ['dividendo_mes_bruto', _expN(divAnual / 12, 2)], ['dividendo_mes_neto_real', netoMes === '' ? '' : _expN(netoMes, 2)], ['ganancia_realizada_ano', _expN(gpAnio, 2)], ['impuesto_estimado_ano', _expN(impAnio, 2)], ['liquidez_total', hayLiq ? _expN(liqTotal, 2) : ''],
+        ['desde_operaciones_dividendos', desdeISO]].forEach(x => R('RESUMEN', x));
+    // ── Montaje
+    const L = ['LEEME;version=' + EXPORT_VERSION + ';generado=' + _expIso(ahora) + ';moneda=EUR'];
+    orden.forEach(k => L.push('LEEME;' + k + ';' + cols[k].join(';')));
+    L.push('LEEME;FORMATO;separador ;  decimal punto  porcentajes en % (12.3 = 12,3%)  importes EUR  vacio = sin dato  fiable 0/1  orden 0/1  fechas ISO (hora de Madrid)');
+    L.push('LEEME;NOTAS;precio y p_medio en EUR; dist_trampa_pct=(trampa-precio)/precio*100 (negativo = precio aun por encima de la trampa; 0 o mas = tocada) y vacia si fiable=0; trampas_a_2pct_o_menos cuenta las que faltan 2% o menos del precio o ya tocadas; liquidez_total solo cuenta lineas manuales (los depositos se listan aparte); OPERACIONES: compras con comision real, ventas con coste FIFO y sin comision; impuesto_est reparte el impuesto del ano entre las ventas');
+    L.push('LEEME;MOTIVOS;SIN_PRECIO VIEJO APROX CAMBIO SALTO DIF_HOJA');
+    orden.forEach(k => { L.push('', '#SECCION;' + k, cols[k].join(';')); S[k].forEach(f => L.push(f.join(';'))); });
+    L.push('', 'FIN;' + orden.map(k => k + '=' + S[k].length).join(';'));
+    return L.join('\n') + '\n';
+}
+function exportarAnalisisDescargar(desdeISO) {
+    const txt = exportarAnalisisConstruir(desdeISO), blob = new Blob([txt], { type: 'text/plain;charset=utf-8' }), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'cartera_' + _hoyISO() + '.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 500);
+    try { notificar('📤 Exportado', 'cartera_' + _hoyISO() + '.txt · ' + Math.round(txt.length / 1024) + ' KB', 'success'); } catch (e) {}
+    return txt;
+}
+function exportarAnalisis() { // diálogo: fecha «desde» y líneas de liquidez manuales
+    const ya = document.getElementById('exp-an-modal'); if (ya) ya.remove();
+    const d = new Date(); d.setMonth(d.getMonth() - 24); const def = d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate());
+    const m = document.createElement('div'); m.id = 'exp-an-modal'; m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML = '<div style="background:var(--bg2,#1a1d26);border:1px solid var(--bd,#333);border-radius:12px;padding:18px;max-width:460px;width:100%;font-size:12px;line-height:1.5">' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:8px">📤 Exportar para análisis</div>' +
+        '<label>Operaciones y dividendos desde (vacío = últimos 24 meses)<br><input type="date" id="exp-an-desde" value="' + def + '" style="margin:4px 0 10px;padding:5px;width:100%"></label>' +
+        '<label>Liquidez (una línea por cuenta: concepto;importe;vencimiento AAAA-MM-DD;rentabilidad %)<br><textarea id="exp-an-liq" rows="4" placeholder="CUENTA_TR;5000;;2.0" style="margin:4px 0 10px;padding:5px;width:100%;font-family:monospace;font-size:11px"></textarea></label>' +
+        '<div style="color:var(--mt,#888);font-size:10px;margin-bottom:10px">Posiciones y trampas van siempre completas. Se guarda la liquidez para la próxima vez.</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="exp-an-no">Cancelar</button><button class="btn ac" id="exp-an-ok">Descargar .txt</button></div></div>';
+    document.body.appendChild(m);
+    try { document.getElementById('exp-an-liq').value = _expLiqManual(); } catch (e) {}
+    m.onclick = ev => { if (ev.target === m) m.remove(); };
+    document.getElementById('exp-an-no').onclick = () => m.remove();
+    document.getElementById('exp-an-ok').onclick = () => {
+        const v = document.getElementById('exp-an-desde').value, liq = document.getElementById('exp-an-liq').value;
+        try { localStorage.setItem('export_liquidez', liq); } catch (e) {}
+        m.remove(); exportarAnalisisDescargar(v);
+    };
 }
 
 function notificar(titulo, desc, tipo = 'info') {
@@ -6828,6 +7011,42 @@ function renderEvolucionMensualAnios() {
         }).join('') + '</tbody></table></div>';
 }
 
+// ── Previsión del año siguiente en la pestaña Dividendos: gráfico mensual + tabla empresa × mes ──
+function seleccionarVistaPrevDiv(v) { VISTA_TERMO = v; try { localStorage.setItem('vista_termo', v); } catch (e) {} renderDividendos(); }
+function renderPrevisionAnioDividendos() {
+    const t3 = document.getElementById('t3'); if (!t3) return;
+    let card = document.getElementById('prev-anio-card');
+    if (!card) { card = document.createElement('div'); card.id = 'prev-anio-card'; const f = document.getElementById('filtro-anio-dividendos'); f.parentNode.insertBefore(card, f.nextSibling); }
+    const Y = new Date().getFullYear() + 1, mesActual = new Date().getMonth(), M = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const pv = calcularPrevisionDividendosAnual(), real = VISTA_TERMO === 'real', hac = i => real ? (pv.previstosDevolucion[i] || 0) : 0;
+    const val = i => pv.previstosNeto[i] + hac(i), mx = Math.max(1, ...M.map((_, i) => val(i)));
+    const sum = a => a.reduce((t, v) => t + v, 0), total = sum(M.map((_, i) => val(i))), bruto = sum(pv.previstos), irpf = sum(pv.previstosIRPF), dev = sum(pv.previstosDevolucion);
+    // año en curso (cobrado + previsto de lo que falta) para comparar
+    const anioAct = String(Y - 1);
+    let actual = 0; (divsEnVivo() || []).filter(d => d.f.endsWith('/' + anioAct)).forEach(d => { actual += d.neto_final + (real ? (d.devolucion || 0) : 0); });
+    for (let i = mesActual + 1; i < 12; i++) actual += val(i);
+    const cols = M.map((m, i) => { const v = val(i), det = {}; pv.previstosDetalle[i].forEach(x => { const n = String(x.n).replace(/ ✍️| \(.*\)$/g, ''); det[n] = (det[n] || 0) + x.monto + (real ? (x.devolucion || 0) : 0); });
+        const tip = m + ' ' + Y + ' (previsto): ' + (v > 0 ? fe(v) + (real ? ' (neto + Hacienda)' : ' neto') : 'sin pagos') + Object.entries(det).sort((a, b) => b[1] - a[1]).map(([n, x]) => '\n• ' + n + ': ' + fe(x)).join('');
+        return '<div class="hm-col" title="' + revEsc(tip) + '"><div class="hm-val" style="color:' + (v > 0 ? 'var(--am)' : 'var(--mt)') + ';font-size:11px;font-weight:800">' + (v > 0 ? '~' + f1(v) + '€' : '—') + '</div>' +
+            '<div class="hm-bar forecast" style="height:' + (v > 0 ? Math.max(10, v / mx * 100) : 4) + '%;color:var(--am)"></div><div class="hm-lbl">' + m + '</div></div>'; }).join('');
+    // tabla empresa × mes
+    const emp = {}; pv.previstosDetalle.forEach((arr, i) => arr.forEach(x => { const n = String(x.n).replace(/ ✍️| \(.*\)$/g, ''); (emp[n] = emp[n] || Array(12).fill(0))[i] += x.monto + (real ? (x.devolucion || 0) : 0); }));
+    const filas = Object.entries(emp).map(([n, a]) => ({ n, a, t: sum(a) })).sort((x, y) => y.t - x.t);
+    const th = M.map(m => '<th>' + m + '</th>').join(''), cel = v => '<td style="font-family:monospace;font-size:10px' + (v > 0 ? '' : ';color:var(--mt)') + '">' + (v > 0 ? fe(v, 0) : '·') + '</td>';
+    const tabla = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left;min-width:130px">Empresa</th>' + th + '<th>Total</th></tr></thead><tbody>' +
+        filas.map(f => '<tr><td style="font-weight:600;font-size:11px">' + revEsc(f.n) + '</td>' + f.a.map(cel).join('') + '<td style="font-family:monospace;font-weight:700;color:var(--ac)">' + fe(f.t, 0) + '</td></tr>').join('') +
+        '<tr style="border-top:2px solid var(--bd)"><td style="font-weight:800">TOTAL</td>' + M.map((_, i) => '<td style="font-family:monospace;font-weight:800;font-size:10px">' + fe(val(i), 0) + '</td>').join('') + '<td style="font-family:monospace;font-weight:800;color:var(--gn)">' + fe(total, 0) + '</td></tr></tbody></table></div>';
+    const kp = (l, v, c) => '<div><div class="mt2" style="font-size:8px">' + l + '</div><div style="font-size:18px;font-weight:700;color:' + (c || 'var(--ac)') + ';font-family:\'JetBrains Mono\',monospace">' + v + '</div></div>';
+    const dif = actual > 0 ? (total / actual - 1) * 100 : null;
+    card.innerHTML = '<div class="card" style="margin-bottom:12px;border:1px solid var(--am)"><div class="ch"><h3>📈 Previsión de cobros ' + Y + '</h3><span class="mt2" style="font-size:8px">▨ previsto · con tus acciones y dividendos de hoy</span></div>' +
+        '<div style="padding:10px 16px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn' + (!real ? ' ac' : '') + '" onclick="seleccionarVistaPrevDiv(\'neto\')" title="Lo que entra en la cuenta de TR">💶 Neto</button><button class="btn' + (real ? ' ac' : '') + '" onclick="seleccionarVistaPrevDiv(\'real\')" title="Neto + lo que devuelve Hacienda en la renta">💶 Neto + dev. Hacienda</button></div>' +
+        '<div style="padding:12px 16px 0;display:flex;gap:24px;flex-wrap:wrap">' + kp('TOTAL PREVISTO ' + Y + (real ? ' (neto + Hac.)' : ' (neto)'), fe(total), 'var(--gn)') + kp('Ø MENSUAL', fe(total / 12)) + kp('BRUTO', fe(bruto), 'var(--mt)') +
+        kp(dev > irpf + 0.005 ? 'A RECUPERAR EN LA RENTA' : 'IRPF A PAGAR EN LA RENTA', fe(Math.abs(irpf - dev)), 'var(--mt)') + (dif !== null ? kp('VS ' + anioAct + ' (≈ ' + fe(actual, 0) + ')', (dif >= 0 ? '+' : '') + dif.toFixed(1).replace('.', ',') + '%', dif >= 0 ? 'var(--gn)' : 'var(--rd)') : '') + '</div>' +
+        '<div class="heatmap" id="heatmap-prev-div">' + cols + '</div>' +
+        '<div style="padding:0 16px 8px;font-size:10px;color:var(--mt);line-height:1.5">Estimación: repite el calendario y el dividendo por acción actuales, sin subidas anunciadas todavía y sin las compras que hagas hasta entonces (las órdenes de trampas no están incluidas). Los importes ya publicados por Getquin o escritos a mano se usan tal cual.</div></div>' +
+        '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>🗓️ Quién paga cuándo en ' + Y + '</h3><span class="mt2" style="font-size:8px">€ ' + (real ? 'neto + Hacienda' : 'netos') + ' por empresa y mes</span></div>' + tabla + '</div>';
+}
+
 function renderDividendos() {
 
     const divsTodo = divsEnVivo();
@@ -6842,7 +7061,13 @@ function renderDividendos() {
         const botonAnio = (valor, label) => '<button class="btn' + (ANIO_DIVIDENDOS_TAB === valor ? ' ac' : '') +
             '" onclick="seleccionarAnioDividendos(\'' + valor + '\')">' + label + '</button>';
         filtroAnioCont.innerHTML = aniosConDatos.sort().map(a => botonAnio(a, a)).join('') + botonAnio('todos',
-            '♾️ Todo el histórico');
+            '♾️ Todo el histórico') + botonAnio('prevision', '📈 Previsión ' + (anioActualDiv + 1));
+    }
+    {   // Previsión del año siguiente: panel propio; el resto de tarjetas (todas de datos cobrados) se ocultan
+        const t3 = document.getElementById('t3'), esPrev = ANIO_DIVIDENDOS_TAB === 'prevision';
+        if (t3) Array.from(t3.children).forEach(el => { if (el.id !== 'filtro-anio-dividendos' && el.id !== 'prev-anio-card') el.style.display = esPrev ? 'none' : ''; });
+        const pc = document.getElementById('prev-anio-card'); if (pc && !esPrev) pc.innerHTML = '';
+        if (esPrev) { renderPrevisionAnioDividendos(); return; }
     }
     const divs = ANIO_DIVIDENDOS_TAB === 'todos' ? divsTodo : divsTodo.filter(d => d.f.endsWith('/' +
         ANIO_DIVIDENDOS_TAB));
