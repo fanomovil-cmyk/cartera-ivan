@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -1062,7 +1061,7 @@ function exportarAnalisisConstruir(desdeISO) {
         else { g.acc += a; g.px += px; g.imp += Number(o.imp) || 0; if (g.com !== '') g.com += Number(o.com) || 0; if (g.fifo !== '') g.fifo += Number(o.fifo) || 0; if (g.gp !== '') g.gp += Number(o.gp) || 0; }
     });
     lista.forEach(o => { o.pr = o.acc > 0 ? o.px / o.acc : 0; });
-    lista.sort((a, b) => b.f.localeCompare(a.f)).forEach(o => R('OPERACIONES', [o.f, o.isin, _expTicker(o.isin), o.t, _expN(o.acc, 4), _expN(o.pr, 4), o.com === '' ? '' : _expN(o.com, 2), _expN(o.imp, 2), o.fifo === '' ? '' : _expN(o.fifo, 2), o.gp === '' ? '' : _expN(o.gp, 2),
+    lista.sort((a, b) => b.f.localeCompare(a.f)).forEach(o => R('OPERACIONES', [o.f, o.isin, _expTicker(o.isin), o.t, _expN(o.acc, 4), o.imp > 0 ? _expN(o.pr, 4) : '', o.com === '' ? '' : _expN(o.com, 2), _expN(o.imp, 2), o.fifo === '' ? '' : _expN(o.fifo, 2), o.gp === '' ? '' : _expN(o.gp, 2),
         (o.t === 'V' && o.f.startsWith(anio) && gpAnio > 0) ? _expN(o.gp * impAnio / gpAnio, 2) : '']));
     dups.forEach(o => calidad.push(['OPERACION_REPETIDA', o.isin, _expTicker(o.isin), o.f + ' ' + _expN(o.acc, 4) + ' acc a ' + _expN(o.pr, 4) + ' importe ' + _expN(o.imp, 2)]));
     // ── DIVIDENDOS
@@ -1093,7 +1092,13 @@ function exportarAnalisisConstruir(desdeISO) {
     if (trExcluidas.length) calidad.push(['TRAMPA_EXCLUIDA', '', trExcluidas.join(','), 'omitidas en este export por la lista de exclusion; borralas de la hoja TRAMPAS si ya no las quieres']);
     if (trVendidas.length) calidad.push(['TRAMPA_DE_VALOR_VENDIDO', '', trVendidas.join(','), 'trampa de un valor que ya no tienes (se mantiene como vigilancia para recomprar)']);
     { const net = {}; (COMPRAS_DETALLE_GS || []).forEach(c => { const i = String(c.isin || '').toUpperCase(); net[i] = (net[i] || 0) + (Number(c.acciones) || 0); }); (OPERACIONES_CERRADAS || []).forEach(o => { const i = String(o.isin || '').toUpperCase(); net[i] = (net[i] || 0) - (Number(o.acciones) || 0); });
-      filasPos.forEach(({ p, isin }) => { if (isin && net[isin] !== undefined && Math.abs(p.sh - net[isin]) > 0.02) { const df = p.sh - net[isin]; calidad.push(['ACCIONES_NO_CUADRAN', isin, (_expTicker(isin) || _expTxt(p.n, 10)) + '(' + (df > 0 ? '+' : '') + _expN(df, 4) + ')', _expTxt(p.n, 14) + ' pos ' + _expN(p.sh, 4) + ' ops ' + _expN(net[isin], 4)]); } }); }
+      // solo se compara si las operaciones cubren todo el historial del valor: el CSV de TR empieza en csvIni y una posición abierta antes (AI.PA) no cuadra por definición
+      const dmy = f => { const m = String(f || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? m[3] + '-' + _pad2(m[2]) + '-' + _pad2(m[1]) : ''; };
+      const csvIni = (COMPRAS_DETALLE_GS || []).map(c => String(c.fecha || '').slice(0, 10)).filter(Boolean).sort()[0] || '';
+      const primera = {}; (COMPRAS_DETALLE_GS || []).forEach(c => { const i = String(c.isin || '').toUpperCase(), f = String(c.fecha || '').slice(0, 10); if (i && f && (!primera[i] || f < primera[i])) primera[i] = f; });
+      const divAntes = {}; (divsEnVivo() || []).forEach(d => { const i = String(d.isin || '').toUpperCase(), f = dmy(d.f); if (i && f && primera[i] && f < primera[i]) divAntes[i] = true; });   // cobraste dividendos antes de tu primera compra del CSV: ya tenías acciones
+      filasPos.forEach(({ p, isin }) => { const pf = dmy(p.f), cubre = (!pf || (csvIni && pf >= csvIni)) && !divAntes[isin]; if (cubre && isin && net[isin] !== undefined && Math.abs(p.sh - net[isin]) > 0.02 && !(p.sh - net[isin] > 0.5 && Math.abs((p.sh - net[isin]) - Math.round(p.sh - net[isin])) < 0.005)) { const df = p.sh - net[isin];   // una diferencia positiva de acciones enteras exactas = compras anteriores al CSV, no un error
+        calidad.push(['ACCIONES_NO_CUADRAN', isin, (_expTicker(isin) || _expTxt(p.n, 10)) + '(' + (df > 0 ? '+' : '') + _expN(df, 4) + ')', _expTxt(p.n, 14) + ' pos ' + _expN(p.sh, 4) + ' ops ' + _expN(net[isin], 4)]); } }); }
     if (ajustados.length) calidad.push(['AJUSTE_MANUAL_ACCIONES', '', ajustados.join(','), 'acciones corregidas a mano en el export (la hoja CARTERA sigue con el valor antiguo)']);
     const gc = {}; calidad.forEach(c => { const x = gc[c[0]] = gc[c[0]] || { n: 0, t: [], d: [] }; x.n++; const t = c[2] || c[1] || _expTxt(c[3], 12); if (x.t.indexOf(t) < 0) x.t.push(t); if (x.d.length < 3) x.d.push(c[3]); });
     const DESC = { PRECIO_NO_FIABLE: 'precio sin fuente fresca con hora', GETQUIN_VIEJO: 'ficha Getquin de mas de 3 dias', ACCIONES_NO_CUADRAN: 'entre parentesis posicion menos operaciones', ISIN_RARO: 'formato de ISIN no valido', REVISION_VENCIDA: 'revision semestral vencida' };
