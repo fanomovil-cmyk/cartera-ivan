@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -303,6 +304,11 @@ html.light .zona-disparo .zona-tag{color:#8A1F1F}
   .focus-mode.nada #focus-nada,.focus-mode.gris #focus-nada{color:#fff}
   .focus-mode #focus-nada b{font-size:34px;line-height:1.15;letter-spacing:1px;font-weight:800}
   .focus-mode #focus-nada .rn-hora{margin-top:18px;font-size:12px;color:#d1d5db;opacity:.85}
+  .focus-mode #focus-nada .rn-ventas{margin-top:22px;max-width:760px;width:100%;align-self:center;text-align:left;color:#fff}
+  .focus-mode #focus-nada .rn-venta{margin-top:8px;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.45;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3)}
+  .focus-mode #focus-nada .rn-venta b{font-size:inherit;letter-spacing:0;font-weight:700;line-height:inherit}
+  .focus-mode.lista #focus-nada .rn-ventas{color:inherit}
+  .focus-mode.lista #focus-nada .rn-venta{background:var(--s2);border-color:var(--am)}
   .focus-mode.lista #focus-nada{justify-content:flex-start;align-items:stretch;text-align:left;padding-top:64px}
   .focus-mode.lista #focus-nada .rn-tit{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--mt);margin-bottom:12px}
   .focus-mode.lista #focus-nada .rn-it{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin-bottom:8px;border-radius:12px;background:var(--s2);border:1px solid var(--bd);font-size:15px;line-height:1.35}
@@ -404,6 +410,7 @@ html.light .badge-orden.venta{color:#B33A3A}
   <button class="tb" data-tab="9" onclick="sw(9)">🗓️ Anual</button>
   <button class="tb" data-tab="8" onclick="sw(8)">📈 Cerradas</button>
   <button class="tb" data-tab="10" onclick="sw(10)">🔍 Detalle</button>
+  <button class="tb" data-tab="14" onclick="sw(14)">🪙 Materias primas</button>
   <span class="tsep"></span><span class="tg">Revisión</span>
   <button class="tb" data-tab="12" onclick="sw(12)">🧾 Revisión</button>
 </div></div>
@@ -794,6 +801,9 @@ html.light .badge-orden.venta{color:#B33A3A}
   <div class="card"><div class="ch"><h3>📜 Historial detallado</h3><span class="mt2" style="font-size:8px">últimas 300 filas de la hoja REVISIONES (una por activo y revisión)</span></div><div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Activo</th><th>Decisión</th><th>Div. vs ant.</th><th>Cubierto</th><th>Deuda</th><th>Peso</th><th>Rentab.</th><th>Precio</th><th style="text-align:left">Nota</th><th>Próxima</th></tr></thead><tbody id="tb-rev-hist"></tbody></table></div></div>
 </div>
 
+<!-- ═══ MATERIAS PRIMAS ═══ -->
+<div class="tp" id="t14"><div id="mp-root"></div></div>
+
 <!-- ═══ ANÁLISIS DE DIVIDENDOS ═══ -->
 <div class="tp" id="t13">
   <div class="kg" id="kg13"></div>
@@ -855,10 +865,11 @@ function sw(i) {
         const on = Number(b.dataset.tab) === i; b.classList.toggle('on', on);
         if (on && b.scrollIntoView) { try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {} }
     });
-    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12', 't13'].forEach((id, j) => { const el = document
+    ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12', 't13', 't14'].forEach((id, j) => { const el = document
         .getElementById(id); if (el) el.classList.toggle('on', i === j); });
     if (i === 12 && typeof renderRevisionSemestral === 'function') renderRevisionSemestral();
     if (i === 13 && typeof renderAnalisisDividendos === 'function') renderAnalisisDividendos();
+    if (i === 14 && typeof renderMateriasPrimas === 'function') renderMateriasPrimas();
     if (i === 10 && typeof renderSaludDatos === 'function') renderSaludDatos();
 }
 
@@ -919,11 +930,335 @@ function exportarCSV() {
     link.click();
 }
 
+// ══════════ VIGILANCIA DE VENTA: revisar la salida con beneficio aunque el valor sea FOREVER ══════════
+// Perfil (hoja PERFILES, lo editas tú) + órdenes de venta que tienes puestas (hoja ORDENES_VENTA). Si el backend aún no las envía se usan las dos órdenes iniciales.
+const ORDENES_VENTA_INICIALES = [{ isin: 'ES0113900J37', nombre: 'Banco Santander', acciones: 10, limite: 105, caducidad: '', alta: '2026-11-25', nota: 'inicial' }, { isin: 'US0758871091', nombre: 'Becton Dickinson', acciones: 5, limite: 207, caducidad: '', alta: '2026-11-25', nota: 'inicial', recompra: 125 }];
+const PERFILES_INICIALES = { ES0113900J37: 'MADURA', US0758871091: 'MADURA', IE00BTN1Y115: 'MADURA', US5801351017: 'MADURA', US7561091049: 'MADURA', US9256521090: 'MADURA', US92826C8394: 'CRECIMIENTO', US57636Q1040: 'CRECIMIENTO', US09247X1019: 'CRECIMIENTO', US0028241000: 'CRECIMIENTO', US00287Y1091: 'CRECIMIENTO', FR0000120073: 'CRECIMIENTO', US5486611073: 'CRECIMIENTO' };
+function vvOrdenes() { return (typeof ORDENES_VENTA_GS !== 'undefined' && ORDENES_VENTA_GS !== null) ? ORDENES_VENTA_GS : ORDENES_VENTA_INICIALES; }
+function vvPerfil(p) { // MADURA | CRECIMIENTO | '' (no aplica a ETF ni a especulativas; vacío si no lo has puesto)
+    if (esEtfPos(p) || esTipoEsp(p.tipo)) return '';
+    const x = (typeof PERFILES_GS !== 'undefined' ? PERFILES_GS : []).find(q => p.isin && esMismoISIN(q.isin, p.isin));
+    if (x && /^(MADURA|CRECIMIENTO)$/.test(x.perfil)) return x.perfil;
+    return PERFILES_INICIALES[String(p.isin || '').toUpperCase()] || '';   // lista inicial si la hoja PERFILES aún no lo tiene
+}
+function vvProxEx(p) { // fecha ex-dividendo próxima (AAAA-MM-DD) si aún no ha llegado; '' si no la hay
+    try {
+        const hoy = _hoyISO(), fd = divFichaIsin({ isin: p.isin, n: p.n, sh: 0, pa: precioDe(p) || 0, dpa: p.divAcc || 0, pm: 0, sector: '', pais: '' });
+        if (fd && fd.exDePago) { const ex = fd.exDePago.toISOString().slice(0, 10); if (ex >= hoy) return ex; }
+    } catch (e) {}
+    return '';
+}
+// Campos de vigilancia de una posición: perfil, max52, dist_max52_pct, anos_div_gp, revisar_venta (SI/NO/ND/''), dividendo_proximo_ex
+function vvPosicion(p, pr, gp, divAnual) {
+    const C = GOTEO_CFG, perfil = vvPerfil(p), mr = rango52De(p), max52 = mr && mr.max > 0 ? mr.max : 0;
+    const dist = (pr > 0 && max52 > 0) ? (pr - max52) / max52 * 100 : null, anos = (divAnual > 0 && gp !== '' && gp != null) ? gp / divAnual : null;
+    let rev = ''; if (perfil === 'MADURA') rev = (dist === null || anos === null || !(PRECIO_AUD[String(p.isin || '').toUpperCase()] || {}).fiable) ? 'ND' : (dist >= -C.REVISION_VENTA_DIST_MAX52_PCT && anos >= C.REVISION_VENTA_ANOS_DIV ? 'SI' : 'NO');
+    return { perfil, max52, dist, anos, rev, ex: vvProxEx(p) };
+}
+// Órdenes de venta con todos sus números. liqLibre = liquidez_libre actual (o null).
+function vvCalcOrdenes(liqLibre) {
+    const C = GOTEO_CFG, hoy = _hoyISO(), pos = posicionesVivas().filter(p => p.sh > 0.0001), total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0) || 1;
+    const sec = {}; pos.forEach(p => { const k = esEtfPos(p) ? 'ETF' : sectorBase(p.sector); sec[k] = (sec[k] || 0) + (precioDe(p) || 0) * p.sh; });
+    return vvOrdenes().map(o => {
+        const p = pos.find(q => q.isin && esMismoISIN(q.isin, o.isin)), pr = p ? (precioDe(p) || 0) : 0, k = p ? (esEtfPos(p) ? 'ETF' : sectorBase(p.sector)) : '';
+        const pm = p ? p.pm : 0, da = p ? (p.divAcc || 0) : 0, plus = o.acciones * (o.limite - pm), imp = Math.max(0, plus) * C.IMPUESTO_VENTA_PCT / 100, neta = plus - imp;
+        const ej = (OPERACIONES_CERRADAS || []).filter(x => esMismoISIN(String(x.isin || ''), o.isin) && String(x.fecha).slice(0, 10) >= (o.alta || '0000') && Number(x.acciones) >= o.acciones * 0.8).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
+        const dist = pr > 0 ? (o.limite - pr) / pr * 100 : null, caducada = !!(o.caducidad && o.caducidad < hoy);
+        const estado = ej ? 'EJECUTADA' : caducada ? 'CADUCADA' : (pr > 0 && pr >= o.limite) ? 'TOCADA' : 'PENDIENTE', vivo = estado === 'PENDIENTE' || estado === 'TOCADA';
+        const ex = p ? vvProxEx(p) : '', aviso = [];
+        if (vivo && ex && (!o.caducidad || ex <= o.caducidad)) aviso.push('EX_' + ex + '_VENDER_ANTES_PIERDE_DIVIDENDO');
+        if (vivo && p && o.acciones > p.sh + 1e-6) aviso.push('ACCIONES_MAYOR_QUE_POSICION');
+        if (!p) aviso.push('SIN_POSICION');
+        const totDesp = total - o.acciones * pr, valSec = (sec[k] || 0) - o.acciones * pr;
+        const mr = p ? rango52De(p) : null;
+        return { o, p, pr, dist, plus, imp, neta, anos: da > 0 ? (o.limite - pm) / da : null, pierde: o.acciones * da, pesoSector: (!vivo || !p || k === '') ? (k && total ? (sec[k] || 0) / total * 100 : null) : (k === 'ETF' ? null : valSec / (totDesp || 1) * 100),
+            liqTras: (vivo && liqLibre != null) ? liqLibre + o.acciones * o.limite - imp : null, estado, vivo, aviso, ej,
+            recompra: ej ? (o.recompra > 0 ? o.recompra : (Number(ej.pVenta) || o.limite) * 0.85) : null, recompraFija: !!(ej && o.recompra > 0), recompraMin52: (ej && mr && mr.min > 0) ? mr.min : null, ex };
+    });
+}
+// Resumen para el radar y el export: valores a revisar, órdenes de venta a ≤ 2 %, ventas ejecutadas con recompra propuesta
+function vvResumen() {
+    const pos = posicionesVivas().filter(p => p.sh > 0.0001), rev = [];
+    pos.forEach(p => { const pr = precioDe(p) || 0, gp = pr > 0 ? pr * p.sh - p.ct : '', v = vvPosicion(p, pr, gp, (p.divAcc || 0) * p.sh); if (v.rev === 'SI') rev.push({ n: p.n, dist: v.dist, anos: v.anos }); });
+    const ord = vvCalcOrdenes(null), cerca = ord.filter(x => x.vivo && x.dist !== null && x.dist <= 2), hechas = ord.filter(x => x.estado === 'EJECUTADA');
+    return { rev, cerca, hechas };
+}
+function vvLineaRadar() { // línea aparte en el radar (el radar de compras no cambia)
+    let r; try { r = vvResumen(); } catch (e) { return ''; }
+    const t = [], f1 = x => Math.abs(x).toFixed(1).replace('.', ',');
+    if (r.rev.length) t.push('💰 <b>Ventas por revisar (' + r.rev.length + ')</b>: ' + r.rev.map(x => revEsc(x.n) + ' (' + f1(x.dist) + ' % del máx. 52s · ' + f1(x.anos) + ' años de dividendo ganados)').join(' · '));
+    if (r.cerca.length) t.push('📈 <b>Órdenes de venta a ≤ 2 % (' + r.cerca.length + ')</b>: ' + r.cerca.map(x => revEsc(x.p ? x.p.n : x.o.nombre) + ' ' + x.o.acciones + ' acc a ' + fe(x.o.limite, 2) + (x.dist <= 0 ? ' (alcanzado)' : ' (a ' + f1(x.dist) + ' %)')).join(' · '));
+    r.hechas.forEach(x => t.push('🔁 <b>Venta ejecutada: ' + revEsc(x.p ? x.p.n : x.o.nombre) + '</b> · recompra sugerida en ' + fe(x.recompra, 2) + (x.recompraFija ? ' (fijada por ti)' : ' (−15 % del precio de venta)') + (x.recompraMin52 ? ' o en el mínimo de 52 semanas ' + fe(x.recompraMin52, 2) : '') + ' → ponla en TRAMPAS; el peso de sector y la liquidez ya cuentan la venta'));
+    return t.length ? t.map(x => '<div class="rn-venta">' + x + '</div>').join('') : '';
+}
+
+// ══════════ MATERIAS PRIMAS (oro): referencia, ETC de oro físico, mineras, comparación, tu historial y tesis ══════════
+// Datos: los calcula tu Apps Script (actualizarMateriasPrimas) desde Yahoo y quedan en la hoja MP_CACHE. Aquí solo se leen y se calculan estadísticas.
+// Regla: si un dato falta o es dudoso → «ND» / no fiable. Nunca se rellena ni se estima en silencio (las estimaciones llevan la etiqueta «estimación»).
+let MATERIAS_GS = null, MP_CFG_GS = [], MP_TESIS_GS = [];
+const MP_UI = { mon: 'EUR', rango: '5a', sel: null, base: 1000 };
+const MP_COL = ['#C9A24B', '#5B8FD9', '#34C77B', '#E85A5A', '#B07CE0', '#E29A3E', '#4FC3C3', '#D96BA8', '#9AA5B1', '#8BC34A', '#FF8A65', '#7986CB', '#A1887F'];
+const MP_REGLAS = { PESO_ORO_MIN: 3, PESO_ORO_MAX: 5, TRAMPA_ETC_PCT: 10, TOPE_MINERA_EUR: 1000, EFECTIVO_ANUAL_PCT: 3, UMBRAL_CORRECCION: 10 };
+const MP_NOMBRES_POS = { NEM: /newmont/i, B: /barrick/i, AEM: /agnico/i, FNV: /franco/i, WPM: /wheaton/i, KGC: /kinross/i, GDX: /gold miners|\bgdx\b/i };
+const MP_ISIN_ORO_ETC = 'IE00B4ND3602', MP_ISIN_NEM = 'US6516391066';
+
+const mpOk = v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v));
+const mpN = (v, d = 2) => mpOk(v) ? Number(v).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }) : '<span class="mt2" title="no disponible o no fiable: no se rellena">ND</span>';
+const mpP = (v, d = 1) => mpOk(v) ? '<span style="color:' + (v > 0.05 ? 'var(--gn)' : v < -0.05 ? 'var(--rd)' : 'var(--mt)') + '">' + (v > 0 ? '+' : '') + Number(v).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%</span>' : '<span class="mt2">ND</span>';
+const mpGrande = v => !mpOk(v) ? '<span class="mt2">ND</span>' : (Math.abs(v) >= 1e9 ? mpN(v / 1e9, 2) + ' mM' : Math.abs(v) >= 1e6 ? mpN(v / 1e6, 0) + ' M' : mpN(v, 0));
+function mpIt(k) { return MATERIAS_GS && (MATERIAS_GS.items || []).find(i => i.clave === k) || null; }
+function mpCf(k) { return (MP_CFG_GS || []).find(c => c.clave === k) || {}; }
+function mpItems(tipos) { return MATERIAS_GS ? (MATERIAS_GS.items || []).filter(i => tipos.indexOf(i.tipo) >= 0) : []; }
+
+// ── Series: conversión de divisa y estadísticas ──
+function mpSerie(clave, mon) { // serie semanal de `clave` en `mon` (EUR|USD); null si no hay datos o falta la divisa (no fiable)
+    const M = MATERIAS_GS; if (!M || !M.series || !M.series[clave]) return null;
+    const it = mpIt(clave), nat = clave === 'ORO' ? 'USD' : (it && it.moneda) || '', raw = M.series[clave];
+    if (!nat) return null; if (nat === mon) return raw.slice();
+    const fx = M.series.EURUSD, gb = M.series.EURGBP;
+    return raw.map((v, i) => {
+        if (!(v > 0)) return null; let eur;
+        if (nat === 'EUR') eur = v; else if (nat === 'USD') { if (!(fx && fx[i] > 0)) return null; eur = v / fx[i]; } else if (nat === 'GBP') { if (!(gb && gb[i] > 0)) return null; eur = v / gb[i]; } else return null;
+        if (mon === 'EUR') return eur; if (!(fx && fx[i] > 0)) return null; return eur * fx[i];
+    });
+}
+function mpVentana(n) { const w = { '1a': 52, '3a': 156, '5a': 260, '10a': 9999 }[MP_UI.rango] || 260; return Math.max(0, n - w); }
+function mpRets(a) { const r = [null]; for (let i = 1; i < a.length; i++) r.push(a[i] > 0 && a[i - 1] > 0 ? a[i] / a[i - 1] - 1 : null); return r; }
+function mpBeta(ra, rg, i0) { let n = 0, sa = 0, sg = 0, saa = 0, sgg = 0, sag = 0; for (let i = i0 || 0; i < ra.length; i++) { if (ra[i] == null || rg[i] == null) continue; n++; sa += ra[i]; sg += rg[i]; sag += ra[i] * rg[i]; sgg += rg[i] * rg[i]; saa += ra[i] * ra[i]; } if (n < 26) return null; const vg = sgg / n - (sg / n) * (sg / n); return vg > 0 ? (sag / n - (sa / n) * (sg / n)) / vg : null; }
+function mpCaptura(ra, rg, subidas, i0) { let n = 0, sa = 0, sg = 0; for (let i = i0 || 0; i < ra.length; i++) { if (ra[i] == null || rg[i] == null) continue; if (subidas ? rg[i] > 0 : rg[i] < 0) { n++; sa += ra[i]; sg += rg[i]; } } return (n >= 10 && sg !== 0) ? sa / sg * 100 : null; }
+function mpDD(a, i0) { // caída máxima desde un máximo previo + semanas hasta recuperar + situación actual
+    let pico = -1, ip = -1, best = { dd: 0, ip: -1, iv: -1 }, cur = 0, n = a.length, ult = -1;
+    for (let i = i0 || 0; i < n; i++) { if (!(a[i] > 0)) continue; ult = i; if (a[i] >= pico) { pico = a[i]; ip = i; } const dd = a[i] / pico - 1; cur = dd; if (dd < best.dd) best = { dd, ip, iv: i }; }
+    if (ult < 0) return null;
+    let rec = null; if (best.iv >= 0) { for (let i = best.iv + 1; i < n; i++) if (a[i] >= a[best.ip]) { rec = i; break; } }
+    return { max: best.dd * 100, ip: best.ip, iv: best.iv, rec, semRec: rec != null ? rec - best.iv : null, semBajo: rec != null ? rec - best.ip : (best.iv >= 0 ? n - 1 - best.ip : null), actual: cur * 100 };
+}
+function mpSerieDD(a, i0) { let pico = 0; return a.map((v, i) => { if (i < (i0 || 0) || !(v > 0)) return null; if (v > pico) pico = v; return (v / pico - 1) * 100; }); }
+function mpCorrecciones(g, umbral) { // correcciones del oro ≥ umbral %: del máximo al mínimo antes de un nuevo máximo
+    const out = []; let ip = -1, iv = -1;
+    const cerrar = rec => { if (ip >= 0 && iv > ip && (g[iv] / g[ip] - 1) * 100 <= -umbral) out.push({ ip, iv, prof: (g[iv] / g[ip] - 1) * 100, rec, enCurso: rec == null }); };
+    for (let i = 0; i < g.length; i++) { if (!(g[i] > 0)) continue; if (ip < 0 || g[i] >= g[ip]) { cerrar(i); ip = i; iv = i; } else if (g[i] < g[iv]) iv = i; }
+    cerrar(null); return out;
+}
+function mpMediana(a) { const s = a.filter(mpOk).slice().sort((x, y) => x - y); if (!s.length) return null; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function mpDistMax(it) { return (it && it.precio > 0 && it.max52 > 0) ? (it.precio / it.max52 - 1) * 100 : null; }
+function mpPosDe(clave) { // posición tuya en ese valor: {n, sh, val, pm} o null
+    const it = mpIt(clave), cf = mpCf(clave), isin = (it && it.isin) || cf.isin || ''; let pos = []; try { pos = posicionesVivas().filter(p => p.sh > 0.0001); } catch (e) {}
+    const p = pos.find(q => isin && q.isin && esMismoISIN(q.isin, isin)) || (MP_NOMBRES_POS[clave] ? pos.find(q => MP_NOMBRES_POS[clave].test(q.n || '')) : null);
+    return p ? { n: p.n, sh: p.sh, pm: p.pm, val: (precioDe(p) || 0) * p.sh, p } : null;
+}
+function mpCorr(ra, rg, i0) { let n = 0, sa = 0, sg = 0, saa = 0, sgg = 0, sag = 0; for (let i = i0 || 0; i < ra.length; i++) { if (ra[i] == null || rg[i] == null) continue; n++; sa += ra[i]; sg += rg[i]; saa += ra[i] * ra[i]; sgg += rg[i] * rg[i]; sag += ra[i] * rg[i]; } if (n < 26) return null; const va = saa / n - (sa / n) ** 2, vg = sgg / n - (sg / n) ** 2; return (va > 0 && vg > 0) ? (sag / n - (sa / n) * (sg / n)) / Math.sqrt(va * vg) : null; }
+function mpCorrRoll(ra, rg, win, i0) { return ra.map((_, i) => { if (i < i0 || i < win) return null; return mpCorr(ra.slice(i - win + 1, i + 1), rg.slice(i - win + 1, i + 1), 0); }).map(v => v); }   // exige ≥26 pares: ventana mínima 26
+// Simulación: `base` € invertidos al inicio de la ventana. Valor = precio + dividendos cobrados (brutos, sin reinvertir). null si falta precio inicial o divisa.
+function mpInvertir(clave, mon, i0, base) {
+    const M = MATERIAS_GS, a = mpSerie(clave, mon), it = mpIt(clave); if (!a || !it) return null;
+    const b = a.findIndex((v, i) => i >= i0 && v > 0); if (b < 0 || b > i0 + 8) return null;
+    const unidades = base / a[b], raw = M.series[clave], conv = a.map((v, i) => (v > 0 && raw[i] > 0) ? v / raw[i] : null);
+    const ev = []; (it.divs || []).forEach(d => { let idx = M.grid.findIndex(g => g >= d.f); if (idx < 0) idx = M.grid.length - 1; if (idx > b && idx < a.length) { const cv = conv[idx] || conv[idx - 1]; if (cv > 0) ev.push({ idx, v: d.v * unidades * cv }); } });
+    let acum = 0; const precio = [], total = [], divAc = [];
+    for (let i = i0; i < a.length; i++) { if (i >= b) { ev.filter(e => e.idx === i).forEach(e => { acum += e.v; }); precio.push(a[i] > 0 ? unidades * a[i] : null); total.push(a[i] > 0 ? unidades * a[i] + acum : null); } else { precio.push(null); total.push(null); } divAc.push(acum); }
+    let fin = a.length - 1; while (fin > b && !(a[fin] > 0)) fin--;
+    const vp = unidades * a[fin], anios = (fin - b) / 52, tot = vp + acum, sinDatosDiv = !(it.divs && it.divs.length) && (it.tipo === 'MINERA' || it.tipo === 'ROYALTY' || it.tipo === 'ETF_MINERAS');
+    return { precio, total, valorPrecio: vp, divs: acum, total_: tot, gananciaPrecio: vp - base, ganancia: tot - base, pctPrecio: (vp / base - 1) * 100, pct: (tot / base - 1) * 100, anual: anios >= 0.5 ? (Math.pow(tot / base, 1 / anios) - 1) * 100 : null, nDiv: ev.length, sinDatosDiv, inicio: M.grid[b] };
+}
+function mpFilaStats(clave, mon, i0) { // beta, capturas, drawdown de un valor frente al oro en la divisa elegida
+    const g = mpSerie('ORO', mon), a = mpSerie(clave, mon); if (!g || !a) return null;
+    const rg = mpRets(g), ra = mpRets(a);
+    return { corr: mpCorr(ra, rg, i0), beta: mpBeta(ra, rg, i0), up: mpCaptura(ra, rg, true, i0), down: mpCaptura(ra, rg, false, i0), dd: mpDD(a, i0) };
+}
+
+// ── Carga ──
+function mpAplicarDatos(data) {
+    MATERIAS_GS = data && data.materias && data.materias.items ? data.materias : null; MP_CFG_GS = (data && data.mpConfig) || []; MP_TESIS_GS = (data && data.mpTesis) || [];
+    MP_UI.sel = null;
+}
+function mpTesisParam(k) { const f = (MP_TESIS_GS || []).find(x => x.tipo === 'PARAM' && x.clave === k); return f && mpOk(f.valor) ? Number(f.valor) : null; }
+function mpSeleccion() { if (!MP_UI.sel) { MP_UI.sel = new Set(['ORO']); const etc = mpItems(['ETC']).find(i => i.precio > 0); if (etc) MP_UI.sel.add(etc.clave); ['NEM', 'GDX'].forEach(k => { if (mpIt(k) && mpIt(k).precio > 0) MP_UI.sel.add(k); }); } return MP_UI.sel; }
+function mpToggle(k) { const s = mpSeleccion(); if (s.has(k)) s.delete(k); else s.add(k); renderMateriasPrimas(); }
+function mpSet(campo, v) { MP_UI[campo] = v; renderMateriasPrimas(); }
+
+// ── Tesis del oro: cálculos (sin pintar; los usa también el export) ──
+function mpTesis() {
+    const o = mpIt('ORO'); if (!o) return null;
+    const fx = o.eurusd, pe = o.precioEur, P = k => mpTesisParam(k), hor = P('horizonte_anios'), imp = P('importe_ejemplo') || 1000, cash = P('efectivo_anual_pct') != null ? P('efectivo_anual_pct') : MP_REGLAS.EFECTIVO_ANUAL_PCT;
+    const refManual = P('precio_entrada_ref'), ref = refManual != null ? refManual : pe, refEsActual = refManual == null;
+    const ret = t => (mpOk(t) && ref > 0) ? (t / ref - 1) * 100 : null, anual = r => (r != null && hor > 0) ? (Math.pow(1 + r / 100, 1 / hor) - 1) * 100 : null;
+    const efectivoTot = hor > 0 ? (Math.pow(1 + cash / 100, hor) - 1) * 100 : null;
+    const obj = [['objetivo_1', P('objetivo_1')], ['objetivo_2', P('objetivo_2')]].map(([k, t]) => { const r = ret(t); return { clave: k, eur: t, ret: r, anual: anual(r), efectivoTot, vsEfectivo: (r != null && efectivoTot != null) ? r - efectivoTot : null }; });
+    const corr = (function () { const g = mpSerie('ORO', 'EUR'); return g ? mpCorrecciones(g, MP_REGLAS.UMBRAL_CORRECCION) : []; })();
+    const medCorr = mpMediana(corr.map(c => c.prof));
+    let bajista = P('objetivo_bajista'), bajistaEstimado = false; if (bajista == null && medCorr != null && ref > 0) { bajista = ref * (1 + medCorr / 100); bajistaEstimado = true; }
+    const esc = [['Alcista', P('objetivo_2') != null ? P('objetivo_2') : P('objetivo_1'), false], ['Base', P('objetivo_1'), false], ['Bajista', bajista, bajistaEstimado]].map(([n, t, est]) => {
+        const r = ret(t); return { nombre: n, eur: t, estimado: est, ret: r, final: r != null ? imp * (1 + r / 100) : null, gan: r != null ? imp * r / 100 : null, ganEfectivo: efectivoTot != null ? imp * efectivoTot / 100 : null };
+    });
+    const bancos = (MP_TESIS_GS || []).filter(x => x.tipo === 'BANCO').map(b => {
+        const usd = mpOk(b.valor) ? Number(b.valor) : null, eur = (usd != null && fx > 0) ? usd / fx : null, r = ret(eur);
+        const dias = b.fecha && /^\d{4}-\d{2}-\d{2}$/.test(b.fecha) ? Math.round((Date.now() - Date.parse(b.fecha)) / 86400000) : null;
+        const sens = pct => (usd != null && fx > 0 && ref > 0) ? ((usd / (fx * (1 + pct / 100))) / ref - 1) * 100 - r : null;   // efecto de que EURUSD se mueva pct %: puntos de retorno
+        return { banco: b.clave, usd, fecha: b.fecha, dias, eur, ret: r, anual: anual(r), fxMas5: sens(5), fxMenos5: sens(-5), fxMas10: sens(10), fxMenos10: sens(-10), nota: b.nota };
+    });
+    // movimiento estimado de las mineras: beta (5 años, USD, semanal) × retorno del oro a cada escenario. ESTIMACIÓN.
+    const n = (MATERIAS_GS.grid || []).length, i0 = Math.max(0, n - 260), g = mpSerie('ORO', 'USD'), rg = g ? mpRets(g) : null;
+    const mineras = mpItems(['MINERA', 'ROYALTY', 'ETF_MINERAS']).filter(i => i.precio > 0).map(i => { const a = mpSerie(i.clave, 'USD'), beta = (a && rg) ? mpBeta(mpRets(a), rg, i0) : null; return { clave: i.clave, nombre: i.nombre, beta, mov: esc.map(e => (beta != null && e.ret != null) ? beta * e.ret : null) }; });
+    return { ref, refEsActual, pe, fx, hor, imp, cash, efectivoTot, obj, esc, bancos, mineras, medCorr, nCorr: corr.length, bajistaEstimado };
+}
+// Ruta de peso del oro y trampa del ETC
+function mpPesoOro() {
+    let pos = []; try { pos = posicionesVivas().filter(p => p.sh > 0.0001); } catch (e) {}
+    const total = pos.reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0), isinsEtc = mpItems(['ETC']).map(i => String(i.isin || '').toUpperCase()).filter(Boolean);
+    const oro = pos.filter(p => p.isin && isinsEtc.some(i => esMismoISIN(p.isin, i)) || /physical gold|xetra-gold|oro f/i.test(p.n || '')).reduce((t, p) => t + (precioDe(p) || 0) * p.sh, 0);
+    const pct = total > 0 ? oro / total * 100 : null;
+    return { oro, total, pct, minEur: total * MP_REGLAS.PESO_ORO_MIN / 100 - oro, maxEur: total * MP_REGLAS.PESO_ORO_MAX / 100 - oro, estado: pct == null ? 'ND' : pct < MP_REGLAS.PESO_ORO_MIN ? 'POR_DEBAJO' : pct > MP_REGLAS.PESO_ORO_MAX ? 'POR_ENCIMA' : 'DENTRO' };
+}
+function mpTrampaEtc(it) { if (!it || !(it.max52 > 0) || !(it.precio > 0)) return null; const tr = it.max52 * (1 - MP_REGLAS.TRAMPA_ETC_PCT / 100); return { tr, falta: (it.precio - tr) / it.precio * 100, tocada: it.precio <= tr }; }
+function mpAiscMargen(it) { // margen sobre AISC con el oro spot (USD/oz); solo si hay AISC manual numérico
+    const cf = mpCf(it.clave), a = mpOk(cf.aisc) ? Number(cf.aisc) : null, o = mpIt('ORO'); return (a > 0 && o && o.precio > 0) ? { aisc: a, margen: (o.precio - a) / o.precio * 100, usd: o.precio - a } : null;
+}
+function mpBpa(it) { const e = it.eps4; if (!e || e.length < 4) return null; const v = e.map(x => x.v), s = v.reduce((t, x) => t + x, 0); return { v, ttm: s, evol: v[0] !== 0 ? (v[3] / v[0] - 1) * 100 : null }; }
+
+// ── Pintado ──
+function mpRango() { return ['1a', '3a', '5a', '10a'].map(r => '<button class="btn' + (MP_UI.rango === r ? ' ac' : '') + '" onclick="mpSet(\'rango\',\'' + r + '\')">' + r.replace('a', ' años').replace('1 años', '1 año') + '</button>').join(''); }
+function renderMateriasPrimas() {
+    const root = document.getElementById('mp-root'); if (!root) return;
+    const M = MATERIAS_GS, o = mpIt('ORO');
+    const btn = '<button class="btn" id="mp-btn" onclick="mpActualizar()">↻ Actualizar materias primas</button>';
+    if (!M || !o) { root.innerHTML = '<div class="card"><div class="ch"><h3>🪙 Materias primas</h3>' + btn + '</div><div style="padding:16px;font-size:12px;line-height:1.6">Aún no hay datos. En Apps Script pega el código nuevo, crea la «Nueva versión» y ejecuta <b>actualizarMateriasPrimas</b> (tarda 1-3 minutos; crea las hojas MP_CONFIG, MP_TESIS, MATERIAS_PRIMAS y MP_CACHE). Después pulsa «↻ Refrescar radar».<br><span class="mt2">Si Yahoo falla para algún valor, saldrá «ND» y no se rellena.</span></div></div>'; return; }
+    const edad = Math.round((Date.now() - Date.parse(M.actualizado)) / 3600000), mon = MP_UI.mon, tes = mpTesis(), pw = mpPesoOro();
+    const dOro = mpDistMax({ precio: o.precio, max52: o.max52 }), caida = (o.maxHistUsd > 0 && o.precio > 0) ? (o.precio / o.maxHistUsd - 1) * 100 : null;
+    const kp = (l, v, s, c) => '<div class="kpi" style="--kc:' + c + '"><div class="kl">' + l + '</div><div class="kv" style="color:' + c + ';white-space:nowrap;font-size:17px">' + v + '</div><div class="ks">' + s + '</div></div>';
+    const avisos = (M.errores || []).map(e => '<div class="alert-box warn" style="margin:0"><span class="icon">⚠️</span><span>' + revEsc(e) + '</span></div>').join('') + (edad >= 36 ? '<div class="alert-box warn" style="margin:0"><span class="icon">🕒</span><span>Datos de hace <b>' + edad + ' h</b>: pulsa «Actualizar materias primas».</span></div>' : '') + (o.fiable ? '' : '<div class="alert-box warn" style="margin:0"><span class="icon">⚠️</span><span>El precio del oro no es fiable (' + ((o.nd || []).join(',') || 'sin precio reciente') + ').</span></div>') + (/futuro/.test(M.fuenteOro || '') ? '<div class="alert-box warn" style="margin:0"><span class="icon">⚠️</span><span>El oro viene del <b>futuro GC=F</b>, no del spot: puede diferir unos dólares.</span></div>' : '');
+    const kpis = [kp('Oro USD/oz', mpN(o.precio, 2), '1m ' + mpP(o.chg.m1) + ' · 1a ' + mpP(o.chg.a1), '#C9A24B'), kp('Oro EUR/oz', mpN(o.precioEur, 2), 'EURUSD ' + mpN(o.eurusd, 4) + ' · 1a ' + mpP(o.chgEur.a1), '#C9A24B'), kp('Distancia al máx. 52 sem.', mpP(dOro, 1), 'máx ' + mpN(o.max52, 0) + ' · mín ' + mpN(o.min52, 0) + ' USD', dOro != null && dOro > -3 ? '#E29A3E' : '#5B8FD9'), kp('Desde máx. histórico', mpP(caida, 1), 'máx ' + mpN(o.maxHistUsd, 0) + ' USD (' + revFmt(o.maxHistFecha) + ')', '#E85A5A'), kp('Tu peso en oro', pw.pct == null ? 'ND' : mpN(pw.pct, 2) + '%', 'objetivo ' + MP_REGLAS.PESO_ORO_MIN + '–' + MP_REGLAS.PESO_ORO_MAX + '% · ' + ({ POR_DEBAJO: 'por debajo', DENTRO: 'dentro', POR_ENCIMA: 'por encima', ND: 'sin datos' })[pw.estado], pw.estado === 'DENTRO' ? '#34C77B' : '#E29A3E')].join('');
+    // 1) Oro de referencia
+    const fila = (lbl, p, c, mx, mn, dist, hist, caid) => '<tr><td style="text-align:left;font-weight:600">' + lbl + '</td><td>' + mpN(p, 2) + '</td><td>' + mpP(c.m1) + '</td><td>' + mpP(c.m3) + '</td><td>' + mpP(c.a1) + '</td><td>' + mpP(c.a5) + '</td><td>' + mpN(mx, 2) + '</td><td>' + mpN(mn, 2) + '</td><td>' + mpP(dist) + '</td><td>' + mpN(hist, 2) + '</td><td>' + mpP(caid) + '</td></tr>';
+    const eurMax = o.maxHistEur, caidaEur = (eurMax > 0 && o.precioEur > 0) ? (o.precioEur / eurMax - 1) * 100 : null, distEur = (o.max52Eur > 0 && o.precioEur > 0) ? (o.precioEur / o.max52Eur - 1) * 100 : null;
+    const tOro = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Oro</th><th>Precio</th><th>1 m</th><th>3 m</th><th>1 a</th><th>5 a</th><th>Máx 52s</th><th>Mín 52s</th><th>Dist. máx 52s</th><th>Máx histórico</th><th>Caída desde máx</th></tr></thead><tbody>' +
+        fila('USD / oz', o.precio, o.chg, o.max52, o.min52, dOro, o.maxHistUsd, caida) + fila('EUR / oz', o.precioEur, o.chgEur, o.max52Eur, o.min52Eur, distEur, eurMax, caidaEur) + '</tbody></table></div>' +
+        '<div class="mt2" style="padding:6px 16px 12px;font-size:9px">Fuente ' + revEsc(M.fuenteOro || '') + ' · EUR = USD ÷ EURUSD (' + mpN(o.eurusd, 4) + ') · máx. histórico USD: ' + (o.maxHistFuente === 'mensual_max' ? 'máximo mensual de toda la serie' : 'solo 10 años (no fiable como histórico)') + ' · máx. histórico EUR: solo últimos 10 años (' + revFmt(o.maxHistEurFecha) + ') · actualizado ' + revEsc(o.hora) + '</div>';
+    // 2) ETC
+    const etcs = mpItems(['ETC']), tEtc = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">ETC / ETF oro físico</th><th>Ticker</th><th>Divisa</th><th>Precio</th><th>TER %</th><th>AUM</th><th>TR</th><th>Máx 52s</th><th>Dist. máx</th><th>Trampa −' + MP_REGLAS.TRAMPA_ETC_PCT + '%</th><th>Seguimiento vs oro EUR 1a</th><th>Tienes</th></tr></thead><tbody>' + etcs.map(i => {
+        const cf = mpCf(i.clave), ter = mpOk(i.ter) ? i.ter : (mpOk(cf.terManual) && cf.terManual !== '' ? Number(cf.terManual) : null), tr = mpTrampaEtc(i), pos = mpPosDe(i.clave), tru = cf.tr === 'SI' ? '<span style="color:var(--gn)">SI</span>' : cf.tr === 'NO' ? '<span style="color:var(--rd)">NO</span>' : '<span class="mt2" title="Yahoo no dice si Trade Republic lo ofrece: ponlo tú en MP_CONFIG">sin verificar</span>';
+        return '<tr' + (i.fiable ? '' : ' style="opacity:.6"') + '><td style="text-align:left"><b>' + revEsc(i.nombre) + '</b><br><span class="mt2" style="font-size:8px">' + revEsc(i.isin) + (i.fiable ? '' : ' · NO FIABLE ' + revEsc((i.nd || []).join(','))) + '</span></td><td>' + revEsc(i.ticker || '—') + '</td><td>' + revEsc(i.moneda || '—') + '</td><td>' + mpN(i.precio, 3) + '</td><td>' + mpN(ter, 2) + (mpOk(i.ter) ? '' : (ter != null ? ' <span class="mt2">manual</span>' : '')) + '</td><td>' + mpGrande(i.aum) + '</td><td>' + tru + '</td><td>' + mpN(i.max52, 3) + '</td><td>' + mpP(mpDistMax(i)) + '</td><td>' + (tr ? mpN(tr.tr, 3) + (tr.tocada ? ' <b style="color:var(--gn)">🎯 tocada</b>' : ' <span class="mt2">a ' + mpN(tr.falta, 1) + '%</span>') : '<span class="mt2">ND</span>') + '</td><td>' + (mpOk(i.trackDiff1a) ? mpP(i.trackDiff1a, 2).replace('%', ' pp') : '<span class="mt2">ND</span>') + '</td><td>' + (pos ? mpN(pos.sh, 4) + ' acc · ' + mpN(pos.val, 0) + ' €' : '—') + '</td></tr>';
+    }).join('') + '</tbody></table></div><div class="mt2" style="padding:6px 16px 12px;font-size:9px">El ticker se busca en Yahoo por ISIN y se prefiere la cotización en EUR; TER y AUM salen de Yahoo si los da (si no, ND: puedes ponerlos en MP_CONFIG). «TR» no se puede comprobar desde Yahoo: pon SI/NO en MP_CONFIG tras mirarlo en la app. Seguimiento = rentabilidad 1 año del ETC en EUR menos la del oro en EUR (puntos porcentuales; un negativo ≈ coste + desvío).</div>';
+    // 3) Mineras
+    const mins = mpItems(['MINERA', 'ROYALTY', 'ETF_MINERAS']), tMin = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Minera</th><th>Precio USD</th><th>Máx 52s</th><th>Dist. máx</th><th>Div/acc</th><th>Yield</th><th>Payout</th><th>Crec. div 5a</th><th>BPA 4 trim.</th><th>FCF</th><th>AISC vs oro</th><th>Deuda neta/EBITDA</th><th>Tienes / tope ' + MP_REGLAS.TOPE_MINERA_EUR + ' €</th></tr></thead><tbody>' + mins.map(i => {
+        const b = mpBpa(i), am = mpAiscMargen(i), cf = mpCf(i.clave), pos = mpPosDe(i.clave), eti = i.tipo === 'ROYALTY' ? ' <span class="mt2" style="font-size:8px">royalty</span>' : i.tipo === 'ETF_MINERAS' ? ' <span class="mt2" style="font-size:8px">ETF</span>' : '';
+        return '<tr' + (i.fiable ? '' : ' style="opacity:.6"') + '><td style="text-align:left"><b>' + revEsc(i.nombre) + '</b>' + eti + '<br><span class="mt2" style="font-size:8px">' + revEsc(i.ticker || '') + (i.fiable ? '' : ' · NO FIABLE ' + revEsc((i.nd || []).join(','))) + '</span></td><td>' + mpN(i.precio, 2) + '</td><td>' + mpN(i.max52, 2) + '</td><td>' + mpP(mpDistMax(i)) + '</td><td>' + mpN(i.divAcc, 2) + '</td><td>' + mpN(i.yield, 2) + '%</td><td>' + (mpOk(i.payout) ? mpN(i.payout, 0) + '%' : '<span class="mt2">ND</span>') + '</td><td>' + mpP(i.crecDiv5a) + '</td><td>' +
+            (i.tipo === 'ETF_MINERAS' ? '<span class="mt2">—</span>' : b ? mpN(b.ttm, 2) + ' <span class="mt2" style="font-size:8px">(' + b.v.map(x => mpN(x, 2)).join(' · ') + ')</span> ' + mpP(b.evol, 0) : '<span class="mt2">ND</span>') + '</td><td>' + (i.tipo === 'ETF_MINERAS' ? '<span class="mt2">—</span>' : mpGrande(i.fcf)) + '</td><td>' +
+            (cf.aisc === 'N/A' ? '<span class="mt2">N/A</span>' : am ? mpN(am.aisc, 0) + ' → margen ' + mpN(am.margen, 0) + '% <span class="mt2" style="font-size:8px">(' + revEsc(cf.aiscFecha || 'sin fecha') + ')</span>' : '<span class="mt2" title="Yahoo no da el AISC: ponlo en MP_CONFIG con fecha y fuente">falta (manual)</span>') + '</td><td>' + (i.tipo === 'ETF_MINERAS' ? '<span class="mt2">—</span>' : mpN(i.deudaNetaEbitda, 2) + 'x') + '</td><td>' + (pos ? mpN(pos.val, 0) + ' € · ' + (pos.val > MP_REGLAS.TOPE_MINERA_EUR ? '<b style="color:var(--am)">sobre el tope</b>' : 'quedan ' + mpN(MP_REGLAS.TOPE_MINERA_EUR - pos.val, 0) + ' €') : 'nada') + '</td></tr>';
+    }).join('') + '</tbody></table></div><div class="mt2" style="padding:6px 16px 12px;font-size:9px">Datos de Yahoo (TTM). BPA = beneficio por acción de los últimos 4 trimestres (el último frente al primero). AISC lo pones tú (no está en Yahoo); royalties/streaming no tienen AISC. Ivanhoe Mines (IVN) es cobre: queda fuera de esta comparación.</div>';
+    // 4) Comparación
+    const sel = mpSeleccion(), claves = ['ORO'].concat(mpItems(['ETC', 'MINERA', 'ROYALTY', 'ETF_MINERAS']).filter(i => i.precio > 0).map(i => i.clave));
+    const chips = claves.map((k, j) => { const it = mpIt(k); return '<button class="btn' + (sel.has(k) ? ' ac' : '') + '" style="' + (sel.has(k) ? 'border-color:' + MP_COL[j % MP_COL.length] + ';color:' + MP_COL[j % MP_COL.length] : '') + '" onclick="mpToggle(\'' + k + '\')">' + revEsc(k === 'ORO' ? 'Oro' : (it.ticker || it.nombre)) + '</button>'; }).join('');
+    const n = (M.grid || []).length, i0 = mpVentana(n), gMon = mpSerie('ORO', mon);
+    const stRows = claves.filter(k => mpSerie(k, mon)).map(k => {
+        const a = mpSerie(k, mon), it = mpIt(k), st = mpFilaStats(k, mon, i0), dd = mpDD(a, i0); if (!dd) return '';
+        const fx = i => i != null ? revFmt(M.grid[i]) : '—', rec = dd.rec != null ? dd.semRec + ' sem.' : (dd.iv >= 0 && dd.max < 0 ? 'sin recuperar (' + (n - 1 - dd.iv) + ' sem. desde el mínimo)' : '—');
+        return '<tr><td style="text-align:left"><b>' + revEsc(k === 'ORO' ? 'Oro' : it.nombre) + '</b></td><td>' + (k === 'ORO' ? '1,00' : mpN(st && st.corr, 2)) + '</td><td>' + (k === 'ORO' ? '1,00' : mpN(st && st.beta, 2)) + '</td><td>' + (k === 'ORO' ? '100' : mpN(st && st.up, 0)) + '%</td><td>' + (k === 'ORO' ? '100' : mpN(st && st.down, 0)) + '%</td><td>' + mpP(dd.max, 1) + '</td><td class="mt2">' + fx(dd.ip) + ' → ' + fx(dd.iv) + '</td><td>' + rec + '</td><td>' + mpP(dd.actual, 1) + '</td></tr>';
+    }).join('');
+    const tStats = '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Valor</th><th title="1 = se mueven igual; 0 = nada que ver; negativo = al revés">Correlación con oro</th><th>Beta vs oro</th><th>Captura subidas</th><th>Captura bajadas</th><th>Máx. drawdown</th><th>Pico → mínimo</th><th>Tiempo en recuperar</th><th>Hoy vs su máx.</th></tr></thead><tbody>' + stRows + '</tbody></table></div><div class="mt2" style="padding:6px 16px 12px;font-size:9px">Datos semanales, ventana ' + MP_UI.rango + ', divisa ' + mon + '. Beta = pendiente de las rentabilidades semanales frente al oro; captura = rentabilidad media del valor en las semanas en que el oro sube (o baja) dividida entre la del oro. Solo precio, sin dividendos. Un valor sin al menos 26 semanas con datos sale ND.</div>';
+    // Correcciones del oro ≥10 %
+    const gFull = mpSerie('ORO', mon), cor = gFull ? mpCorrecciones(gFull, MP_REGLAS.UMBRAL_CORRECCION) : [], colsC = Array.from(sel).filter(k => k !== 'ORO' && mpSerie(k, mon));
+    const tCor = cor.length ? '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Corrección del oro</th><th>Oro</th>' + colsC.map(k => '<th>' + revEsc(mpIt(k).ticker || k) + '</th>').join('') + '<th>Recuperó</th></tr></thead><tbody>' + cor.map(c => {
+        const celdas = colsC.map(k => { const a = mpSerie(k, mon), p = a[c.ip], v = a[c.iv]; return '<td>' + (p > 0 && v > 0 ? mpP((v / p - 1) * 100, 0) : '<span class="mt2">ND</span>') + '</td>'; }).join('');
+        return '<tr><td style="text-align:left">' + revFmt(M.grid[c.ip]) + ' → ' + revFmt(M.grid[c.iv]) + '</td><td>' + mpP(c.prof, 1) + '</td>' + celdas + '<td>' + (c.enCurso ? '<span style="color:var(--am)">en curso</span>' : revFmt(M.grid[c.rec]) + ' <span class="mt2">(' + (c.rec - c.iv) + ' sem.)</span>') + '</td></tr>'; }).join('') + '</tbody></table></div><div class="mt2" style="padding:6px 16px 12px;font-size:9px">Cada fila: caída del oro del máximo al mínimo antes de un nuevo máximo (≥ ' + MP_REGLAS.UMBRAL_CORRECCION + '%) y lo que hizo cada valor seleccionado entre esas mismas fechas.</div>' : '<div style="padding:12px 16px;font-size:11px" class="mt2">Sin correcciones del oro de ' + MP_REGLAS.UMBRAL_CORRECCION + '% o más en los datos disponibles (o faltan datos).</div>';
+    // Simulación de inversión
+    const base = MP_UI.base > 0 ? MP_UI.base : 1000, inv = claves.filter(k => sel.has(k)).map(k => ({ k, r: mpInvertir(k, mon, i0, base) })).filter(x => x.r);
+    const tInv = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px 0"><span class="mt2" style="font-size:10px">Si hubieras invertido</span><input type="number" min="100" step="100" value="' + base + '" onchange="MP_UI.base=Number(this.value)||1000;renderMateriasPrimas()" style="width:84px;background:var(--s1);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 6px;font-size:12px"><span class="mt2" style="font-size:10px">€ al inicio de la ventana de ' + MP_UI.rango + ' (' + mon + ', se usan los valores marcados arriba)</span></div>' +
+        '<div style="padding:4px 12px"><div class="mt2" style="font-size:9px;padding:4px">Valor de tu inversión: precio + dividendos cobrados (€ o USD según la divisa elegida)</div><div style="height:260px"><canvas id="mp-ch-inv"></canvas></div></div>' +
+        '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Valor</th><th>Valor por precio</th><th>Subida de precio</th><th>Dividendos cobrados</th><th>Total hoy</th><th>Ganancia</th><th>Rentab. total</th><th>Anualizada</th></tr></thead><tbody>' + inv.map(x => { const r = x.r, it = mpIt(x.k); return '<tr><td style="text-align:left"><b>' + revEsc(x.k === 'ORO' ? 'Oro' : it.nombre) + '</b>' + (r.sinDatosDiv ? ' <span class="mt2" style="font-size:8px" title="Yahoo no devolvió dividendos de este valor">dividendos ND</span>' : (it.tipo === 'ETC' ? ' <span class="mt2" style="font-size:8px">no reparte</span>' : '')) + '</td><td>' + mpN(r.valorPrecio, 0) + '</td><td>' + mpP(r.pctPrecio) + '</td><td>' + mpN(r.divs, 0) + (r.nDiv ? ' <span class="mt2" style="font-size:8px">(' + r.nDiv + ' pagos)</span>' : '') + '</td><td><b>' + mpN(r.total_, 0) + '</b></td><td>' + '<span style="color:' + (r.ganancia >= 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (r.ganancia >= 0 ? '+' : '') + mpN(r.ganancia, 0) + '</span>' + '</td><td>' + mpP(r.pct) + '</td><td>' + mpP(r.anual) + '</td></tr>'; }).join('') + '</tbody></table></div><div class="mt2" style="padding:6px 16px 12px;font-size:9px">Dividendos brutos (antes de impuestos y retenciones), sin reinvertir, convertidos a la divisa elegida con el cambio de la semana del cobro. Sin comisiones ni impuestos sobre la plusvalía. El pasado no garantiza nada.</div>' +
+        '<div style="padding:8px 12px 12px"><div class="mt2" style="font-size:9px;padding:4px">Correlación móvil con el oro (26 semanas, rentabilidades semanales): 1 = van juntos, 0 = independientes, negativo = al revés</div><div style="height:200px"><canvas id="mp-ch-corr"></canvas></div></div>';
+    // 5) Historial
+    const hist = [[MP_ISIN_ORO_ETC, 'Oro físico (iShares)'], [MP_ISIN_NEM, 'Newmont (NEM)']].map(([isin, nom]) => mpHistorialHtml(isin, nom)).join('');
+    // 6) Tesis
+    const tHtml = mpTesisHtml(tes);
+    // Reglas
+    const reglas = '<div style="padding:12px 16px;font-size:11px;line-height:1.7"><b>Peso objetivo en oro ' + MP_REGLAS.PESO_ORO_MIN + '–' + MP_REGLAS.PESO_ORO_MAX + '%</b>: ahora ' + (pw.pct == null ? 'ND' : mpN(pw.pct, 2) + '% (' + mpN(pw.oro, 0) + ' € de ' + mpN(pw.total, 0) + ' €)') + (pw.pct != null ? ' · para llegar al ' + MP_REGLAS.PESO_ORO_MIN + '%: ' + (pw.minEur > 0 ? '+' + mpN(pw.minEur, 0) + ' €' : 'ya cumplido') + ' · hasta el ' + MP_REGLAS.PESO_ORO_MAX + '%: ' + (pw.maxEur > 0 ? 'caben ' + mpN(pw.maxEur, 0) + ' €' : 'te pasas ' + mpN(-pw.maxEur, 0) + ' €') : '') + '<br><b>Comprar solo en corrección</b>: trampa del ETC a −' + MP_REGLAS.TRAMPA_ETC_PCT + '% desde su máx. de 52 semanas (columna «Trampa»).<br><b>Mineras = ESPEC</b>: tope ' + MP_REGLAS.TOPE_MINERA_EUR + ' € por valor.</div>';
+    const sec = (t, sub, cuerpo, extra) => '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>' + t + '</h3><span class="mt2" style="font-size:8px">' + sub + '</span>' + (extra || '') + '</div>' + cuerpo + '</div>';
+    root.innerHTML = '<div class="kg">' + kpis + '</div>' + (avisos ? '<div style="display:grid;gap:6px;margin-bottom:12px">' + avisos + '</div>' : '') +
+        sec('🥇 Oro de referencia', 'actualizado ' + revEsc(o.hora) + ' · datos de hace ' + edad + ' h', tOro, btn) +
+        sec('🪙 ETC / ETF de oro físico', 'comprar solo en corrección', tEtc) + sec('⛏️ Mineras de oro', 'categoría ESPEC', tMin) +
+        sec('📈 Comparación con el oro', 'base 100 · drawdown · correcciones', '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0;align-items:center">' + mpRango() + '<span style="width:12px"></span><button class="btn' + (mon === 'EUR' ? ' ac' : '') + '" onclick="mpSet(\'mon\',\'EUR\')">en EUR</button><button class="btn' + (mon === 'USD' ? ' ac' : '') + '" onclick="mpSet(\'mon\',\'USD\')">en USD</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">' + chips + '</div>' +
+            '<div style="padding:4px 12px"><div class="mt2" style="font-size:9px;padding:4px">Evolución (base 100 al inicio de la ventana)</div><div style="height:280px"><canvas id="mp-ch-base"></canvas></div></div><div style="padding:4px 12px 12px"><div class="mt2" style="font-size:9px;padding:4px">Drawdown (% bajo su máximo anterior)</div><div style="height:220px"><canvas id="mp-ch-dd"></canvas></div></div>' + tStats +
+            '<div class="ch" style="border-top:1px solid var(--bd)"><h3 style="font-size:12px">Correcciones del oro ≥ ' + MP_REGLAS.UMBRAL_CORRECCION + '%</h3><span class="mt2" style="font-size:8px">toda la historia disponible</span></div>' + tCor) +
+        sec('💶 ¿Qué habría pasado con ' + mpN(base, 0) + ' €?', 'oro frente al resto · precio + dividendos · correlación', tInv) + sec('🧾 Tu historial en oro y NEM', 'operaciones y resultado', hist) + sec('🧭 Tesis del oro', 'valores que editas tú en la hoja MP_TESIS', tHtml) + sec('📏 Reglas', '', reglas);
+    mpPintarGraficos(claves, mon, i0);
+}
+function mpPintarGraficos(claves, mon, i0) {
+    if (typeof Chart === 'undefined') return;
+    const M = MATERIAS_GS, sel = mpSeleccion(), labels = M.grid.slice(i0), mk = (id, datos, y, ref) => {
+        const cv = document.getElementById(id); if (!cv) return; try { if (cv._ch) cv._ch.destroy(); } catch (e) {}
+        cv._ch = new Chart(cv.getContext('2d'), { type: 'line', data: { labels, datasets: datos }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { color: '#94A3B8', boxWidth: 10, font: { size: 10 } } }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + (c.parsed.y == null ? 'ND' : c.parsed.y.toFixed(1)) } } }, scales: { x: { ticks: { color: '#64748B', maxTicksLimit: 8, font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#64748B', font: { size: 9 } }, grid: { color: 'rgba(100,116,139,.18)' }, title: { display: true, text: y, color: '#64748B', font: { size: 9 } } } } } });
+    };
+    const base = [], dd = [];
+    claves.forEach((k, j) => {
+        if (!sel.has(k)) return; const a = mpSerie(k, mon); if (!a) return; const col = MP_COL[j % MP_COL.length], it = mpIt(k), nom = k === 'ORO' ? 'Oro' : (it.ticker || it.nombre);
+        let b = a.findIndex((v, i) => i >= i0 && v > 0); if (b < 0 || b > i0 + 8) return;   // no tiene datos en el inicio de la ventana: no se rebasa a mitad de camino
+        const v0 = a[b]; base.push({ label: nom, data: a.slice(i0).map(v => v > 0 ? v / v0 * 100 : null), borderColor: col, backgroundColor: col, borderWidth: k === 'ORO' ? 2.5 : 1.6, pointRadius: 0, tension: 0, spanGaps: false });
+        dd.push({ label: nom, data: mpSerieDD(a, i0).slice(i0), borderColor: col, backgroundColor: col, borderWidth: k === 'ORO' ? 2.5 : 1.6, pointRadius: 0, tension: 0, spanGaps: false });
+    });
+    mk('mp-ch-base', base, 'base 100 (' + mon + ')'); mk('mp-ch-dd', dd, '% bajo máximo');
+    const inv = [], cor = [], g = mpSerie('ORO', mon), rg = g ? mpRets(g) : null;
+    claves.forEach((k, j) => { if (!sel.has(k)) return; const col = MP_COL[j % MP_COL.length], it = mpIt(k), nom = k === 'ORO' ? 'Oro' : (it.ticker || it.nombre), r = mpInvertir(k, mon, i0, MP_UI.base > 0 ? MP_UI.base : 1000);
+        if (r) inv.push({ label: nom, data: r.total, borderColor: col, backgroundColor: col, borderWidth: k === 'ORO' ? 2.5 : 1.6, pointRadius: 0, tension: 0, spanGaps: false });
+        if (k !== 'ORO' && rg) { const a = mpSerie(k, mon); if (a) cor.push({ label: nom, data: mpCorrRoll(mpRets(a), rg, 26, i0).slice(i0), borderColor: col, backgroundColor: col, borderWidth: 1.6, pointRadius: 0, tension: 0, spanGaps: false }); } });
+    mk('mp-ch-inv', inv, 'valor (' + mon + ')'); mk('mp-ch-corr', cor, 'correlación');
+}
+function mpHistorialHtml(isin, nom) {
+    const ops = []; (COMPRAS_DETALLE_GS || []).filter(c => esMismoISIN(String(c.isin || ''), isin)).forEach(c => ops.push({ f: String(c.fecha || '').slice(0, 10), t: 'Compra', acc: Number(c.acciones) || 0, pr: Number(c.precio) || 0, imp: Number(c.importe) || 0, com: Number(c.comision) || 0, gp: null }));
+    (OPERACIONES_CERRADAS || []).filter(o => esMismoISIN(String(o.isin || ''), isin)).forEach(o => ops.push({ f: String(o.fecha || '').slice(0, 10), t: 'Venta', acc: Number(o.acciones) || 0, pr: Number(o.pVenta) || 0, imp: Number(o.ingreso) || 0, com: 0, gp: Number(o.gp) }));
+    ops.sort((a, b) => a.f.localeCompare(b.f));
+    let pos = null; try { pos = posicionesVivas().find(p => p.sh > 0.0001 && p.isin && esMismoISIN(p.isin, isin)); } catch (e) {}
+    const real = ops.filter(o => o.t === 'Venta' && isFinite(o.gp)).reduce((t, o) => t + o.gp, 0), lat = pos ? (precioDe(pos) - pos.pm) * pos.sh : null;
+    const cab = '<div style="padding:10px 16px 4px;font-size:11px"><b>' + revEsc(nom) + '</b> <span class="mt2">' + revEsc(isin) + '</span> · ' + (pos ? 'tienes ' + mpN(pos.sh, 4) + ' acc a ' + mpN(pos.pm, 2) + ' (valor ' + mpN((precioDe(pos) || 0) * pos.sh, 0) + ' €)' : 'sin posición ahora') + '</div>';
+    if (!ops.length) return cab + '<div class="mt2" style="padding:0 16px 12px;font-size:11px">Sin operaciones registradas en tus datos' + (COMPRAS_DETALLE_GS && COMPRAS_DETALLE_GS.length ? '.' : ' (aún no han cargado).') + '</div>';
+    return cab + '<div class="sc" style="max-height:260px"><table class="dt"><thead><tr><th style="text-align:left">Fecha</th><th>Tipo</th><th>Acciones</th><th>Precio</th><th>Importe</th><th>Resultado</th></tr></thead><tbody>' + ops.map(o => '<tr><td style="text-align:left">' + revFmt(o.f) + '</td><td>' + o.t + '</td><td>' + mpN(o.acc, 4) + '</td><td>' + (o.pr > 0 ? mpN(o.pr, 2) : '<span class="mt2">ND</span>') + '</td><td>' + mpN(o.imp, 2) + '</td><td>' + (o.t === 'Venta' ? (isFinite(o.gp) ? mpP2(o.gp) : '<span class="mt2">ND</span>') : (pos && o.pr > 0 ? '<span class="mt2">' + (((precioDe(pos) - o.pr) * o.acc) >= 0 ? '+' : '') + mpN((precioDe(pos) - o.pr) * o.acc, 2) + ' latente</span>' : '')) + '</td></tr>').join('') + '</tbody></table></div>' +
+        '<div style="padding:6px 16px 12px;font-size:11px">Realizado: ' + mpP2(real) + ' · Latente: ' + (lat == null ? '<span class="mt2">—</span>' : mpP2(lat)) + ' · <b>Total: ' + mpP2(real + (lat || 0)) + '</b></div>';
+}
+const mpP2 = v => '<span style="color:' + (v > 0.005 ? 'var(--gn)' : v < -0.005 ? 'var(--rd)' : 'var(--mt)') + '">' + (v > 0 ? '+' : '') + Number(v).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €</span>';
+function mpTesisHtml(t) {
+    if (!t) return '<div style="padding:12px 16px" class="mt2">Sin datos del oro.</div>';
+    const aviso = (t.refEsActual ? '<div class="alert-box info" style="margin:8px 16px"><span class="icon">ℹ️</span><span>No has puesto <b>precio_entrada_ref</b> en MP_TESIS: la referencia es el precio actual (' + mpN(t.ref, 2) + ' EUR/oz).</span></div>' : '') + (t.hor > 0 ? '' : '<div class="alert-box info" style="margin:8px 16px"><span class="icon">ℹ️</span><span>Falta <b>horizonte_anios</b>: sin él no se calcula el retorno anualizado ni la comparación con el efectivo.</span></div>');
+    const obj = '<table class="dt"><thead><tr><th style="text-align:left">Objetivo (EUR/oz)</th><th>Precio</th><th>Retorno</th><th>Anualizado</th><th>Efectivo ' + mpN(t.cash, 1) + '% (total)</th><th>Oro − efectivo</th></tr></thead><tbody>' + t.obj.map(x => '<tr><td style="text-align:left">' + x.clave.replace('_', ' ') + '</td><td>' + mpN(x.eur, 2) + '</td><td>' + mpP(x.ret) + '</td><td>' + mpP(x.anual) + '</td><td>' + mpP(x.efectivoTot) + '</td><td>' + (x.vsEfectivo != null ? mpP(x.vsEfectivo).replace('%', ' pp') : '<span class="mt2">ND</span>') + '</td></tr>').join('') + '</tbody></table>';
+    const esc = '<table class="dt"><thead><tr><th style="text-align:left">Escenario</th><th>EUR/oz</th><th>Retorno</th><th>Sobre ' + mpN(t.imp, 0) + ' €</th><th>Ganancia</th><th>Efectivo daría</th>' + t.mineras.map(m => '<th title="movimiento estimado = beta × retorno del oro (ESTIMACIÓN)">' + revEsc(m.clave) + ' est.</th>').join('') + '</tr></thead><tbody>' + t.esc.map((e, j) => '<tr><td style="text-align:left">' + e.nombre + (e.estimado ? ' <span class="mt2" style="font-size:8px">estimación: mediana de las ' + t.nCorr + ' correcciones del oro (' + mpN(t.medCorr, 0) + '%)</span>' : '') + '</td><td>' + mpN(e.eur, 2) + '</td><td>' + mpP(e.ret) + '</td><td>' + mpN(e.final, 0) + '</td><td>' + (e.gan != null ? mpP2(e.gan) : '<span class="mt2">ND</span>') + '</td><td>' + (e.ganEfectivo != null ? mpP2(e.ganEfectivo) : '<span class="mt2">ND</span>') + '</td>' + t.mineras.map(m => '<td>' + (m.mov[j] != null ? '<i>' + mpP(m.mov[j], 0) + '</i>' : '<span class="mt2">ND</span>') + '</td>').join('') + '</tr>').join('') + '</tbody></table><div class="mt2" style="padding:6px 16px;font-size:9px">Mineras: estimación = beta semanal 5 años (USD) × retorno del oro del escenario; no es una previsión, solo una ayuda para ver el apalancamiento histórico.</div>';
+    const ban = t.bancos.length ? '<table class="dt"><thead><tr><th style="text-align:left">Banco</th><th>USD/oz</th><th>Fecha</th><th>EUR/oz (EURUSD ' + mpN(t.fx, 4) + ')</th><th>Retorno</th><th>Anualizado</th><th>Si EURUSD +5%</th><th>−5%</th><th>+10%</th><th>−10%</th></tr></thead><tbody>' + t.bancos.map(b => '<tr><td style="text-align:left">' + revEsc(b.banco) + '</td><td>' + mpN(b.usd, 0) + '</td><td>' + (b.fecha ? revFmt(b.fecha) + (b.dias > 180 ? ' <span style="color:var(--am)">⚠ ' + b.dias + ' d</span>' : '') : '<span class="mt2">sin fecha</span>') + '</td><td>' + mpN(b.eur, 0) + '</td><td>' + mpP(b.ret) + '</td><td>' + mpP(b.anual) + '</td>' + [b.fxMas5, b.fxMenos5, b.fxMas10, b.fxMenos10].map(x => '<td>' + (x != null ? mpP(x, 1).replace('%', ' pp') : '<span class="mt2">ND</span>') + '</td>').join('') + '</tr>').join('') + '</tbody></table><div class="mt2" style="padding:6px 16px;font-size:9px">El retorno en EUR a EURUSD actual coincide con el del oro en USD. Las columnas de divisa son el efecto aparte (puntos de retorno) si el euro se mueve ese % hasta que el oro llegue al objetivo.</div>' : '';
+    return aviso + '<div class="sc" style="max-height:none">' + obj + '</div><div class="sc" style="max-height:none;margin-top:10px">' + esc + '</div>' + (ban ? '<div class="sc" style="max-height:none;margin-top:10px">' + ban + '</div>' : '');
+}
+async function mpActualizar() {
+    if (window._mpBusy) return; let clave = ''; try { clave = localStorage.getItem('goteo_clave') || ''; } catch (e) {}
+    if (!clave) clave = (prompt('Clave de guardado (la misma del presupuesto):') || '').trim(); if (!clave) return;
+    window._mpBusy = true; const b = document.getElementById('mp-btn'); if (b) { b.disabled = true; b.textContent = '⏳ Descargando de Yahoo (1-3 min)…'; }
+    try {
+        const r = await (await fetch(API_GS + '?accion=actualizarMaterias&clave=' + encodeURIComponent(clave) + '&nocache=' + Date.now())).json();
+        if (r && r.error === 'clave') { try { localStorage.removeItem('goteo_clave'); } catch (e) {} notificar('🪙 Materias primas', 'Clave incorrecta', 'error'); }
+        else if (r && r.ok) { await recargar(); notificar('🪙 Materias primas', 'Actualizado · ' + r.items + ' valores' + (r.avisos && r.avisos.length ? ' · ' + r.avisos.length + ' avisos' : ''), 'success'); }
+        else notificar('🪙 Materias primas', 'No se pudo actualizar: ' + ((r && r.error) || 'sin respuesta'), 'error');
+    } catch (e) { notificar('🪙 Materias primas', 'Error de conexión: ' + e.message, 'error'); }
+    window._mpBusy = false; renderMateriasPrimas();
+}
+// ── Export: secciones MATERIAS_PRIMAS y TESIS_ORO, reglas y resumen ──
+function mpExportFilas() {
+    const M = MATERIAS_GS, filas = [], tes = [], N = (v, d = 4) => mpOk(v) ? v : '';
+    if (!M || !mpIt('ORO')) return { filas, tes, resumen: [['materias_primas', 'SIN_DATOS']], estado: 'SIN_DATOS' };
+    const o = mpIt('ORO'), i0 = Math.max(0, (M.grid || []).length - 260), pw = mpPesoOro();
+    const fil = (it, extra) => { const cf = mpCf(it.clave), c = it.chg || {}, st = (it.tipo !== 'ORO') ? mpFilaStats(it.clave, 'USD', i0) : null, b = mpBpa(it), am = mpAiscMargen(it), tr = it.tipo === 'ETC' ? mpTrampaEtc(it) : null, pos = mpPosDe(it.clave);
+        const ter = mpOk(it.ter) ? it.ter : (mpOk(cf.terManual) ? Number(cf.terManual) : '');
+        return [it.tipo, it.clave, it.nombre, it.isin || '', it.ticker || '', it.moneda || '', N(it.precio), it.hora || '', N(it.max52), N(it.min52), mpOk(mpDistMax(it)) ? mpDistMax(it) : '', N(c.m1), N(c.m3), N(c.a1), N(c.a5), ter, mpOk(it.aum) ? Math.round(it.aum) : '', cf.tr || 'NO_VERIFICADO', N(it.divAcc), N(it.yield), N(it.payout), N(it.crecDiv5a), b ? b.ttm : '', b && b.evol != null ? b.evol : '', mpOk(it.fcf) ? Math.round(it.fcf) : '', am ? am.aisc : (cf.aisc === 'N/A' ? 'N/A' : ''), am ? am.margen : '', N(it.deudaNetaEbitda), st && st.beta != null ? st.beta : '', st && st.up != null ? st.up : '', st && st.down != null ? st.down : '', st && st.dd ? st.dd.max : '', mpOk(it.trackDiff1a) ? it.trackDiff1a : '', tr ? tr.tr : '', tr ? (tr.tocada ? 'TOCADA' : 'a ' + tr.falta.toFixed(1) + '%') : '', pos ? pos.val : '', it.fiable ? 1 : 0, (it.nd || []).join('+')]; };
+    M.items.forEach(it => filas.push(fil(it)));
+    const t = mpTesis(); if (t) {
+        tes.push(['referencia', 'precio_entrada_ref', t.ref, t.refEsActual ? 'ES_PRECIO_ACTUAL' : '']); tes.push(['oro', 'precio_eur_oz', t.pe, ''], ['oro', 'eurusd', t.fx, '']);
+        t.obj.forEach(x => tes.push(['objetivo', x.clave, N(x.eur), 'retorno_pct=' + (x.ret != null ? x.ret.toFixed(2) : '') + ' anualizado_pct=' + (x.anual != null ? x.anual.toFixed(2) : '') + ' efectivo_total_pct=' + (x.efectivoTot != null ? x.efectivoTot.toFixed(2) : '') + ' oro_menos_efectivo_pp=' + (x.vsEfectivo != null ? x.vsEfectivo.toFixed(2) : '')]));
+        t.esc.forEach((e, j) => tes.push(['escenario', e.nombre.toLowerCase(), N(e.eur), 'retorno_pct=' + (e.ret != null ? e.ret.toFixed(2) : '') + ' sobre_' + Math.round(t.imp) + '_eur=' + (e.final != null ? e.final.toFixed(0) : '') + ' ganancia=' + (e.gan != null ? e.gan.toFixed(0) : '') + ' efectivo_daria=' + (e.ganEfectivo != null ? e.ganEfectivo.toFixed(0) : '') + (e.estimado ? ' ESTIMACION_mediana_correcciones' : '') + ' mineras_estimadas(' + t.mineras.filter(m => m.mov[j] != null).map(m => m.clave + ':' + m.mov[j].toFixed(0) + '%').join(',') + ')']));
+        t.bancos.forEach(b => tes.push(['banco', b.banco, N(b.usd), 'fecha=' + (b.fecha || '') + ' eur_oz=' + (b.eur != null ? b.eur.toFixed(0) : '') + ' retorno_pct=' + (b.ret != null ? b.ret.toFixed(2) : '') + ' efecto_eurusd_pp(+5%/-5%)=' + (b.fxMas5 != null ? b.fxMas5.toFixed(1) + '/' + b.fxMenos5.toFixed(1) : '')]));
+    }
+    const nEtcTocada = mpItems(['ETC']).filter(i => { const x = mpTrampaEtc(i); return x && x.tocada; }).length;
+    return { filas, tes, estado: 'OK', resumen: [['oro_usd_oz', N(o.precio, 2)], ['oro_eur_oz', N(o.precioEur, 2)], ['oro_dist_max52_pct', mpOk(mpDistMax({ precio: o.precio, max52: o.max52 })) ? mpDistMax({ precio: o.precio, max52: o.max52 }) : ''], ['oro_peso_pct', pw.pct == null ? '' : pw.pct], ['oro_peso_estado', pw.estado], ['etc_trampa_tocada', nEtcTocada], ['materias_datos_hora', M.actualizado]] };
+}
+
 // ══════════ EXPORTAR PARA ANÁLISIS: un único .txt con secciones CSV (;) pensado para pegarlo o adjuntarlo a otro chat ══════════
 // Formato: UTF-8 sin BOM, LF, punto decimal, sin separador de miles, porcentajes en unidades de % (12.3 = 12,3 %), importes en EUR, vacío = sin dato.
 const EXPORT_VERSION = 1;
 function _expTxt(s, max) { // texto seguro: sin ; comillas saltos de línea ni emojis
-    let t = String(s == null ? '' : s).replace(/[\p{Extended_Pictographic}️‍]/gu, '').replace(/[;"'“”‘’`]/g, ' ').replace(/[\r\n\t|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    let t = String(s == null ? '' : s).replace(/[\p{Extended_Pictographic}️‍]/gu, '').replace(/[;"'“”‘’`]/g, ' ').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
     return max ? t.slice(0, max).trim() : t;
 }
 function _expN(v, k) { if (v === '' || v == null || typeof v === 'boolean') return ''; const n = Number(v); if (!isFinite(n)) return ''; return String(+n.toFixed(k == null ? 2 : k)); }
@@ -988,17 +1323,20 @@ function exportarAnalisisConstruir(desdeISO) {
     const valP = p => (precioDe(p) || 0) * p.sh;
     const sectVal = {}; pos.forEach(p => { const k = esEtfPos(p) ? 'ETF' : sectorBase(p.sector); sectVal[k] = (sectVal[k] || 0) + valP(p); });
     const liq = _expLiquidez(), liqTotal = liq.reduce((t, x) => t + x.imp, 0), liqInmediata = liq.filter(x => x.cash).reduce((t, x) => t + x.imp, 0), hayLiq = liq.length > 0, hayCash = liq.some(x => x.cash), liqLibre = liqInmediata - C.RESERVA_PANICO;
-    const S = {}, orden = ['RESUMEN', 'POSICIONES', 'TRAMPAS', 'OPERACIONES', 'DIVIDENDOS', 'SECTORES', 'EXPOSICION', 'LIQUIDEZ', 'CALIDAD_DATOS', 'REGLAS'];
+    const S = {}, orden = ['RESUMEN', 'POSICIONES', 'TRAMPAS', 'ORDENES_VENTA', 'OPERACIONES', 'DIVIDENDOS', 'SECTORES', 'EXPOSICION', 'LIQUIDEZ', 'CALIDAD_DATOS', 'MATERIAS_PRIMAS', 'TESIS_ORO', 'REGLAS'];
     const cols = {
         RESUMEN: ['clave', 'valor'],
-        POSICIONES: ['isin', 'isin_alt', 'ticker', 'nombre', 'tipo', 'sector', 'pais', 'divisa', 'acciones', 'p_medio', 'precio', 'fuente_precio', 'hora_precio', 'fiable', 'motivo_no_fiable', 'valor', 'peso_valor', 'peso_sector', 'gp_eur', 'gp_pct', 'div_acc', 'div_anual', 'yield_coste', 'yield_actual'],
+        POSICIONES: ['isin', 'isin_alt', 'ticker', 'nombre', 'tipo', 'sector', 'pais', 'divisa', 'acciones', 'p_medio', 'precio', 'fuente_precio', 'hora_precio', 'fiable', 'motivo_no_fiable', 'valor', 'peso_valor', 'peso_sector', 'gp_eur', 'gp_pct', 'div_acc', 'div_anual', 'yield_coste', 'yield_actual', 'perfil', 'max52', 'dist_max52_pct', 'anos_div_gp', 'revisar_venta', 'dividendo_proximo_ex'],
         TRAMPAS: ['isin', 'ticker', 'calidad', 'prio', 'tipo', 'trampa', 'precio', 'dist_trampa_pct', 'acciones', 'capital_orden', 'orden', 'desde_dias', 'min52', 'max52', 'peso_valor_tras_compra', 'peso_sector_tras_compra', 'liquidez_tras_compra', 'fiable', 'motivo_no_fiable', 'alerta'],
+        ORDENES_VENTA: ['isin', 'ticker', 'acciones', 'precio_limite', 'caducidad', 'precio_actual', 'dist_pct', 'plusvalia_est', 'impuesto_est', 'ganancia_neta_est', 'anos_div', 'dividendo_que_pierdes_anual', 'peso_sector_tras_venta', 'liquidez_libre_tras_venta', 'estado', 'aviso', 'recompra_sugerida', 'recompra_min52'],
         OPERACIONES: ['fecha', 'isin', 'ticker', 'tipo', 'acciones', 'precio', 'comision', 'importe', 'coste_fifo', 'ganancia_eur', 'impuesto_est'],
         DIVIDENDOS: ['estado', 'fecha_ex', 'fecha_pago', 'fuente_fecha', 'isin', 'ticker', 'bruto', 'ret_origen', 'ret_tr', 'neto_cuenta', 'devolucion_hacienda', 'neto_real'],
         SECTORES: ['sector', 'valor', 'peso', 'tope', 'capital_trampas_pendientes', 'peso_si_saltan_todas'],
         EXPOSICION: ['tipo', 'clave', 'valor', 'peso'],
         LIQUIDEZ: ['concepto', 'importe', 'vencimiento', 'rentabilidad'],
         CALIDAD_DATOS: ['codigo', 'n', 'lista_tickers', 'detalle_corto'],
+        MATERIAS_PRIMAS: ['tipo', 'clave', 'nombre', 'isin', 'ticker', 'moneda', 'precio', 'hora', 'max52', 'min52', 'dist_max52_pct', 'var_1m_pct', 'var_3m_pct', 'var_1a_pct', 'var_5a_pct', 'ter_pct', 'aum', 'tr_disponible', 'div_acc', 'yield_pct', 'payout_pct', 'crec_div_5a_pct', 'bpa_4t', 'bpa_evolucion_pct', 'fcf', 'aisc_usd_oz', 'aisc_margen_pct', 'deuda_neta_ebitda', 'beta_vs_oro', 'captura_subidas_pct', 'captura_bajadas_pct', 'max_drawdown_pct', 'seguimiento_vs_oro_1a_pp', 'trampa_etc', 'estado_trampa', 'tu_valor_eur', 'fiable', 'no_disponible'],
+        TESIS_ORO: ['tipo', 'clave', 'valor', 'detalle'],
         REGLAS: ['clave', 'valor']
     };
     orden.forEach(k => { S[k] = []; });
@@ -1006,13 +1344,16 @@ function exportarAnalisisConstruir(desdeISO) {
     const calidad = [];
     // ── POSICIONES
     const aud = i => PRECIO_AUD[String(i || '').toUpperCase()];
+    let nRevVenta = 0;
     const filasPos = pos.map(p => { const isin = String(p.isin || '').toUpperCase(), a = aud(isin), pr = precioDe(p) || 0, val = pr * p.sh; return { p, isin, a, pr, val }; }).sort((x, y) => y.val - x.val);
     filasPos.forEach(({ p, isin, a, pr, val }) => {
         const etf = esEtfPos(p), tipo = etf ? 'ETF' : esTipoEsp(p.tipo) ? 'ESPEC' : 'FOREVER', ip = _expInfoPrecio(a, isin, pr), fiable = ip.fiable, mot = fiable ? [] : _expMotivos(a, pr);
-        const divAnual = (p.divAcc || 0) * p.sh, gp = pr > 0 ? val - p.ct : '', k = sectorBase(p.sector);
+        const divAnual = (p.divAcc || 0) * p.sh, gp = pr > 0 ? val - p.ct : '', k = sectorBase(p.sector), vv = vvPosicion(p, pr, gp, divAnual);
         R('POSICIONES', [isin, _expIsinAlt(isin), _expTicker(isin), _expTxt(p.n, 24), tipo, etf ? 'ETF' : _expTxt(k, 24), _expTxt(p.pais, 4), _expDivisa(isin), _expN(p.sh, 4), _expN(p.pm, 4), pr > 0 ? _expN(pr, 4) : '', pr > 0 ? ip.fuente : '', pr > 0 ? ip.hora : '', fiable ? '1' : '0', mot.join('+'),
             pr > 0 ? _expN(val, 2) : '', pr > 0 ? _expN(val / tot1 * 100, 2) : '', pr > 0 ? _expN((sectVal[etf ? 'ETF' : k] || 0) / tot1 * 100, 2) : '', gp === '' ? '' : _expN(gp, 2), gp === '' || !(p.ct > 0) ? '' : _expN(gp / p.ct * 100, 2),
-            _expN(p.divAcc, 4), _expN(divAnual, 2), p.ct > 0 && divAnual > 0 ? _expN(divAnual / p.ct * 100, 2) : '', val > 0 && divAnual > 0 ? _expN(divAnual / val * 100, 2) : '']);
+            _expN(p.divAcc, 4), _expN(divAnual, 2), p.ct > 0 && divAnual > 0 ? _expN(divAnual / p.ct * 100, 2) : '', val > 0 && divAnual > 0 ? _expN(divAnual / val * 100, 2) : '',
+            vv.perfil, vv.max52 > 0 ? _expN(vv.max52, 4) : '', vv.dist === null ? '' : _expN(vv.dist, 2), vv.anos === null ? '' : _expN(vv.anos, 1), vv.rev, vv.ex]);
+        if (vv.rev === 'SI') nRevVenta++;
         if (!fiable) calidad.push(['PRECIO_NO_FIABLE', isin, _expTicker(isin), (mot.join('+') || 'VIEJO') + ' ' + _expTxt(p.n, 24)]);
         if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin)) calidad.push(['ISIN_RARO', isin, '', _expTxt(p.n, 24) + (isin ? ' formato' : ' vacio')]);
     });
@@ -1040,6 +1381,12 @@ function exportarAnalisisConstruir(desdeISO) {
         if (!fiable && !(PRECIO_AUD[isin] && filasPos.some(f => f.isin === isin))) calidad.push(['PRECIO_NO_FIABLE', isin, _expTicker(isin), 'trampa ' + (mot.join('+') || 'VIEJO') + ' ' + _expTxt(r[0], 24)]);
         if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(isin) && !(isin && filasPos.some(f => f.isin === isin))) calidad.push(['ISIN_RARO', isin, '', 'trampa ' + _expTxt(r[0], 24) + (isin ? ' formato' : ' vacio')]);
     });
+    // ── ORDENES_VENTA (las editas tú en la hoja ORDENES_VENTA)
+    const ordV = vvCalcOrdenes(hayCash ? liqLibre : null);
+    ordV.forEach(x => { const o = x.o, nom = x.p ? x.p.n : o.nombre;
+        R('ORDENES_VENTA', [o.isin, _expTicker(o.isin) || _expTxt(nom, 10), _expN(o.acciones, 4), _expN(o.limite, 4), o.caducidad || '', x.pr > 0 ? _expN(x.pr, 4) : '', x.dist === null ? '' : _expN(x.dist, 2), x.p ? _expN(x.plus, 2) : '', x.p ? _expN(x.imp, 2) : '', x.p ? _expN(x.neta, 2) : '', x.anos === null ? '' : _expN(x.anos, 1), x.p ? _expN(x.pierde, 2) : '',
+            x.pesoSector === null ? '' : _expN(x.pesoSector, 2), x.liqTras === null ? '' : _expN(x.liqTras, 0), x.estado, x.aviso.join('+'), x.recompra ? _expN(x.recompra, 4) : '', x.recompraMin52 ? _expN(x.recompraMin52, 4) : '']); });
+    const vivas = ordV.filter(x => x.vivo && x.p), cajaPot = vivas.reduce((t, x) => t + x.o.acciones * x.o.limite - x.imp, 0), impExtra = vivas.reduce((t, x) => t + x.imp, 0), nA2 = ordV.filter(x => x.vivo && x.dist !== null && x.dist <= 2).length;
     // ── OPERACIONES
     const ops = [];
     (COMPRAS_DETALLE_GS || []).forEach(c => ops.push({ f: String(c.fecha || '').slice(0, 10), isin: String(c.isin || '').toUpperCase(), t: 'C', acc: c.acciones, pr: c.precio, com: c.comision, imp: c.importe, fifo: '', gp: '', raw: c }));
@@ -1104,7 +1451,7 @@ function exportarAnalisisConstruir(desdeISO) {
     const DESC = { PRECIO_NO_FIABLE: 'precio sin fuente fresca con hora', GETQUIN_VIEJO: 'ficha Getquin de mas de 3 dias', ACCIONES_NO_CUADRAN: 'entre parentesis posicion menos operaciones', ISIN_RARO: 'formato de ISIN no valido', REVISION_VENCIDA: 'revision semestral vencida' };
     Object.keys(gc).forEach(k => R('CALIDAD_DATOS', [k, gc[k].n, gc[k].t.slice(0, 40).join(','), gc[k].n > 2 && DESC[k] ? DESC[k] : gc[k].d.join(' / ')]));
     // ── REGLAS
-    [['tope_valor_pct', C.MAX_PESO_ACCION], ['excepcion_tope_valor', 'Realty Income'], ['tope_sector_pct', C.MAX_PESO_SECTOR], ['techo_duro_trampa_sector_pct', 30], ['tope_especulativa_eur', C.TOPE_ESPECULATIVA_EUR], ['reserva_panico', C.RESERVA_PANICO], ['revision_meses', 6],
+    [['tope_valor_pct', C.MAX_PESO_ACCION], ['excepcion_tope_valor', 'Realty Income'], ['tope_sector_pct', C.MAX_PESO_SECTOR], ['techo_duro_trampa_sector_pct', 30], ['tope_especulativa_eur', C.TOPE_ESPECULATIVA_EUR], ['reserva_panico', C.RESERVA_PANICO], ['revision_venta_anos_div', C.REVISION_VENTA_ANOS_DIV], ['revision_venta_dist_max52_pct', C.REVISION_VENTA_DIST_MAX52_PCT], ['tipo_perfil', 'MADURA|CRECIMIENTO'], ['impuesto_venta_pct', C.IMPUESTO_VENTA_PCT], ['revision_meses', 6],
         ['radar_verde_si', 'nada a menos de 2% de trampa; sin trampa tocada; sin revision vencida; sin alerta critica; sin precio dudoso']].forEach(x => R('REGLAS', x));
     // ── RESUMEN
     let rad = 'GRIS'; try { const e = radarEvaluar().estado; rad = e === 'verde' ? 'VERDE' : e === 'lista' ? 'ROJO' : 'GRIS'; } catch (e) {}
@@ -1114,12 +1461,15 @@ function exportarAnalisisConstruir(desdeISO) {
     const usd = (GETQUIN_GS || []).find(g => g.mon === 'USD' && g.fx > 0) || (PRECIOS_GQ_GS || []).find(g => g.mon === 'USD' && g.fx > 0);
     [['generado', _expIso(ahora)], ['eurusd', usd ? _expN(1 / usd.fx, 4) : ''], ['valor_total', _expN(total, 2)], ['n_posiciones', pos.length], ['n_trampas', nTramp], ['trampas_a_2pct_o_menos', nCerca], ['radar', rad], ['n_precios_no_fiables', noFiab.size], ['precios_por_fuente', (() => { const c = {}; filasPos.forEach(x => { if (x.pr > 0) { const f = _expInfoPrecio(x.a, x.isin, x.pr).fuente; c[f] = (c[f] || 0) + 1; } }); return Object.keys(c).map(k => k + '=' + c[k]).join(' '); })()],
         ['dividendo_anual_bruto', _expN(divAnual, 2)], ['dividendo_mes_bruto', _expN(divAnual / 12, 2)], ['dividendo_mes_neto_real', netoMes === '' ? '' : _expN(netoMes, 2)], ['ganancia_realizada_ano', _expN(gpAnio, 2)], ['impuesto_estimado_ano', _expN(impAnio, 2)], ['liquidez_total', hayLiq ? _expN(liqTotal, 2) : ''], ['liquidez_inmediata', hayCash ? _expN(liqInmediata, 2) : ''], ['reserva_panico', C.RESERVA_PANICO], ['liquidez_libre', hayCash ? _expN(liqLibre, 2) : ''], ['capital_ordenes_activas', _expN(capOrdenes, 0)],
-        ['ops_tecnicas_omitidas', tecnicas], ['desde_ventas', desdeVentas], ['desde_compras', desdeCompras], ['desde_dividendos', desdeDiv]].forEach(x => R('RESUMEN', x));
+        ['ventas_por_revisar', nRevVenta], ['ventas_a_2pct', nA2], ['caja_potencial_ventas', _expN(cajaPot, 2)], ['impuesto_adicional_si_se_ejecutan', _expN(impExtra, 2)], ['ops_tecnicas_omitidas', tecnicas], ['desde_ventas', desdeVentas], ['desde_compras', desdeCompras], ['desde_dividendos', desdeDiv]].forEach(x => R('RESUMEN', x));
+    try { const mp = mpExportFilas(); mp.filas.forEach(f => R('MATERIAS_PRIMAS', f)); mp.tes.forEach(f => R('TESIS_ORO', f)); mp.resumen.forEach(x => R('RESUMEN', x)); [['peso_objetivo_oro_pct', '3-5'], ['trampa_etc_pct_desde_max52', MP_REGLAS.TRAMPA_ETC_PCT], ['mineras_categoria', 'ESPEC'], ['tope_minera_eur', MP_REGLAS.TOPE_MINERA_EUR], ['oro_efectivo_anual_pct', MP_REGLAS.EFECTIVO_ANUAL_PCT]].forEach(x => R('REGLAS', x)); } catch (eMPx) { console.warn('export materias:', eMPx.message); }
     // ── Montaje
     const L = ['LEEME;version=' + EXPORT_VERSION + ';generado=' + _expIso(ahora) + ';moneda=EUR'];
     orden.forEach(k => L.push('LEEME;' + k + ';' + cols[k].join(';')));
     L.push('LEEME;FORMATO;separador ;  decimal punto  porcentajes en % (12.3 = 12,3%)  importes EUR  vacio = sin dato  fiable 0/1  orden 0/1  fechas ISO (hora de Madrid)');
     L.push('LEEME;NOTAS;precio y p_medio en EUR; dist_trampa_pct=(trampa-precio)/precio*100 (negativo = precio aun por encima de la trampa; 0 o mas = tocada) y vacia si fiable=0; trampas_a_2pct_o_menos cuenta las que faltan 2% o menos del precio o ya tocadas; liquidez_total = efectivo TR + cuentas manuales + depositos; liquidez_inmediata = sin depositos; liquidez_libre = liquidez_inmediata - reserva_panico y es la base de liquidez_tras_compra; capital_ordenes_activas = suma de capital_orden con orden=1; sector ETF agrupa los ETF; CALIDAD_DATOS: una linea por codigo (n = recuento); OPERACIONES: compras del mismo dia y valor agrupadas (precio medio) con la comision sumada, ventas una a una con coste FIFO; impuesto_est reparte el impuesto del ano entre las ventas');
+    L.push('LEEME;VENTA;perfil lo pones tu en la hoja PERFILES (no aplica a ETF ni ESPEC); revisar_venta=SI si perfil=MADURA y dist_max52_pct>=-3 y anos_div_gp>=7 (ND=falta dato o precio no fiable); dividendo_proximo_ex = proxima fecha ex futura (vender antes pierde ese dividendo); ORDENES_VENTA viene de la hoja ORDENES_VENTA: dist_pct=(limite-precio)/precio*100 (<=0 alcanzada), plusvalia con precio medio, impuesto 19%, anos_div=plusvalia por accion/dividendo por accion; estado PENDIENTE/TOCADA/EJECUTADA/CADUCADA; si EJECUTADA se propone recompra (-15% del precio de venta y min52) y peso_sector/liquidez ya reflejan la venta; caja_potencial_ventas = acciones*limite - impuesto de las ordenes vivas');
+    L.push('LEEME;MATERIAS;MATERIAS_PRIMAS viene de Yahoo (hoja MP_CACHE): ORO en USD/oz (precio_eur_oz en TESIS_ORO con EURUSD actual); var_*_pct y max52/min52 en la divisa de cada valor; beta_vs_oro, captura_* y max_drawdown_pct sobre rentabilidades semanales de 5 anios en USD (solo precio); seguimiento_vs_oro_1a_pp = rentabilidad 1a del ETC en EUR menos la del oro en EUR; trampa_etc = max52*0.9; aisc_usd_oz lo pones tu (no viene de Yahoo); tr_disponible lo pones tu (NO_VERIFICADO si vacio); vacio = no disponible o no fiable (nunca se rellena); mineras = ESPEC con tope 1000 EUR; TESIS_ORO: valores que escribes tu en MP_TESIS y sus calculos (mineras_estimadas = beta x retorno del oro, ESTIMACION)');
     L.push('LEEME;MOTIVOS;SIN_PRECIO VIEJO APROX CAMBIO SALTO DIF_HOJA (fiable=1 exige fuente YAHOO o GETQUIN de la ultima sesion con hora_precio; un precio de la hoja sin hora nunca es fiable)');
     L.push('LEEME;ALERTA;OK=sin avisos; OJO=vigilar (dividendo justo o sin cubrir, analistas en contra, o la compra cruza el tope de sector 25% sin pasar de 30%); NO=no comprar sin revisar (recorte de dividendo, valor sobre su tope de 12% salvo Realty, sector que ya superaba 25% y crece, o que pasaria de 30%); ND=ETF o sin datos suficientes; sufijos: TOCADA=precio en o bajo la trampa, CERCA2=faltan 2% o menos, PRECIO_DUDOSO=fiable 0');
     orden.forEach(k => { L.push('', '#SECCION;' + k, cols[k].join(';')); S[k].forEach(f => L.push(f.join(';'))); });
@@ -1417,6 +1767,7 @@ const MAP = {
 
 let PA = {},
     TRAMPAS_GS = [];
+let PERFILES_GS = [], ORDENES_VENTA_GS = null;   // vigilancia de venta (hojas PERFILES y ORDENES_VENTA); null = el backend aún no las envía
 
 // Precio actual de una posición: prioriza el ISIN (estable aunque cambies el nombre en CARTERA),
 // y solo si no hay ISIN cae al viejo cruce por nombre a través de MAP.
@@ -3002,6 +3353,10 @@ async function recargar(modoRapido) {
             ]);
         }
 
+        PERFILES_GS = data.perfiles || [];
+        try { mpAplicarDatos(data); const t14 = document.getElementById('t14'); if (t14 && t14.classList.contains('on')) renderMateriasPrimas(); } catch (eMP) { console.warn('materias:', eMP.message); }
+        ORDENES_VENTA_GS = Array.isArray(data.ordenesVenta) ? data.ordenesVenta : null;
+
         // Operaciones cerradas (ya calculadas por Apps Script vía FIFO)
         if (data.operaciones) {
             OPERACIONES_CERRADAS = data.operaciones;
@@ -4117,6 +4472,7 @@ function radarNadaActualizar() {
     else if (r.estado === 'carga') c.innerHTML = '<b>ACTUALIZANDO…</b>';
     else if (r.estado === 'gris') c.innerHTML = '<b>SIN DATOS FIABLES</b><div class="rn-hora">' + (r.ms ? 'Último dato ' + radarHoraTxt(r.ms) : 'Sin ningún dato reciente') + (r.motivo ? ' · ' + revEsc(r.motivo) : '') + '</div>';
     else c.innerHTML = '<div class="rn-tit">REVISAR</div>' + r.items.map(x => '<div class="rn-it ' + x.c + '"><span>' + x.ic + '</span><span>' + x.tx + '</span></div>').join('') + '<div class="rn-hora">Datos de hoy ' + radarHoraTxt(r.ms) + '</div>';
+    { const lv = vvLineaRadar(); if (lv && r.estado !== 'carga') c.insertAdjacentHTML('beforeend', '<div class="rn-ventas">' + lv + '</div>'); }   // línea(s) aparte de la vigilancia de venta; no cambian el estado del radar de compras
 }
 // ── CARTERA ──
 // ¿Esta empresa presenta resultados dentro del mes en curso?
@@ -4503,6 +4859,9 @@ const GOTEO_CFG = {
     MAX_PESO_SECTOR: 25,            // % máx. de la cartera en un sector
     TOPE_ESPECULATIVA_EUR: 1000,    // una especulativa por encima de esto (valor actual + capital de la trampa) es «OJO»
     RESERVA_PANICO: 30000,          // liquidez que no se toca para comprar
+    REVISION_VENTA_ANOS_DIV: 7,     // años de dividendo que equivale la plusvalía (plusvalía / dividendo anual) para revisar la venta
+    REVISION_VENTA_DIST_MAX52_PCT: 3, // % máximo por debajo del máximo de 52 semanas para revisar la venta
+    IMPUESTO_VENTA_PCT: 19,         // impuesto estimado sobre la plusvalía de una venta
     TECHO_SECTOR_TRAMPA: 30,        // techo duro: una trampa que lleve el sector por encima de este % es «NO»
     DIST_TRAMPA_CRECIMIENTO: 5,     // valores de crecimiento: solo si están a ≤ este % de su trampa
     MARGEN_YIELD_RENTA: 2.5,        // valores de renta: yield ≥ tasa de referencia + este margen
