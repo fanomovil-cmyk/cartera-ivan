@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -985,8 +984,12 @@ function vvResumen() {
     const ord = vvCalcOrdenes(null), cerca = ord.filter(x => x.vivo && x.dist !== null && x.dist <= 2), hechas = ord.filter(x => x.estado === 'EJECUTADA');
     return { rev, cerca, hechas };
 }
-function renderVigilanciaVenta() { // panel visible en la pestaña Trampas: valores a revisar + órdenes de venta
+const APP_BUILD = '25-nov 20:15';
+function renderVigilanciaVenta() { // envoltorio: si algo falla, el panel lo dice en vez de desaparecer
     const el = document.getElementById('vv-panel'); if (!el) return;
+    try { renderVigilanciaVentaInt(el); } catch (e) { el.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>💰 Vigilancia de venta</h3><span class="mt2" style="font-size:8px">versión ' + APP_BUILD + '</span></div><div class="alert-box warn" style="margin:8px 16px"><span class="icon">⚠️</span><span>No se pudo pintar: ' + revEsc(e.message) + '</span></div></div>'; }
+}
+function renderVigilanciaVentaInt(el) {
     const C = GOTEO_CFG, pos = posicionesVivas().filter(p => p.sh > 0.0001), n1 = (v, d = 1) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
     const filas = pos.map(p => { const pr = precioDe(p) || 0, gp = pr > 0 ? pr * p.sh - p.ct : '', v = vvPosicion(p, pr, gp, (p.divAcc || 0) * p.sh); return { p, v, pr, gp }; }).filter(x => x.v.perfil);
     const ord = { SI: 0, ND: 1, NO: 2 }; filas.sort((a, b) => (ord[a.v.rev] - ord[b.v.rev]) || (b.v.dist - a.v.dist));
@@ -995,7 +998,7 @@ function renderVigilanciaVenta() { // panel visible en la pestaña Trampas: valo
     let liq = null; const oo = vvCalcOrdenes(liq);
     const tOrd = oo.length ? '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Orden de venta</th><th>Acciones</th><th>Límite</th><th>Precio</th><th>Distancia</th><th>Ganancia neta est.</th><th>Impuesto est.</th><th>Dividendo que pierdes/año</th><th>Estado</th><th>Aviso</th></tr></thead><tbody>' + oo.map(x => '<tr><td style="text-align:left;font-weight:600">' + revEsc(x.p ? x.p.n : x.o.nombre) + '</td><td>' + x.o.acciones + '</td><td>' + n1(x.o.limite, 2) + '</td><td>' + n1(x.pr, 2) + '</td><td>' + (x.dist == null ? '—' : n1(x.dist) + '%') + '</td><td>' + n1(x.neta, 0) + ' €</td><td>' + n1(x.imp, 0) + ' €</td><td>' + n1(x.pierde, 0) + ' €</td><td>' + x.estado + (x.estado === 'EJECUTADA' ? ' → recompra ' + n1(x.recompra, 2) : '') + '</td><td class="mt2" style="font-size:9px">' + revEsc(x.aviso.join(', ')) + '</td></tr>').join('') + '</tbody></table></div>' : '<div style="padding:12px 16px" class="mt2">Sin órdenes de venta: añádelas en la hoja ORDENES_VENTA.</div>';
     const origen = (typeof ORDENES_VENTA_GS !== 'undefined' && ORDENES_VENTA_GS !== null) ? '' : '<div class="alert-box warn" style="margin:8px 16px"><span class="icon">ℹ️</span><span>Todavía no llegan las hojas PERFILES / ORDENES_VENTA de tu Google Sheets (se usan SAN y BDX por defecto). Pega el .gs nuevo, crea la «Nueva versión» y ejecuta <b>prepararVigilanciaVenta</b>.</span></div>';
-    el.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>💰 Vigilancia de venta</h3><span class="mt2" style="font-size:8px">revisar la salida con beneficio · perfil en la hoja PERFILES, órdenes en ORDENES_VENTA</span></div>' + origen + '<div class="mt2" style="padding:8px 16px;font-size:10px">Se marca «revisar» si el perfil es MADURA, el precio está a ' + C.REVISION_VENTA_DIST_MAX52_PCT + ' % o menos de su máximo de 52 semanas y la ganancia equivale a ' + C.REVISION_VENTA_ANOS_DIV + ' o más años de dividendo.' + (sin ? ' Sin perfil: ' + sin + ' valores.' : '') + '</div>' + tPos + '<div class="ch" style="border-top:1px solid var(--bd)"><h3 style="font-size:12px">Órdenes de venta</h3></div>' + tOrd + '</div>';
+    el.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>💰 Vigilancia de venta</h3><span class="mt2" style="font-size:8px">versión ' + APP_BUILD + ' · perfil en la hoja PERFILES, órdenes en ORDENES_VENTA</span></div>' + origen + '<div class="mt2" style="padding:8px 16px;font-size:10px">Se marca «revisar» si el perfil es MADURA, el precio está a ' + C.REVISION_VENTA_DIST_MAX52_PCT + ' % o menos de su máximo de 52 semanas y la ganancia equivale a ' + C.REVISION_VENTA_ANOS_DIV + ' o más años de dividendo.' + (sin ? ' Sin perfil: ' + sin + ' valores.' : '') + '</div>' + tPos + '<div class="ch" style="border-top:1px solid var(--bd)"><h3 style="font-size:12px">Órdenes de venta</h3></div>' + tOrd + '</div>';
 }
 function vvLineaRadar() { // línea aparte en el radar (el radar de compras no cambia)
     let r; try { r = vvResumen(); } catch (e) { return ''; }
@@ -1135,7 +1138,7 @@ function mpRango() { return ['1a', '3a', '5a', '10a'].map(r => '<button class="b
 function renderMateriasPrimas() {
     const root = document.getElementById('mp-root'); if (!root) return;
     const M = MATERIAS_GS, o = mpIt('ORO');
-    const btn = '<button class="btn" id="mp-btn" onclick="mpActualizar()">↻ Actualizar materias primas</button>';
+    const btn = '<button class="btn" id="mp-btn" onclick="mpActualizar()">↻ Actualizar materias primas</button> <button class="btn" onclick="mpResumenDescargar()" title="un .txt pequeño para pegar en otro chat">📤 Resumen para análisis</button>';
     if (!M || !o) { root.innerHTML = '<div class="card"><div class="ch"><h3>🪙 Materias primas</h3>' + btn + '</div><div style="padding:16px;font-size:12px;line-height:1.6">Aún no hay datos. En Apps Script pega el código nuevo, crea la «Nueva versión» y ejecuta <b>actualizarMateriasPrimas</b> (tarda 1-3 minutos; crea las hojas MP_CONFIG, MP_TESIS, MATERIAS_PRIMAS y MP_CACHE). Después pulsa «↻ Refrescar radar».<br><span class="mt2">Si Yahoo falla para algún valor, saldrá «ND» y no se rellena.</span></div></div>'; return; }
     const edad = Math.round((Date.now() - Date.parse(M.actualizado)) / 3600000), mon = MP_UI.mon, tes = mpTesis(), pw = mpPesoOro();
     const dOro = mpDistMax({ precio: o.precio, max52: o.max52 }), caida = (o.maxHistUsd > 0 && o.precio > 0) ? (o.precio / o.maxHistUsd - 1) * 100 : null;
@@ -1248,6 +1251,39 @@ async function mpActualizar() {
         else notificar('🪙 Materias primas', 'No se pudo actualizar: ' + ((r && r.error) || 'sin respuesta'), 'error');
     } catch (e) { notificar('🪙 Materias primas', 'Error de conexión: ' + e.message, 'error'); }
     window._mpBusy = false; renderMateriasPrimas();
+}
+// ── Resumen COMPACTO para otro chat: un .txt pequeño (sin series), números redondeados, vacío = ND ──
+function mpResumenTxt() {
+    const M = MATERIAS_GS, o = M && mpIt('ORO'); if (!o) return null;
+    const mon = 'EUR', n = (M.grid || []).length, i0 = Math.max(0, n - 260), base = MP_UI.base > 0 ? MP_UI.base : 1000, d = (v, k = 1) => mpOk(v) ? Number(v).toFixed(k) : '', L = [];
+    const edad = Math.round((Date.now() - Date.parse(M.actualizado)) / 3600000), pw = mpPesoOro(), tes = mpTesis();
+    L.push('#MP;gen=' + _hoyISO() + ';datos_hace_h=' + edad + ';divisa=' + mon + ';ventana=5a_semanal;base=' + base + ';fuente=Yahoo;vacio=ND_no_fiable;dividendos=brutos_sin_reinvertir;beta/corr/capturas=rent.semanales_USD_oro_ref');
+    L.push('ORO;usd_oz;eur_oz;eurusd;v1m;v3m;v1a;v5a;dist_max52;desde_max_hist;peso_cartera;obj_peso');
+    L.push(['ORO', d(o.precio, 0), d(o.precioEur, 0), d(o.eurusd, 4), d(o.chg.m1), d(o.chg.m3), d(o.chg.a1), d(o.chg.a5), d(mpDistMax({ precio: o.precio, max52: o.max52 })), d(o.maxHistUsd > 0 ? (o.precio / o.maxHistUsd - 1) * 100 : null), d(pw.pct, 2), '3-5'].join(';'));
+    L.push('VAL;clave;tipo;mon;precio;dist52;ter;seg1a_pp;yield;payout;crec5a;bpa_evol;fcf_mM;aisc_marg;dnE;corr;beta;cap_sub;cap_baj;maxdd;inv_precio;inv_div;inv_total;anual;trampa;tuyo_eur;fiable');
+    M.items.filter(i => i.tipo !== 'ORO').forEach(it => {
+        const cf = mpCf(it.clave), st = mpFilaStats(it.clave, 'USD', i0), inv = mpInvertir(it.clave, mon, i0, base), b = mpBpa(it), am = mpAiscMargen(it), tr = it.tipo === 'ETC' ? mpTrampaEtc(it) : null, pos = mpPosDe(it.clave), ter = mpOk(it.ter) ? it.ter : (mpOk(cf.terManual) ? Number(cf.terManual) : null);
+        L.push(['V', it.clave, it.tipo, it.moneda || '', d(it.precio, 2), d(mpDistMax(it)), d(ter, 2), d(it.trackDiff1a, 2), d(it.yield, 1), d(it.payout, 0), d(it.crecDiv5a, 1), b ? d(b.evol, 0) : '', mpOk(it.fcf) ? (it.fcf / 1e6).toFixed(0) : '', am ? d(am.margen, 0) : (cf.aisc === 'N/A' ? 'NA' : ''), d(it.deudaNetaEbitda, 1), st ? d(st.corr, 2) : '', st ? d(st.beta, 2) : '', st ? d(st.up, 0) : '', st ? d(st.down, 0) : '', st && st.dd ? d(st.dd.max, 0) : '', inv ? d(inv.valorPrecio, 0) : '', inv ? d(inv.divs, 0) : '', inv ? d(inv.total_, 0) : '', inv ? d(inv.anual, 1) : '', tr ? d(tr.tr, 2) + (tr.tocada ? '_TOCADA' : '') : '', pos ? d(pos.val, 0) : '', it.fiable ? 1 : 0].join(';'));
+    });
+    const gE = mpSerie('ORO', mon), cor = gE ? mpCorrecciones(gE, MP_REGLAS.UMBRAL_CORRECCION) : [], cl = M.items.filter(i => i.tipo !== 'ORO' && i.precio > 0 && mpSerie(i.clave, mon)).map(i => i.clave);
+    L.push('CORR_ORO;ini;fin;oro_pct;' + cl.join(';') + ';recuperado');
+    cor.forEach(c => L.push(['C', M.grid[c.ip], M.grid[c.iv], d(c.prof, 0)].concat(cl.map(k => { const a = mpSerie(k, mon), p = a[c.ip], v = a[c.iv]; return p > 0 && v > 0 ? d((v / p - 1) * 100, 0) : ''; })).concat([c.enCurso ? 'no' : M.grid[c.rec]]).join(';')));
+    if (tes) {
+        L.push('TESIS;ref_eur_oz' + (tes.refEsActual ? '(=actual)' : '') + ';horizonte;efectivo_pct;obj1;ret1;anual1;obj2;ret2;anual2;bajista;ret_bajista' + (tes.bajistaEstimado ? '(estimado)' : ''));
+        const o1 = tes.obj[0], o2 = tes.obj[1], ba = tes.esc[2]; L.push(['T', d(tes.ref, 0), tes.hor || '', tes.cash, d(o1.eur, 0), d(o1.ret), d(o1.anual), d(o2.eur, 0), d(o2.ret), d(o2.anual), d(ba.eur, 0), d(ba.ret)].join(';'));
+        tes.bancos.forEach(b => L.push(['BANCO', b.banco, d(b.usd, 0), b.fecha || '', d(b.eur, 0), d(b.ret), d(b.fxMas5) + '/' + d(b.fxMenos5) + 'pp_si_EURUSD+-5%'].join(';')));
+        L.push('MINERAS_EST(beta*ret_oro);' + tes.mineras.map(m => m.clave + ':' + tes.esc.map((e, j) => d(m.mov[j], 0)).join('/')).join(' ') + ';orden=alcista/base/bajista');
+    }
+    const hist = [[MP_ISIN_ORO_ETC, 'ETC_ORO'], [MP_ISIN_NEM, 'NEM']].map(([isin, nom]) => { const v = (OPERACIONES_CERRADAS || []).filter(x => esMismoISIN(String(x.isin || ''), isin)), c = (COMPRAS_DETALLE_GS || []).filter(x => esMismoISIN(String(x.isin || ''), isin)), p = mpPosDe(nom === 'NEM' ? 'NEM' : 'IE00B4ND3602'); return nom + ':compras=' + c.length + ',ventas=' + v.length + ',realizado=' + d(v.reduce((t, x) => t + (Number(x.gp) || 0), 0), 0) + ',latente=' + (p ? d((precioDe(p.p) - p.pm) * p.sh, 0) : ''); });
+    L.push('HIST;' + hist.join(';'));
+    L.push('REGLAS;peso_oro_pct=3-5;trampa_etc=-10%_desde_max52;mineras=ESPEC_tope_1000;oro_estado=' + pw.estado + (pw.pct != null ? ';falta_para_3pct_eur=' + d(Math.max(0, pw.minEur), 0) : ''));
+    if ((M.errores || []).length) L.push('AVISOS;' + M.errores.map(e => String(e).replace(/;/g, ',')).join(' | '));
+    return L.join('\n') + '\n';
+}
+function mpResumenDescargar() {
+    const t = mpResumenTxt(); if (!t) { notificar('🪙 Materias primas', 'Sin datos todavía', 'error'); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8' })); a.download = 'materias_' + _hoyISO() + '.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 500);
+    notificar('🪙 Resumen exportado', 'materias_' + _hoyISO() + '.txt · ' + t.length + ' caracteres', 'success');
 }
 // ── Export: secciones MATERIAS_PRIMAS y TESIS_ORO, reglas y resumen ──
 function mpExportFilas() {
@@ -3368,7 +3404,7 @@ async function recargar(modoRapido) {
         }
 
         PERFILES_GS = data.perfiles || [];
-        try { renderVigilanciaVenta(); } catch (eVV) {}
+        renderVigilanciaVenta();
         try { mpAplicarDatos(data); const t14 = document.getElementById('t14'); if (t14 && t14.classList.contains('on')) renderMateriasPrimas(); } catch (eMP) { console.warn('materias:', eMP.message); }
         ORDENES_VENTA_GS = Array.isArray(data.ordenesVenta) ? data.ordenesVenta : null;
 
