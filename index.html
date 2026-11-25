@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="light">
 <head>
@@ -933,8 +934,8 @@ function exportarCSV() {
 
 // ══════════ VIGILANCIA DE VENTA: revisar la salida con beneficio aunque el valor sea FOREVER ══════════
 // Perfil (hoja PERFILES, lo editas tú) + órdenes de venta que tienes puestas (hoja ORDENES_VENTA). Si el backend aún no las envía se usan las dos órdenes iniciales.
-const ORDENES_VENTA_INICIALES = [{ isin: 'ES0113900J37', nombre: 'Banco Santander', acciones: 10, limite: 105, caducidad: '', alta: '2026-11-25', nota: 'inicial' }, { isin: 'US0758871091', nombre: 'Becton Dickinson', acciones: 5, limite: 207, caducidad: '', alta: '2026-11-25', nota: 'inicial', recompra: 125 }];
-const PERFILES_INICIALES = { ES0113900J37: 'MADURA', US0758871091: 'MADURA', IE00BTN1Y115: 'MADURA', US5801351017: 'MADURA', US7561091049: 'MADURA', US9256521090: 'MADURA', US92826C8394: 'CRECIMIENTO', US57636Q1040: 'CRECIMIENTO', US09247X1019: 'CRECIMIENTO', US0028241000: 'CRECIMIENTO', US00287Y1091: 'CRECIMIENTO', FR0000120073: 'CRECIMIENTO', US5486611073: 'CRECIMIENTO' };
+const ORDENES_VENTA_INICIALES = [{ isin: 'FR0000120578', nombre: 'Sanofi', acciones: 10, limite: 105, caducidad: '', alta: '2026-11-25', nota: 'inicial' }, { isin: 'US0758871091', nombre: 'Becton Dickinson', acciones: 5, limite: 207, caducidad: '', alta: '2026-11-25', nota: 'inicial', recompra: 125 }];
+const PERFILES_INICIALES = { FR0000120578: 'MADURA', US0758871091: 'MADURA', IE00BTN1Y115: 'MADURA', US5801351017: 'MADURA', US7561091049: 'MADURA', US9256521090: 'MADURA', US92826C8394: 'CRECIMIENTO', US57636Q1040: 'CRECIMIENTO', US09247X1019: 'CRECIMIENTO', US0028241000: 'CRECIMIENTO', US00287Y1091: 'CRECIMIENTO', FR0000120073: 'CRECIMIENTO', US5486611073: 'CRECIMIENTO' };
 function vvOrdenes() { return (typeof ORDENES_VENTA_GS !== 'undefined' && ORDENES_VENTA_GS !== null) ? ORDENES_VENTA_GS : ORDENES_VENTA_INICIALES; }
 function vvPerfil(p) { // MADURA | CRECIMIENTO | '' (no aplica a ETF ni a especulativas; vacío si no lo has puesto)
     if (esEtfPos(p) || esTipoEsp(p.tipo)) return '';
