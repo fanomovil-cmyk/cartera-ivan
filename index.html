@@ -553,6 +553,7 @@ html.light .badge-orden.venta{color:#B33A3A}
 <div class="tp" id="t2">
   <div class="kg" id="kg2"></div>
   <div id="trampas-aviso"></div>
+  <div id="vv-panel"></div>
   <div class="card">
     <div class="ch"><h3>📊 Distancia a la trampa</h3><span class="mt2" style="font-size:9px" id="n-grafico-trampas">—</span></div>
     <div class="mt2" style="font-size:9px;padding:0 4px 6px">La línea dorada (0) es tu TRAMPA. Barra hacia abajo = el precio aún está por encima (cuanto más corta, más cerca); barra hacia arriba = ya ha tocado la trampa. Solo se muestran las que están a menos de un 15%.</div>
@@ -869,6 +870,7 @@ function sw(i) {
         .getElementById(id); if (el) el.classList.toggle('on', i === j); });
     if (i === 12 && typeof renderRevisionSemestral === 'function') renderRevisionSemestral();
     if (i === 13 && typeof renderAnalisisDividendos === 'function') renderAnalisisDividendos();
+    if (i === 2 && typeof renderVigilanciaVenta === 'function') renderVigilanciaVenta();
     if (i === 14 && typeof renderMateriasPrimas === 'function') renderMateriasPrimas();
     if (i === 10 && typeof renderSaludDatos === 'function') renderSaludDatos();
 }
@@ -982,6 +984,18 @@ function vvResumen() {
     pos.forEach(p => { const pr = precioDe(p) || 0, gp = pr > 0 ? pr * p.sh - p.ct : '', v = vvPosicion(p, pr, gp, (p.divAcc || 0) * p.sh); if (v.rev === 'SI') rev.push({ n: p.n, dist: v.dist, anos: v.anos }); });
     const ord = vvCalcOrdenes(null), cerca = ord.filter(x => x.vivo && x.dist !== null && x.dist <= 2), hechas = ord.filter(x => x.estado === 'EJECUTADA');
     return { rev, cerca, hechas };
+}
+function renderVigilanciaVenta() { // panel visible en la pestaña Trampas: valores a revisar + órdenes de venta
+    const el = document.getElementById('vv-panel'); if (!el) return;
+    const C = GOTEO_CFG, pos = posicionesVivas().filter(p => p.sh > 0.0001), n1 = (v, d = 1) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+    const filas = pos.map(p => { const pr = precioDe(p) || 0, gp = pr > 0 ? pr * p.sh - p.ct : '', v = vvPosicion(p, pr, gp, (p.divAcc || 0) * p.sh); return { p, v, pr, gp }; }).filter(x => x.v.perfil);
+    const ord = { SI: 0, ND: 1, NO: 2 }; filas.sort((a, b) => (ord[a.v.rev] - ord[b.v.rev]) || (b.v.dist - a.v.dist));
+    const sin = pos.filter(p => !vvPerfil(p) && !esEtfPos(p) && !esTipoEsp(p.tipo)).length;
+    const tPos = filas.length ? '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Valor</th><th>Perfil</th><th>Precio</th><th>Máx 52s</th><th>Dist. máx</th><th>Años de dividendo ganados</th><th>Revisar venta</th><th>Próx. ex-dividendo</th></tr></thead><tbody>' + filas.map(x => '<tr><td style="text-align:left;font-weight:600">' + revEsc(x.p.n) + '</td><td>' + x.v.perfil + '</td><td>' + n1(x.pr, 2) + '</td><td>' + n1(x.v.max52, 2) + '</td><td>' + n1(x.v.dist) + '%</td><td>' + n1(x.v.anos) + '</td><td>' + (x.v.rev === 'SI' ? '<b style="color:var(--am)">SI</b>' : x.v.rev === 'ND' ? '<span class="mt2" title="falta dato o precio no fiable">ND</span>' : x.v.rev === 'NO' ? 'no' : '—') + '</td><td>' + (x.v.ex ? revFmt(x.v.ex) : '—') + '</td></tr>').join('') + '</tbody></table></div>' : '<div style="padding:12px 16px" class="mt2">Ningún valor tiene perfil todavía: escribe MADURA o CRECIMIENTO en la columna C de la hoja PERFILES.</div>';
+    let liq = null; const oo = vvCalcOrdenes(liq);
+    const tOrd = oo.length ? '<div class="sc"><table class="dt"><thead><tr><th style="text-align:left">Orden de venta</th><th>Acciones</th><th>Límite</th><th>Precio</th><th>Distancia</th><th>Ganancia neta est.</th><th>Impuesto est.</th><th>Dividendo que pierdes/año</th><th>Estado</th><th>Aviso</th></tr></thead><tbody>' + oo.map(x => '<tr><td style="text-align:left;font-weight:600">' + revEsc(x.p ? x.p.n : x.o.nombre) + '</td><td>' + x.o.acciones + '</td><td>' + n1(x.o.limite, 2) + '</td><td>' + n1(x.pr, 2) + '</td><td>' + (x.dist == null ? '—' : n1(x.dist) + '%') + '</td><td>' + n1(x.neta, 0) + ' €</td><td>' + n1(x.imp, 0) + ' €</td><td>' + n1(x.pierde, 0) + ' €</td><td>' + x.estado + (x.estado === 'EJECUTADA' ? ' → recompra ' + n1(x.recompra, 2) : '') + '</td><td class="mt2" style="font-size:9px">' + revEsc(x.aviso.join(', ')) + '</td></tr>').join('') + '</tbody></table></div>' : '<div style="padding:12px 16px" class="mt2">Sin órdenes de venta: añádelas en la hoja ORDENES_VENTA.</div>';
+    const origen = (typeof ORDENES_VENTA_GS !== 'undefined' && ORDENES_VENTA_GS !== null) ? '' : '<div class="alert-box warn" style="margin:8px 16px"><span class="icon">ℹ️</span><span>Todavía no llegan las hojas PERFILES / ORDENES_VENTA de tu Google Sheets (se usan SAN y BDX por defecto). Pega el .gs nuevo, crea la «Nueva versión» y ejecuta <b>prepararVigilanciaVenta</b>.</span></div>';
+    el.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="ch"><h3>💰 Vigilancia de venta</h3><span class="mt2" style="font-size:8px">revisar la salida con beneficio · perfil en la hoja PERFILES, órdenes en ORDENES_VENTA</span></div>' + origen + '<div class="mt2" style="padding:8px 16px;font-size:10px">Se marca «revisar» si el perfil es MADURA, el precio está a ' + C.REVISION_VENTA_DIST_MAX52_PCT + ' % o menos de su máximo de 52 semanas y la ganancia equivale a ' + C.REVISION_VENTA_ANOS_DIV + ' o más años de dividendo.' + (sin ? ' Sin perfil: ' + sin + ' valores.' : '') + '</div>' + tPos + '<div class="ch" style="border-top:1px solid var(--bd)"><h3 style="font-size:12px">Órdenes de venta</h3></div>' + tOrd + '</div>';
 }
 function vvLineaRadar() { // línea aparte en el radar (el radar de compras no cambia)
     let r; try { r = vvResumen(); } catch (e) { return ''; }
@@ -3354,6 +3368,7 @@ async function recargar(modoRapido) {
         }
 
         PERFILES_GS = data.perfiles || [];
+        try { renderVigilanciaVenta(); } catch (eVV) {}
         try { mpAplicarDatos(data); const t14 = document.getElementById('t14'); if (t14 && t14.classList.contains('on')) renderMateriasPrimas(); } catch (eMP) { console.warn('materias:', eMP.message); }
         ORDENES_VENTA_GS = Array.isArray(data.ordenesVenta) ? data.ordenesVenta : null;
 
